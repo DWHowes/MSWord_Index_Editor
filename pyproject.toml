@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "wordindexmanager"
+name = "wordindexeditor"
 version = "0.0.1.dev0"
-description = "Indexing tool for Microsoft Word documents, built on bookindexcore"
+description = "Word Index Editor -- indexing tool for Microsoft Word documents, built on bookindexcore"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Proprietary" }
