@@ -28,13 +28,17 @@ module and design §8.5. Briefly:
 
 * **Sort keys are per entry, not per level.** ``\y`` applies to the whole
   field. ``split_sort_key`` is a per-level question, so it always answers "no
-  sort key here" and the real one is reached through :func:`split_entry_sort_key`.
+  sort key here" -- and building this dialect is what replaced the protocol's
+  ``supports_sort_keys`` bool with ``sort_key_scope``, so that shared UI can
+  put one "Sort as" control on the entry instead of three that would fight
+  over one value. **Resolved.**
 * **Emphasis is a set, not a value.** ``\b`` and ``\i`` are independent and can
   both be present, where ``page_style`` is a single string. Canonicalised to
   ``"bold"`` / ``"italic"`` / ``"bold italic"``.
 * **A range is not an end.** Word has "this entry is a range, spanned by
   bookmark X", not "this entry opens a range". ``range_role`` is therefore
-  always None and ``uses_paired_ranges`` is False.
+  always None and ``uses_paired_ranges`` is False; the bookmark goes in
+  ``IndexReference.range_extent``, which exists because of this. **Resolved.**
 """
 
 import re
@@ -42,6 +46,7 @@ import re
 from bookindexcore.dialect.types import (
     ERROR,
     ROLE_SORT,
+    SORT_PER_ENTRY,
     STANDARD_PAGE_STYLE,
     WARNING,
     XREF_SEE,
@@ -112,12 +117,14 @@ class XEDialect:
     name = "ooxml-xe"
     max_levels = MAX_LEVELS
 
-    #: False, and this is the finding that matters most. Word *has* sort keys
-    #: -- ``\y`` -- but they belong to the whole entry, and this flag gates a
-    #: per-*level* "Sort as" field. Answering True would make shared UI offer
-    #: a control on every level that could only ever write one value between
-    #: them. See :func:`split_entry_sort_key` for the real one.
-    supports_sort_keys = False
+    #: Per **entry**, not per level. This is the finding that changed the
+    #: protocol: it used to be a ``supports_sort_keys`` bool, which gated a
+    #: per-level "Sort as" control, so Word -- whose one ``\y`` applies to
+    #: the whole field -- could only answer False and have a feature it
+    #: really has hidden from it. The key lives on
+    #: ``IndexReference.sort_key``; :func:`split_entry_sort_key` reads it off
+    #: an instruction.
+    sort_key_scope = SORT_PER_ENTRY
 
     #: A Word range is one field plus a bookmark that spans it, not a pair of
     #: entries. The range-consistency analyser is meaningless here and must

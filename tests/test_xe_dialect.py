@@ -15,7 +15,12 @@ the three-level cap, and instructions carrying every switch.
 import pytest
 
 from bookindexcore.dialect import IndexDialect
-from bookindexcore.dialect.types import STANDARD_PAGE_STYLE, TextRun, XRefSpec
+from bookindexcore.dialect.types import (
+    SORT_PER_ENTRY,
+    STANDARD_PAGE_STYLE,
+    TextRun,
+    XRefSpec,
+)
 from bookindexcore.testing.dialect_conformance import (
     DialectConformance,
     DialectSamples,
@@ -170,13 +175,19 @@ class TestWhatWordDoesNotHave:
     that a later "fix" has to argue with a test rather than with a comment.
     """
 
-    def test_there_is_no_per_level_sort_key(self):
+    def test_the_sort_key_belongs_to_the_entry_not_the_level(self):
         r"""
         ``\y`` is one sort key for the whole entry, so a *level* never has
-        one. supports_sort_keys is False for that reason and not because
-        Word lacks sort keys -- see split_entry_sort_key.
+        one.
+
+        This is the finding that changed the protocol. It used to be a
+        ``supports_sort_keys`` bool gating a per-*level* control, which Word
+        could only answer False to — hiding a feature it really has. The
+        scope says what is true instead, and shared UI can put one "Sort as"
+        control on the entry rather than three that would fight over one
+        value.
         """
-        assert XE_DIALECT.supports_sort_keys is False
+        assert XE_DIALECT.sort_key_scope == SORT_PER_ENTRY
         assert XE_DIALECT.split_sort_key("Kant, Immanuel") == ("", "Kant, Immanuel")
         assert XE_DIALECT.build_level("kant", "Kant, Immanuel") == "Kant, Immanuel"
         assert XE_DIALECT.split_entry_sort_key('XE "Kant" \\y "kant"') == "kant"
