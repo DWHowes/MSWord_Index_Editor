@@ -203,6 +203,24 @@ class OoxmlBackend(DocumentBackend):
     # -- mutation -----------------------------------------------------------
 
     def apply(self, edit: SourceEdit) -> EditResult:
+        r"""
+        Rewrites, places or removes one ``XE`` field.
+
+        All three since phase 5b, when separate ``insert``/``delete`` methods
+        were folded into this one. Nothing ever moves as a result: a bookmark
+        travels with the text around it, which is what lets this backend
+        inherit the base class's empty ``relocate_after``.
+
+        **[NEEDS RIGOROUS TESTING IN PHASE 8.]** Placement in particular. This
+        application has no UI yet, so every path here has been exercised by the
+        conformance battery and by nothing else — and the reason the interface
+        changed at all is that the *previous* shape looked correct under the
+        battery and turned out to be unusable by a real insertion path. The
+        same could be true of this one. See HLD §11.
+        """
+        if not edit.names_an_entry:
+            return self._place(edit)
+
         field = self._find(edit.locator)
         if field is None:
             return EditResult.failed(
@@ -214,35 +232,72 @@ class OoxmlBackend(DocumentBackend):
                 f"the document changed underneath this edit"
             )
 
+        if not edit.after:
+            return self._remove(field)
+
         self._write_instruction(field, str(edit.after))
         self._rescan(field.container)
         return EditResult(ok=True, locator=self._locator_of(field.container, field.anchor))
 
-    def insert(self, at: Locator, payload) -> EditResult:
+    def _place(self, edit: SourceEdit) -> EditResult:
         """
-        Adds a field immediately after the one ``at`` names, with its own
-        companion bookmark.
+        Adds a field where an anchorless locator says, with its own companion
+        bookmark.
 
-        Nothing else moves: a bookmark travels with the text around it, which
-        is exactly the property that lets this backend inherit the base
-        class's empty ``relocate_after``.
+        The hint carries ``ordinal``, and a placement goes **after** the field
+        at that ordinal — never before it, which is a real hazard rather than
+        a preference. This backend resolves a field's identity by walking back
+        to the nearest preceding ``bookmarkStart``, so a new bookmark spliced
+        in between an existing field and its own bookmark makes that field
+        re-resolve to the newcomer's anchor and lose its identity. The
+        conformance battery found exactly that.
+
+        A part with **no fields at all** appends to its last paragraph, which
+        the old insert-beside shape could not express: there was no neighbour
+        to name, so the first entry in a document was unreachable.
+
+        **[NEEDS RIGOROUS TESTING IN PHASE 8.]** A real Word insertion is "the
+        user selected some text and asked for an entry", and translating a
+        selection into a place in the XML tree is work this backend has not had
+        to do yet — it has no UI. The ordinal is a placeholder for whatever
+        that turns out to need, and "after the field at ordinal N" is very
+        probably not it.
         """
-        neighbour = self._find(at)
-        if neighbour is None:
-            return EditResult.failed(f"no field anchored {at.anchor!r} to insert beside")
+        text = str(edit.after)
+        if not text:
+            return EditResult.failed("an anchorless edit with nothing to write places nothing")
+
+        container = edit.locator.container
+        if container not in self._trees:
+            return EditResult.failed(f"no such container {container!r}")
 
         anchor = new_anchor()
-        last = neighbour._nodes[-1]
-        parent = last.getparent()
-        index = list(parent).index(last)
+        nodes = self._build_field(anchor, text)
+        fields = list(self._fields.get(container, ()))
 
-        for offset, node in enumerate(self._build_field(anchor, str(payload))):
-            parent.insert(index + 1 + offset, node)
+        if fields:
+            ordinal = edit.locator.hint.get("ordinal")
+            index_of = len(fields) - 1 if ordinal is None else max(
+                0, min(int(ordinal), len(fields) - 1)
+            )
+            last = fields[index_of]._nodes[-1]
+            parent = last.getparent()
+            position = list(parent).index(last)
+            for offset, node in enumerate(nodes):
+                parent.insert(position + 1 + offset, node)
+        else:
+            paragraph = self._last_paragraph(container)
+            if paragraph is None:
+                return EditResult.failed(
+                    f"no paragraph to place a field in for {container!r}"
+                )
+            for node in nodes:
+                paragraph.append(node)
 
-        self._rescan(neighbour.container)
-        return EditResult(ok=True, locator=self._locator_of(neighbour.container, anchor))
+        self._rescan(container)
+        return EditResult(ok=True, locator=self._locator_of(container, anchor))
 
-    def delete(self, at: Locator) -> EditResult:
+    def _remove(self, field) -> EditResult:
         """
         Removes the field and its companion bookmark.
 
@@ -250,10 +305,6 @@ class OoxmlBackend(DocumentBackend):
         orphaned ``wim_`` names in the user's document, which HLD §9.4 has to
         sweep up at save time precisely because a deletion path forgot.
         """
-        field = self._find(at)
-        if field is None:
-            return EditResult.failed(f"no field anchored {at.anchor!r} to delete")
-
         for node in field._nodes:
             parent = node.getparent()
             if parent is not None:
@@ -317,6 +368,22 @@ class OoxmlBackend(DocumentBackend):
                 RawField(anchor, container, instruction.strip(), len(fields), nodes, kind)
             )
         self._fields[container] = fields
+
+    def _last_paragraph(self, container: str):
+        """
+        The final ``w:p`` in a part, or None if it has none.
+
+        Where a field goes when the part has no existing ones to place it
+        relative to. A real Word insertion will place at the user's selection
+        instead — see :meth:`_place`'s phase 8 note — but "at the end of the
+        text" is a defensible answer for a part that is empty of entries, and
+        it is a great deal better than refusing.
+        """
+        tree = self._trees.get(container)
+        if tree is None:
+            return None
+        paragraphs = list(tree.getroot().iter(_q("p")))
+        return paragraphs[-1] if paragraphs else None
 
     def _walk_fields(self, tree):
         """
