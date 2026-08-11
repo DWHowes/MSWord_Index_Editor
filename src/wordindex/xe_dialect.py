@@ -151,6 +151,14 @@ class XEDialect:
         PageStyle(BOLD_ITALIC, "Bold italic", bold=True, italic=True),
     )
 
+    #: False, and this is the second declaration Word's existence produced.
+    #: The four entries above are not a default set a project extends -- they
+    #: are the complete enumeration of two boolean switches, and there is no
+    #: fifth. LaTeX's vocabulary is macro names a project can invent and
+    #: InDesign's is character-style references a document can define, so once
+    #: again Word is the outlier and the shared assumption was LaTeX's.
+    page_style_vocabulary_is_open = False
+
     def effective_max_levels(self, project: object = None) -> int:
         return self.max_levels
 
