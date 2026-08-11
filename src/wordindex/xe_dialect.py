@@ -151,6 +151,26 @@ class XEDialect:
         PageStyle(BOLD_ITALIC, "Bold italic", bold=True, italic=True),
     )
 
+    #: ~259 characters, and this is the declaration Word's existence produced
+    #: that is most worth reading twice, because the failure is silent.
+    #:
+    #: Word has **no limit on entry length** -- a 1,000-character ``XE`` field
+    #: generates perfectly. What it has is a limit on how much of an entry it
+    #: *compares*. Two entries whose first ~259 characters match collapse into
+    #: one, and the other **disappears from the generated index** while both
+    #: fields remain present and correct in the document. No error, no warning,
+    #: nothing in the source to see.
+    #:
+    #: Note this is NOT the 255 of ``Indexes.MarkEntry``, which silently
+    #: truncates its argument and is the limit a document authored through
+    #: Word's own dialog will carry. ``OoxmlBackend`` writes ``instrText``
+    #: directly and never calls it -- but an imported document may already
+    #: have been damaged that way, which is why an entry of *exactly* 255
+    #: characters is worth flagging as a fingerprint of upstream truncation.
+    #:
+    #: Measured -- see documentation/e0_measurements in bookindexcore.
+    distinguishing_prefix = 259
+
     #: False, and this is the second declaration Word's existence produced.
     #: The four entries above are not a default set a project extends -- they
     #: are the complete enumeration of two boolean switches, and there is no
@@ -161,6 +181,17 @@ class XEDialect:
 
     def effective_max_levels(self, project: object = None) -> int:
         return self.max_levels
+
+    def max_entry_length(self, project: object = None) -> int | None:
+        """
+        None: Word imposes no ceiling on the length of an ``XE`` instruction,
+        measured to 1,000 characters and generating correctly throughout.
+
+        The constraint that bites this format is
+        :attr:`distinguishing_prefix`, which is a collision limit rather than
+        a length one -- see there.
+        """
+        return None
 
     # -- index classes ------------------------------------------------------
 
