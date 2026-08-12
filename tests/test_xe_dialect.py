@@ -16,7 +16,7 @@ import pytest
 
 from bookindexcore.dialect import IndexDialect
 from bookindexcore.dialect.types import (
-    SORT_PER_ENTRY,
+    SORT_PER_LEVEL,
     STANDARD_PAGE_STYLE,
     TextRun,
     XRefSpec,
@@ -36,12 +36,30 @@ WORD_SAMPLES = DialectSamples(
         r"Ratios\: financial",          # an escaped colon is text, not a level
         r'She said \"yes\"',
         "  padded  ",
+        # Keys on more than one level at once, which is the shape a real
+        # military-history index takes and the one that would have caught the
+        # per-entry mis-declaration on the day it was made.
+        "8th Indian Infantry Division;eighth indian infantry division"
+        ":6/13th FF Rifles;six thirteen ff rifles",
     ),
     levels=(
         "Kant, Immanuel",
         "early works",
         r"Ratios\: financial",
         "  padded  ",
+        # -- the measured sort-key grammar, one sample per rule --------------
+        # An ordinary key.
+        "2nd Canadian Infantry Division;second canadian infantry division",
+        # LAST unescaped separator wins: display is "Multi;ccc key".
+        "Multi;ccc key;trailing tail",
+        # ";;" is not an escape, it is two separators of which the last wins.
+        "Doubled;;semicolon",
+        # An empty tail is not a separator at all -- the ";" is text.
+        "EmptyKey;",
+        # "\;" is a literal semicolon and does not split.
+        r"Escaped\;semicolon",
+        # Both kinds in one level.
+        r"Both\;kinds;rrr real key",
     ),
     equivalent_headings=(
         # Word keeps page style in switches, outside the entry text, so two
@@ -55,6 +73,8 @@ WORD_SAMPLES = DialectSamples(
         "back\\slash",
         "Kant, Immanuel",
         "50% off",
+        # The silent hazard: a title whose semicolon was never a sort key.
+        "Smith; or, The Tale",
     ),
     page_styles=("bold", "italic", "bold italic"),
     xref_targets=("Hume, David", "Empiricism", "the Categorical Imperative"),
@@ -74,6 +94,7 @@ WORD_SAMPLES = DialectSamples(
     questionable_texts=(
         "Ratios: financial",
         'She said "yes"',
+        "Smith; or, The Tale",
     ),
 )
 
@@ -175,22 +196,31 @@ class TestWhatWordDoesNotHave:
     that a later "fix" has to argue with a test rather than with a comment.
     """
 
-    def test_the_sort_key_belongs_to_the_entry_not_the_level(self):
+    def test_a_level_carries_its_own_sort_key_after_all(self):
         r"""
-        ``\y`` is one sort key for the whole entry, so a *level* never has
-        one.
+        Corrected 12 Aug 2026. This test used to assert the opposite, on the
+        belief that ``\y`` was Word's only sort key and belonged to the whole
+        entry.
 
-        This is the finding that changed the protocol. It used to be a
-        ``supports_sort_keys`` bool gating a per-*level* control, which Word
-        could only answer False to — hiding a feature it really has. The
-        scope says what is true instead, and shared UI can put one "Sort as"
-        control on the entry rather than three that would fight over one
-        value.
+        It is kept in this class, rather than moved out of it, because what
+        the class is *for* is the places the protocol and Word disagree — and
+        the useful record now is that one of the three was never a
+        disagreement at all. The protocol change it produced
+        (``supports_sort_keys`` → ``sort_key_scope``) was still right; only
+        the value was wrong.
+
+        ``\y`` is still read, because an imported document may carry one.
         """
-        assert XE_DIALECT.sort_key_scope == SORT_PER_ENTRY
-        assert XE_DIALECT.split_sort_key("Kant, Immanuel") == ("", "Kant, Immanuel")
-        assert XE_DIALECT.build_level("kant", "Kant, Immanuel") == "Kant, Immanuel"
+        assert XE_DIALECT.sort_key_scope == SORT_PER_LEVEL
+        assert XE_DIALECT.split_sort_key(
+            "2nd Canadian Infantry Division;second canadian infantry division"
+        ) == ("second canadian infantry division", "2nd Canadian Infantry Division")
+        assert XE_DIALECT.build_level("kant", "Kant, Immanuel") == "Kant, Immanuel;kant"
         assert XE_DIALECT.split_entry_sort_key('XE "Kant" \\y "kant"') == "kant"
+
+    def test_a_level_with_no_semicolon_still_has_no_key(self):
+        assert XE_DIALECT.split_sort_key("Kant, Immanuel") == ("", "Kant, Immanuel")
+        assert XE_DIALECT.build_level("", "Kant, Immanuel") == "Kant, Immanuel"
 
     def test_a_range_has_no_end(self):
         r"""
@@ -204,6 +234,88 @@ class TestWhatWordDoesNotHave:
     def test_the_heading_carries_no_emphasis(self):
         assert XE_DIALECT.rich_text_runs("Kant, Immanuel") == [TextRun("Kant, Immanuel")]
         assert XE_DIALECT.rich_text_runs("") == []
+
+
+class TestTheSemicolonSortKey:
+    r"""
+    The measured grammar, one test per rule. Every expectation here came off
+    a generated Word index (``e0_probes/sort_word_semicolon_key.py``), not off
+    documentation — Microsoft documents none of it.
+    """
+
+    def test_the_last_unescaped_separator_wins_not_the_first(self):
+        assert XE_DIALECT.split_sort_key("Multi;ccc key;trailing tail") == (
+            "trailing tail", "Multi;ccc key",
+        )
+
+    def test_a_doubled_separator_is_not_an_escape(self):
+        """``;;`` is two separators, of which the last one wins."""
+        assert XE_DIALECT.split_sort_key("Doubled;;semicolon") == (
+            "semicolon", "Doubled;",
+        )
+
+    def test_an_empty_tail_is_not_a_separator(self):
+        """A trailing ``;`` is ordinary text; Word prints it."""
+        assert XE_DIALECT.split_sort_key("EmptyKey;") == ("", "EmptyKey;")
+
+    def test_a_backslash_escapes_the_separator(self):
+        assert XE_DIALECT.split_sort_key(r"Escaped\;semicolon") == (
+            "", r"Escaped\;semicolon",
+        )
+        assert XE_DIALECT.split_sort_key(r"Both\;kinds;rrr real key") == (
+            "rrr real key", r"Both\;kinds",
+        )
+
+    def test_whitespace_around_a_key_is_stripped(self):
+        """
+        A leading space in a sort key is always an indexer error, and Word is
+        the host least able to reveal it — it files the entry correctly, so
+        nothing in the generated index betrays the fault. Normalising here is
+        what lets a check on the stored value find it.
+        """
+        assert XE_DIALECT.split_sort_key("SpaceKey;   aaa spaced") == (
+            "aaa spaced", "SpaceKey",
+        )
+
+    def test_an_ordinary_semicolon_in_a_title_is_silently_a_key(self):
+        """
+        The hazard that forces the writer to escape. Nothing here is a bug —
+        it is what Word does, and it is why ``check`` warns.
+        """
+        assert XE_DIALECT.split_sort_key("Smith; or, The Tale") == (
+            "or, The Tale", "Smith",
+        )
+        assert XE_DIALECT.split_sort_key(XE_DIALECT.escape("Smith; or, The Tale")) == (
+            "", r"Smith\; or, The Tale",
+        )
+
+    def test_a_semicolon_draws_advice_in_display_text(self):
+        findings = XE_DIALECT.check("Smith; or, The Tale", role="display")
+        assert findings and findings[0].fix == "\\;"
+
+    def test_a_switch_payload_escapes_less_than_entry_text_does(self):
+        r"""
+        ``\t`` is literal replacement text, so ``:`` and ``;`` mean nothing in
+        it and escaping them would print a backslash in the finished index.
+        This is the distinction Index-Manager collapses in the other
+        direction: it matches a target on the full level string, which is
+        right, and then writes that string into ``\t`` unchanged, which is
+        not.
+        """
+        target = "See also 1st Canadian Infantry Division; first canadian"
+        assert XE_DIALECT.escape_payload(target) == target
+        assert "\\;" in XE_DIALECT.escape(target), "entry text still escapes it"
+
+        # A quote and a backslash DO still have to be escaped in a payload:
+        # the quote ends the string and a trailing backslash escapes it.
+        assert XE_DIALECT.escape_payload('a "b') == 'a \\"b'
+
+        # with_index_class is the payload writer that exists today; the \t
+        # writer arrives with the rest of the app in Phase 8 and must use the
+        # same escape.
+        written = XE_DIALECT.with_index_class('XE "Canadian Army"', "names; roman")
+        assert "\\;" not in written
+        assert XE_DIALECT.index_class_of(written) == "names; roman"
 
 
 class TestAdvice:

@@ -14,7 +14,7 @@ Concern                 LaTeX                               Word
 ======================  ==================================  =====================
 Level separator         ``!``                               ``:``
 Max levels              3 (makeindex default)               3 (hard cap)
-Sort key                ``sort@display``, **per level**      ``\y``, **per entry**
+Sort key                ``sort@display``, **per level**      ``display;sort``, **per level**
 Emphasis                ``|textbf`` — one command            ``\b`` ``\i`` — independent switches
 Page range              two entries, ``|(`` and ``|)``      one entry + a bookmark
 Cross-reference         ``|see{Target}``                    ``\t "See also Target"``
@@ -26,12 +26,15 @@ Three of those rows do not fit the protocol cleanly, and each is recorded as
 a finding rather than papered over — see ``FINDINGS`` at the bottom of this
 module and design §8.5. Briefly:
 
-* **Sort keys are per entry, not per level.** ``\y`` applies to the whole
-  field. ``split_sort_key`` is a per-level question, so it always answers "no
-  sort key here" -- and building this dialect is what replaced the protocol's
-  ``supports_sort_keys`` bool with ``sort_key_scope``, so that shared UI can
-  put one "Sort as" control on the entry instead of three that would fight
-  over one value. **Resolved.**
+* **Sort keys are per level after all, and this module had it wrong until
+  12 Aug 2026.** It read Word's one sort key as ``\y``, per entry, and
+  answered "no sort key here" to every per-level question. Measurement says
+  otherwise: Word carries an **undocumented per-level sort key inside the
+  entry text**, ``display;sort``, split on the **last unescaped** semicolon,
+  and ``\y`` moves nothing at all for Latin script. Building this dialect did
+  replace the protocol's ``supports_sort_keys`` bool with ``sort_key_scope``,
+  which was the right change; the *value* chosen for Word was wrong.
+  See ``bookindexcore/documentation/e4_sort_measurements`` §3. **Corrected.**
 * **Emphasis is a set, not a value.** ``\b`` and ``\i`` are independent and can
   both be present, where ``page_style`` is a single string. Canonicalised to
   ``"bold"`` / ``"italic"`` / ``"bold italic"``.
@@ -46,7 +49,7 @@ import re
 from bookindexcore.dialect.types import (
     ERROR,
     ROLE_SORT,
-    SORT_PER_ENTRY,
+    SORT_PER_LEVEL,
     STANDARD_PAGE_STYLE,
     WARNING,
     XREF_SEE,
@@ -61,13 +64,36 @@ from bookindexcore.dialect.types import (
 LEVEL_SEPARATOR = ":"
 ESCAPE = "\\"
 
+#: Word splits a level into display text and sort key on this character, and
+#: it is the LAST unescaped one that counts -- ``"Doubled;;semicolon"`` displays
+#: *Doubled;* and files under S. Undocumented by Microsoft and measured rather
+#: than read: see ``e4_sort_measurements`` §3.
+SORT_SEPARATOR = ";"
+
 #: Word's hard ceiling. Unlike makeindex's, this one is not a default that a
 #: package can raise: a fourth colon is simply part of the third level's text.
 MAX_LEVELS = 3
 
 #: The characters a backslash protects inside the quoted entry text. The
 #: parser and the writer must round-trip these exactly (HLD §2.2).
-ESCAPABLE = (LEVEL_SEPARATOR, '"', ESCAPE)
+#:
+#: ``;`` joined this tuple on 12 Aug 2026 and is the one that bites hardest,
+#: because its failure is silent in both directions: an unescaped semicolon in
+#: ordinary text is taken as a sort key (*Smith; or, The Tale* displays as
+#: *Smith* and files under O), and Word raises nothing.
+ESCAPABLE = (LEVEL_SEPARATOR, SORT_SEPARATOR, '"', ESCAPE)
+
+#: What is special inside a **switch payload** — ``\t "See also Foo"`` — which
+#: is a shorter list, and the difference is not pedantry. A switch payload is
+#: *literal replacement text*: Word prints it as written, so ``:`` and ``;``
+#: mean nothing there and escaping them would put a backslash on the page.
+#:
+#: This is the same distinction Klarso Index-Manager gets wrong in the other
+#: direction, and it is worth stating as a rule rather than a fix. A
+#: cross-reference *target* is matched on the full level string, sort key and
+#: all, because that is the entry's identity; a cross-reference *payload* is
+#: display text and nothing else. Identity and rendering are different objects.
+PAYLOAD_ESCAPABLE = ('"', ESCAPE)
 
 BOLD = "bold"
 ITALIC = "italic"
@@ -117,14 +143,32 @@ class XEDialect:
     name = "ooxml-xe"
     max_levels = MAX_LEVELS
 
-    #: Per **entry**, not per level. This is the finding that changed the
-    #: protocol: it used to be a ``supports_sort_keys`` bool, which gated a
-    #: per-level "Sort as" control, so Word -- whose one ``\y`` applies to
-    #: the whole field -- could only answer False and have a feature it
-    #: really has hidden from it. The key lives on
-    #: ``IndexReference.sort_key``; :func:`split_entry_sort_key` reads it off
-    #: an instruction.
-    sort_key_scope = SORT_PER_ENTRY
+    #: Per **level**, like LaTeX and InDesign -- corrected 12 Aug 2026, having
+    #: declared ``SORT_PER_ENTRY`` on the strength of ``\y``. Word turns out to
+    #: keep a sort key on each level, inside the entry text, after the last
+    #: unescaped ``;``. So Word is not the outlier here at all: all three
+    #: formats keep keys on levels, and shared UI gets its paired
+    #: "Main Display" / "Main Sort" columns for Word from this line alone.
+    #:
+    #: ``\y`` is still read and written (:func:`split_entry_sort_key`) so that
+    #: an imported document does not lose one, but it is not the sort
+    #: mechanism: measured, it moves nothing whatever for Latin script.
+    sort_key_scope = SORT_PER_LEVEL
+
+    #: True, and measured rather than hoped: a key written here reaches the
+    #: generated ``INDEX`` field and moves the entry, letter heading and all.
+    sort_key_reaches_index = True
+
+    #: Empty. Word collates a sort key by ordinary Windows locale rules, so
+    #: every character in it carries — including the space, which means a
+    #: derived key **can** express word-by-word here. InDesign is the host
+    #: that cannot, and this declaration is what tells them apart.
+    #:
+    #: The hyphen is a near miss worth noting: Word ignores it when collating,
+    #: but it ignores it in display text too, so it is a fact about the host's
+    #: ordering rather than about what a key can carry. It belongs in the
+    #: ``WORD_HOST`` preset in ``bookindexcore.sorting``, and it is there.
+    sort_key_collation_ignores = ""
 
     #: A Word range is one field plus a bookmark that spans it, not a pair of
     #: entries. The range-consistency analyser is meaningless here and must
@@ -232,30 +276,54 @@ class XEDialect:
     # -- sort keys ----------------------------------------------------------
 
     def split_sort_key(self, level: str) -> tuple[str, str]:
-        """
-        Always ``("", level)``.
+        r"""
+        One level as ``(sort_key, display)``, split on the **last unescaped**
+        semicolon.
 
-        Not an omission: Word has no per-level sort key. A level is display
-        text and nothing else, and the entry's one sort key is
-        :func:`split_entry_sort_key`.
+        Three details, each measured rather than assumed, and each one a
+        different wrong answer if guessed:
+
+        * **Last, not first.** ``"Multi;ccc key;trailing tail"`` displays
+          *Multi;ccc key* and files under T. Splitting on the first would
+          file it under C and print half a heading.
+        * **An empty tail is not a separator.** ``"EmptyKey;"`` displays
+          *EmptyKey;*, semicolon and all, and files under E. So a trailing
+          semicolon is ordinary text and must survive as such.
+        * **Whitespace around either half is not significant to Word**, which
+          is precisely why it is stripped here rather than preserved: a
+          leading space in a key is always an indexer error, and Word files
+          the entry correctly anyway, so nothing in the generated index
+          betrays it. Normalising on the way in is what lets a check on the
+          stored value find it.
         """
+        parts = _split_unescaped(level, SORT_SEPARATOR)
+        if len(parts) > 1 and parts[-1].strip():
+            display = SORT_SEPARATOR.join(parts[:-1]).strip()
+            return parts[-1].strip(), display
         return "", level.strip()
 
     def build_level(self, sort_key: str, display: str) -> str:
-        """
-        Ignores ``sort_key``, because a Word level cannot carry one.
+        r"""
+        Inverse of :meth:`split_sort_key`.
 
-        Silently dropping it is the correct behaviour and the honest one: the
-        alternative is inventing a per-level syntax Word does not have, which
-        would round-trip through this application and be discarded by Word.
+        Both halves are *stored* text, already escaped -- the same form
+        ``split_sort_key`` hands back -- so this appends the separator and
+        does not escape anything. A caller holding text a user typed escapes
+        it with :meth:`escape` first, which is where a literal ``;`` becomes
+        ``\;``.
         """
-        return display
+        display = (display or "").strip()
+        key = (sort_key or "").strip()
+        if not key:
+            return display
+        return f"{display}{SORT_SEPARATOR}{key}"
 
     def display_of(self, level: str) -> str:
-        return level.strip()
+        return self.split_sort_key(level)[1]
 
     def sort_key_of(self, level: str) -> str:
-        return level.strip()
+        key, display = self.split_sort_key(level)
+        return key or display
 
     def suggested_sort_key(self, display: str) -> str:
         return " ".join(self.unescape(display).split())
@@ -330,9 +398,24 @@ class XEDialect:
         return [TextRun(text)] if text else []
 
     def escape(self, text: str) -> str:
+        return self._escape_with(text, ESCAPABLE)
+
+    def escape_payload(self, text: str) -> str:
+        r"""
+        Escape for a **switch payload** rather than for entry text.
+
+        Beyond the protocol, and separate from :meth:`escape` because the two
+        grammars genuinely differ: ``:`` and ``;`` are structural inside the
+        entry text and ordinary characters inside ``\t``. Escaping them in a
+        payload would print a backslash in the finished index.
+        """
+        return self._escape_with(text, PAYLOAD_ESCAPABLE)
+
+    @staticmethod
+    def _escape_with(text: str, escapable) -> str:
         out = []
         for char in text or "":
-            if char in ESCAPABLE:
+            if char in escapable:
                 out.append(ESCAPE)
             out.append(char)
         return "".join(out)
@@ -371,6 +454,20 @@ class XEDialect:
                     message="':' starts a new index level here. Write '\\:' for a literal colon.",
                     fix="\\:",
                 ))
+            elif char == SORT_SEPARATOR:
+                findings.append(Finding(
+                    # An ERROR in a sort key, because a second separator there
+                    # re-splits the level and silently steals the tail; only a
+                    # warning in display text, where it is at least a thing an
+                    # indexer might have meant.
+                    severity=ERROR if role == ROLE_SORT else WARNING,
+                    position=idx,
+                    message=(
+                        "';' makes everything after it a sort key, and Word "
+                        "will not print it. Write '\\;' for a literal semicolon."
+                    ),
+                    fix="\\;",
+                ))
             elif char == '"':
                 findings.append(Finding(
                     severity=ERROR,
@@ -395,7 +492,15 @@ class XEDialect:
     # this application's own parser and writer.
 
     def split_entry_sort_key(self, raw: str) -> str:
-        r"""The ``\y`` payload: one sort key for the whole entry."""
+        r"""
+        The ``\y`` payload -- retained to round-trip, not to sort by.
+
+        Measured 12 Aug 2026: an entry carrying only ``\y`` files under its
+        own display text, so the switch moves nothing for Latin script, and
+        where both mechanisms were present the ``;`` key won. It is read and
+        written so that an imported document does not lose one; nothing
+        should offer it to a user as *the* sort key.
+        """
         return self._switch_value(raw, "y")
 
     def range_bookmark(self, raw: str) -> str:
@@ -489,7 +594,10 @@ class XEDialect:
 
         if not value:
             return (head + stripped).rstrip()
-        rendered = f' \\{switch} "{self.escape(value)}"' if quoted else f" \\{switch} {value}"
+        rendered = (
+            f' \\{switch} "{self.escape_payload(value)}"' if quoted
+            else f" \\{switch} {value}"
+        )
         return (head + stripped + rendered).rstrip()
 
 
@@ -500,8 +608,12 @@ XE_DIALECT = XEDialect()
 #: to read this file is the one who needs them.
 FINDINGS = (
     "supports_sort_keys conflates 'has sort keys' with 'has PER-LEVEL sort "
-    "keys'. Word has \\y, one per entry, so this dialect must answer False "
-    "and shared UI would hide a feature Word really has.",
+    "keys'. Resolved by sort_key_scope -- but the value this dialect chose "
+    "was wrong for two days short of a month: Word's real sort key is "
+    "per level, written display;sort inside the entry text and split on the "
+    "last unescaped ';'. \\y is inert for Latin script. The lesson is not "
+    "about the protocol, which held: it is that 'this format cannot do X' "
+    "needs measuring before it is declared.",
     "page_style is a single string, but \\b and \\i are independent switches. "
     "Canonicalised to four combinations, which works only because Word's "
     "vocabulary is closed -- a LaTeX project can define its own macro.",
