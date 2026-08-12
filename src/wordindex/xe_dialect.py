@@ -171,6 +171,14 @@ class XEDialect:
     #: Measured -- see documentation/e0_measurements in bookindexcore.
     distinguishing_prefix = 259
 
+    #: 255 -- the truncation the comment above anticipated, now declared so a
+    #: rule can read it. ``Indexes.MarkEntry`` cuts its argument at 255 without
+    #: saying so, and third-party tools built on that API inherit the fault, so
+    #: an entry of *exactly* 255 characters ending mid-word is the visible
+    #: trace of a document that arrived already damaged. A fingerprint, not a
+    #: limit: nothing here truncates anything.
+    truncation_fingerprint = 255
+
     #: False, and this is the second declaration Word's existence produced.
     #: The four entries above are not a default set a project extends -- they
     #: are the complete enumeration of two boolean switches, and there is no
