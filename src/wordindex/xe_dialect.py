@@ -52,6 +52,7 @@ from bookindexcore.dialect.types import (
     SORT_PER_LEVEL,
     STANDARD_PAGE_STYLE,
     WARNING,
+    XREF_LABEL_OURS,
     XREF_SEE,
     XREF_SEEALSO,
     ClassEmulation,
@@ -231,8 +232,46 @@ class XEDialect:
     #: again Word is the outlier and the shared assumption was LaTeX's.
     page_style_vocabulary_is_open = False
 
+    #: **Ours**, and Word is the only one of the three for which it is. E7
+    #: measured the ``\t`` payload printed verbatim -- a payload reading
+    #: ``consult the other one`` printed exactly that -- with Word
+    #: contributing only the ``. `` separator in front of it.
+    #:
+    #: So the words a reader sees really are the ones we write, and
+    #: ``StyleProfile.see_label`` is worth offering to a Word project. LaTeX
+    #: answers ``document`` and InDesign ``host``; a single preference could
+    #: only ever have been right for this one.
+    xref_label_owner = XREF_LABEL_OURS
+
     def effective_max_levels(self, project: object = None) -> int:
         return self.max_levels
+
+    def normalise_for_comparison(self, text: str) -> str:
+        r"""
+        Identity. An ``XE`` field's display half is plain text -- Word carries
+        emphasis on the page number through ``\b`` and ``\i``, never inside
+        the heading -- so one heading has exactly one spelling and there is
+        nothing to reconcile.
+
+        The seam exists for LaTeX's ``\string``, where two spellings of one
+        heading are both correct depending on where the entry was written.
+        """
+        return text
+
+    def implicit_range_threshold(self, project: object = None) -> int | None:
+        """
+        None. **Word never forms a range on its own**, measured in E7: five
+        consecutive pages come out of a generated index as
+        ``100, 101, 102, 103, 104`` and no property on the ``Index`` object
+        changes it.
+
+        The declaration that keeps the locator advice honest in both
+        directions. makeindex collapses three consecutive pages into
+        ``100--102``, so advice written against LaTeX's behaviour would tell a
+        Word indexer that a run needs no attention when it is about to print
+        in full.
+        """
+        return None
 
     def max_entry_length(self, project: object = None) -> int | None:
         """
