@@ -243,6 +243,19 @@ class XEDialect:
     #: only ever have been right for this one.
     xref_label_owner = XREF_LABEL_OURS
 
+    #: **False, and it is not for want of trying.** An ``XE`` field placed
+    #: inside a footnote files at the page the note sits on, indistinguishable
+    #: in the generated index from one in the body text of that page; and
+    #: ``\b`` and ``\i`` take no argument, so there is no analogue of the
+    #: parameterised encapsulation LaTeX carries a note number in. Measured in
+    #: E7.
+    #:
+    #: What follows from it: ``locators.hand_typed_note_locator`` tells a Word
+    #: indexer who has typed ``123n4`` into a heading what that costs -- the
+    #: heading splits in two -- rather than offering them a better place to
+    #: put it, because there is not one.
+    supports_note_locators = False
+
     def effective_max_levels(self, project: object = None) -> int:
         return self.max_levels
 
