@@ -1,5 +1,8 @@
 [build-system]
-requires = ["hatchling"]
+# Pinned past 1.26.2: the license field below is a PEP 639 SPDX expression
+# rather than the old table form, and hatchling only implements the accepted
+# PEP from 1.26.0 (metadata 2.4) with back-population fixed in 1.26.2.
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,7 +11,11 @@ version = "0.0.1.dev0"
 description = "Word Index Editor -- indexing tool for Microsoft Word documents, built on bookindexcore"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "Proprietary" }
+# MIT, matching the LICENSE file beside it and the other three projects. This
+# said `Proprietary` while the repository carried an MIT LICENSE -- two
+# different answers in one package, corrected 16 August 2026.
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "D. W. Howes" }]
 
 # bookindexcore is installed with NO extras, deliberately. A dialect and a
