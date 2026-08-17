@@ -297,6 +297,106 @@ class OoxmlBackend(DocumentBackend):
         self._rescan(container)
         return EditResult(ok=True, locator=self._locator_of(container, anchor))
 
+    # -- placing at a position in the text ----------------------------------
+
+    def text_positions(self, container: str) -> list:
+        r"""
+        ``(start, end, w:t node)`` for every visible run of text, in order.
+
+        The offsets are into exactly what :meth:`read_text` returns, and that
+        equality is the contract: shared code finds something *in the text* and
+        has to be able to say where it was. Paragraphs contribute one newline
+        between them, so the arithmetic here and there must not drift.
+        """
+        tree = self._trees.get(container)
+        if tree is None:
+            return []
+
+        spans = []
+        offset = 0
+        first = True
+        for para in tree.getroot().iter(_q("p")):
+            if not first:
+                offset += 1                       # the newline `read_text` joins with
+            first = False
+            for node in para.iter(_q("t")):
+                text = node.text or ""
+                spans.append((offset, offset + len(text), node))
+                offset += len(text)
+        return spans
+
+    def place_at(self, container: str, offset: int, instruction: str) -> EditResult:
+        r"""
+        Puts a field at a **character offset in the visible text**.
+
+        The capability :meth:`_place` says it does not have. Its hint carries an
+        ``ordinal`` and puts the new field after the field at that ordinal,
+        which is enough to add an entry beside an existing one and cannot
+        express *here, at this word* -- and "here, at this word" is what a
+        citation is. T3c is the first caller that needs it.
+
+        **A run is split when the offset falls inside one**, which is the whole
+        difficulty. Word breaks a paragraph into runs wherever formatting
+        changes, so a citation's last character is as likely to be mid-run as
+        at a boundary, and a field spliced between runs rather than at the
+        position would attach to the wrong word -- or, at a paragraph's end, to
+        the wrong page.
+
+        The split preserves the original run's properties by copying the whole
+        run and replacing the text of each half, rather than building a fresh
+        one: a run carries ``w:rPr`` describing its font, and a citation is
+        very often italic. Building a plain run would silently un-italicise the
+        second half of a case name.
+        """
+        if not instruction:
+            return EditResult.failed("nothing to place")
+        if container not in self._trees:
+            return EditResult.failed(f"no such container {container!r}")
+
+        spans = self.text_positions(container)
+        if not spans:
+            return EditResult.failed(f"{container!r} has no text to place against")
+
+        target = None
+        for start, end, node in spans:
+            if start <= offset <= end:
+                target = (start, end, node)
+                # Prefer a run the offset falls *inside*; a boundary belongs to
+                # the run that ends there only if nothing else claims it.
+                if offset < end:
+                    break
+        if target is None:
+            return EditResult.failed(
+                f"offset {offset} is outside the text of {container!r}")
+
+        start, _end, node = target
+        run = node.getparent()
+        paragraph = run.getparent()
+        if paragraph is None:
+            return EditResult.failed("a text node with no paragraph")
+
+        cut = offset - start
+        text = node.text or ""
+        insert_at = list(paragraph).index(run)
+
+        if cut < len(text):
+            tail = copy.deepcopy(run)
+            node.text = text[:cut]
+            for tail_text in tail.iter(_q("t")):
+                tail_text.text = text[cut:]
+                tail_text.set(
+                    "{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                break
+            paragraph.insert(insert_at + 1, tail)
+
+        anchor = new_anchor()
+        for position, field_node in enumerate(
+                self._build_field(anchor, instruction)):
+            paragraph.insert(insert_at + 1 + position, field_node)
+
+        self._rescan(container)
+        return EditResult(ok=True, locator=self._locator_of(container, anchor))
+
     def _remove(self, field) -> EditResult:
         """
         Removes the field and its companion bookmark.
