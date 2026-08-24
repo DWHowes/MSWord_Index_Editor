@@ -23,6 +23,7 @@ from pathlib import Path
 from bookindexcore.backend.locator import Locator, SourceEdit
 from bookindexcore.ui.style import AppStyleConfiguration
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
     QDockWidget, QFileDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
@@ -30,6 +31,7 @@ from PySide6.QtWidgets import (
 from ..entries import all_references, heading_rows
 from ..ooxml_backend import OoxmlBackend
 from ..profiles import load_profile, save_profile
+from ..xe_dialect import XE_DIALECT
 from ..reader import (
     HEADING, UNKNOWN, outline, propose_profile, read_paragraphs, unprofiled)
 from .entry_window import EntryWindow
@@ -124,6 +126,14 @@ class MainWindow(QMainWindow):
         self.styles_action.setEnabled(False)
 
         index_menu = self.menuBar().addMenu("&Index")
+        # **The gesture.** Word's own is Alt+Shift+X and an indexer coming
+        # from Word or from Index Manager will reach for it, so it is the
+        # shortcut here too rather than something this application invented.
+        self.mark_action = index_menu.addAction(
+            "&Mark selection", self.mark_selection)
+        self.mark_action.setShortcut(QKeySequence("Alt+Shift+X"))
+        self.mark_action.setEnabled(False)
+        index_menu.addSeparator()
         self.save_action = index_menu.addAction("&Save entries", self.save)
         self.save_action.setEnabled(False)
         index_menu.addSeparator()
@@ -180,6 +190,7 @@ class MainWindow(QMainWindow):
         self._positions = backend.entry_positions(BODY_PART)
 
         self.styles_action.setEnabled(True)
+        self.mark_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -322,6 +333,57 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Could not create", str(result.reason))
             return
         self._after_change("Created an entry")
+
+    def mark_selection(self) -> None:
+        """
+        Selection to entry, in one gesture. Step 7, scope §3 item 6.
+
+        **The whole of the step is one method** because everything under it
+        was built to be here: step 1 put a paragraph's offset in `read_text`
+        space, step 2 made block *n* paragraph *n* so a cursor position is
+        arithmetic rather than a lookup, step 4 gave `Paragraph.kind` a real
+        answer so the refusal means something, step 5 gave an entry a
+        position to be drawn at, and step 6 composed the instruction.
+
+        The entry is created **immediately** rather than staged. Nothing has
+        reached disk before Save, Delete is one click away, and the entry
+        window opens on what was just made, so refining a heading is where the
+        indexer already is. Staging it behind a confirmation would put a
+        dialog between them and the next paragraph.
+        """
+        if self._backend is None:
+            return
+
+        heading = self.view.chosen_text()
+        start, _end = self.view.chosen_span()
+        if not heading or start < 0:
+            self.statusBar().showMessage(
+                "Select a word or a passage in the manuscript first.")
+            return
+
+        paragraph = self.view.paragraph_at(
+            self.view.textCursor().blockNumber())
+        if paragraph is not None and not paragraph.indexable:
+            # Answer 4 of 24 August and §5 of the scope, in the place the
+            # indexer actually meets them.
+            self.statusBar().showMessage(
+                f"That is {paragraph.kind.replace('_', ' ')}, not indexable "
+                f"text. Nothing was created.")
+            return
+
+        instruction = XE_DIALECT.new_instruction(XE_DIALECT.escape(heading))
+        result = self._backend.place_at(BODY_PART, start, instruction)
+        if not result.ok:
+            QMessageBox.warning(self, "Could not create", str(result.reason))
+            return
+
+        self._after_change(f"Marked {heading!r}")
+        # Open on what was just made. `place_at` hands back the anchor it
+        # minted, which is the entry's identity from here on.
+        new_id = result.locator.anchor if result.locator else None
+        if new_id is not None:
+            self.index_panel.select_entry(new_id)
+            self._show_in_entry_window(new_id)
 
     def _run(self, edit, said: str) -> None:
         result = self._backend.apply(edit)

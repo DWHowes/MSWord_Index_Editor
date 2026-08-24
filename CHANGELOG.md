@@ -5,6 +5,43 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Selection to entry: step 7
+
+Scope §3 item 6, and **the step is one method of about forty lines**. It is
+short because everything it needs was built to be here: step 1 put a
+paragraph's offset in `read_text` space, step 2 made block *n* paragraph *n*
+so a cursor position is arithmetic rather than a lookup, step 4 gave
+`Paragraph.kind` a real answer so a refusal means something, step 5 gave an
+entry a position to be drawn at, and step 6 composed the instruction.
+*Nothing had to be retrofitted*, which is what the one-block-one-paragraph
+rule was bought for at step 2.
+
+**Alt+Shift+X**, Word's own shortcut, so an indexer arriving from Word or
+Index Manager reaches for the right key. A selection, or **the word under the
+caret** when there is none, because the common gesture is to put the caret in
+a term and mark it. Whitespace is collapsed: a selection past a paragraph
+break carries the newline `read_text` joins with, and a `w:br` arrives as
+U+2028, so an uncollapsed heading would carry line breaks into the index.
+
+Created immediately rather than staged. Nothing reaches disk before Save,
+Delete is one click away, and the entry window opens on what was just made.
+
+Measured through the real widget on the CUP monograph: a selected phrase,
+a bare caret, and a 240-character passage all landed exactly where they were
+pointed; a caret in a heading and one in front matter were **refused by
+name**. 2,074 entries before, 2,077 after, saved and reopened, **visible text
+identical**. That guarantee now holds across every mutation this application
+can perform.
+
+**One thing deliberately not built.** A 240-character heading is legal, since
+Word applies no length limit to an `XE` written directly, but two headings
+identical for about 259 characters collapse in the generated index with one
+silently vanishing. The temptation was to warn in the gesture. `checks.headings`
+`_host_collision` already states that rule properly and `XEDialect` already
+declares `distinguishing_prefix = 259`, so a warning here would have been a
+second, worse copy. It arrives with Check Index at step 9. See
+`documentation/step7_measurements.md`.
+
 ### The index entry window: step 6
 
 Create, edit and delete, with per-level sort keys. Scope §4.

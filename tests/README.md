@@ -86,6 +86,18 @@ tests/
                                 write them reliably, and the reader does not
                                 inherit that limit.
 
+  ui/test_selection_to_entry.py
+                            step 7: what the indexer has chosen and where it
+                            is. A selection maps to read_text offsets by the
+                            same arithmetic as offset_at_cursor, because a
+                            second mapping is a second thing to fall out of
+                            step; no selection means the word under the
+                            caret; and whitespace is collapsed, since a
+                            selection past a paragraph break carries a
+                            newline and a w:br arrives as U+2028.
+                            The window's half is exercised against a real
+                            book in documentation/step7_measurements.md
+
   test_instruction_composer.py
                             step 6: changing one thing in an XE instruction
                             without losing the rest. The whole file is about

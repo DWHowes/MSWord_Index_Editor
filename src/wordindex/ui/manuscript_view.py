@@ -222,6 +222,65 @@ class ManuscriptView(QTextEdit):
     def _announce(self) -> None:
         self.position_changed.emit(self.textCursor().blockNumber())
 
+    # -- what the indexer has chosen --------------------------------------
+
+    def selection_span(self) -> tuple:
+        r"""
+        ``(start, end)`` of the selection in `read_text` space, or ``(-1, -1)``.
+
+        Step 7's foundation, and the same arithmetic as
+        :meth:`offset_at_cursor`: a block's paragraph plus a position inside
+        it. **A selection spanning paragraphs is honoured**, because a passage
+        an indexer picks out very often runs past a paragraph break and
+        refusing it would be refusing the ordinary case.
+        """
+        cursor = self.textCursor()
+        if not cursor.hasSelection():
+            return (-1, -1)
+
+        document = self.document()
+        start_block = document.findBlock(cursor.selectionStart())
+        end_block = document.findBlock(cursor.selectionEnd())
+        first = self.paragraph_at(start_block.blockNumber())
+        last = self.paragraph_at(end_block.blockNumber())
+        if first is None or last is None:
+            return (-1, -1)
+
+        return (first.offset + cursor.selectionStart() - start_block.position(),
+                last.offset + cursor.selectionEnd() - end_block.position())
+
+    def chosen_text(self) -> str:
+        r"""
+        What the indexer has picked out, as a heading would have it.
+
+        The selection if there is one, otherwise **the word under the caret**,
+        so the common gesture is select-nothing-and-mark. Whitespace is
+        collapsed, which matters more here than it looks: a selection running
+        past a paragraph break carries the newline `read_text` joins with, and
+        a `w:br` inside one arrives as U+2028, so an uncollapsed heading would
+        carry line breaks into the index.
+        """
+        cursor = self.textCursor()
+        if not cursor.hasSelection():
+            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+        return " ".join(cursor.selectedText().split())
+
+    def word_span_at_cursor(self) -> tuple:
+        """``(start, end)`` of the word under the caret, in `read_text` space."""
+        cursor = self.textCursor()
+        cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+        paragraph = self.paragraph_at(cursor.blockNumber())
+        if paragraph is None or not cursor.hasSelection():
+            return (-1, -1)
+        block = cursor.block()
+        return (paragraph.offset + cursor.selectionStart() - block.position(),
+                paragraph.offset + cursor.selectionEnd() - block.position())
+
+    def chosen_span(self) -> tuple:
+        """The selection if there is one, otherwise the word under the caret."""
+        span = self.selection_span()
+        return span if span[0] >= 0 else self.word_span_at_cursor()
+
     # -- the entry layer --------------------------------------------------
 
     def show_entries(self, marks) -> None:
