@@ -148,6 +148,62 @@ so each must be tied to the point in the body that calls it.
 
 ---
 
+## 5b. CORRECTION, 24 August 2026: the earlier scan read index documents
+
+**Everything in §3 and §4 above was measured on the wrong files**, and the
+corrected picture is better rather than worse.
+
+The scan picked, per project folder, the largest `.docx` not obviously named
+like an index. That rule chose **index documents** for several projects — a
+finished index is a big Word file too — and excluded `_Archive`, where some
+manuscripts live. The tell was there to be read and was not: *every* file it
+reported with a tiny style count had **no footnotes and no `XE` fields**,
+which no manuscript of a scholarly book ever has.
+
+**Manuscripts identified by content instead** — a real style vocabulary, and
+footnotes:
+
+| | manuscripts | styles | verdict |
+|---|---|---|---|
+| real manuscripts found | **14** | **10 to 54** | never 3 |
+| files the old scan picked | — | 3 or 4 | all index documents |
+
+### What the correction changes
+
+**`outlineLvl` is still unusable.** That measurement was taken on the style
+*definitions*, which are the same in either file, and it stands.
+
+**But there is no unstructured manuscript in this corpus.** Every one of the
+fourteen falls into exactly **two** vocabularies, and there is no third and no
+leftover:
+
+    CUP numbered      0201A  0202B  0203C  0204D          8 books
+    hyphen-numbered   01-Ahead0  01-Bhead  01-Chead       6 books
+
+**Both encode the level in the style's own name.** So the earlier claim that
+*"seven of fifteen match no CUP profile"* was an artefact of reading indexes,
+and so was *"Labor in Hard Times has three styles in the whole document"* —
+its manuscript is `Pre_Edited_Labor_in_Hard_Times.docx`, **38 styles**, and it
+is the **unindexed pre-copy-edit copy**, 0 `XE` fields: the pristine "as
+received" case and the truest starting point a reader could have.
+
+The flattest real manuscript is *The Cost of Doing Business*, **10 styles**.
+
+### And what it does not change
+
+**Do not ship a vocabulary** still holds — the indexer's answer, and a third
+publisher will bring a third scheme. What changes is the *cost* of authoring a
+profile: with names like `Bhead` and `0202B` the indexer **confirms** a
+mapping rather than constructing one, and the fallback is a rarer path than
+this document implied, not a hotter one.
+
+*Third time in one day that a total-looking result was the instrument: 0 of 25
+docling joins, "No index entries found" from a wrong field constant, and now a
+corpus of index files read as manuscripts. **A measurement whose subject was
+chosen by a filename is a measurement of filenames.***
+
+---
+
 ## 6. What this proposes
 
 **A structure-aware reader, and a style profile per publisher.** In outline,

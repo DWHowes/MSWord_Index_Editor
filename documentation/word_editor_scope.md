@@ -187,8 +187,15 @@ be copied between projects is a convenience question for later.
 Each step ends with something runnable, because a window that cannot be opened
 cannot be judged.
 
-1. **The reader**, against the flattest manuscript first — *Labor in Hard
-   Times*, three styles — so the no-profile path exists before the easy one.
+1. **The reader**, against `Pre_Edited_Labor_in_Hard_Times.docx` first: the
+   **unindexed pre-copy-edit manuscript**, 38 styles and **0 `XE` fields**,
+   which is exactly what an indexer opens on day one. Then *The Cost of Doing
+   Business*, the flattest real manuscript at 10 styles.
+
+   *This step was written as "the flattest manuscript, three styles" from a
+   scan that had read index documents rather than manuscripts; see
+   `docx_reader_measurements.md` §5b. There is no three-style manuscript, and
+   the no-profile path is a rarer case than that implied.*
 2. **A window that opens a `.docx` and shows it**, read-only, with structure
    and the outline. No entries yet. **This is the step that proves or kills
    the rendering choice**, and it is deliberately early.
