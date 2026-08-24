@@ -1,6 +1,6 @@
 # The application mark
 
-**`WdX`** — gold Computer Modern on a dark bistre plate with a gold rim. One of
+**`WdX`**: gold Computer Modern on a dark bistre plate with a gold rim. One of
 four marks in a suite: `LiX` (LaTeX Indexing Editor), `WdX` (this one), `IdX`
 (InDesign Index Editor) and `ToA` (ToA Builder).
 

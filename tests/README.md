@@ -13,7 +13,7 @@ suite passes on a machine that does not have them.
 
 *A skip is not a pass.* `test_reader.py` carries one test deliberately without
 the corpus marker, because when the corpus path was wrong every marked test
-skipped silently and the offset contract went unchecked — the unmarked one is
+skipped silently and the offset contract went unchecked; the unmarked one is
 what said so.
 
 ## Layout
@@ -68,4 +68,30 @@ tests/
                             notice that names the styles nobody has placed
                             -- an indexer told only a count cannot tell a
                             decision from a defect
+
+  test_entries.py           step 3: the XE fields a book already has, as the
+                            shared IndexReference. Read from a book this
+                            indexer indexed, so the assertions are about
+                            what Word really does rather than what a fixture
+                            was built to do --
+                              * a range is an extent and never a role. Word
+                                spells a range as one entry naming a
+                                bookmark, so range_role is None on all 2,074
+                                entries while 1,539 carry a range;
+                              * the entry id is the companion bookmark, not
+                                an ordinal, because an ordinal moves when an
+                                entry is added above it;
+                              * footnotes are read even though this book has
+                                none there -- its previous tool could not
+                                write them reliably, and the reader does not
+                                inherit that limit.
+
+  ui/test_index_panel.py    step 3's borrowed widget, and the file exists to
+                            prove it really is borrowed. configure(XE_DIALECT)
+                            is a module-level side effect, so a wrong one
+                            would be wrong everywhere and visible nowhere:
+                            the test that splits a nested heading on Word's
+                            colon is what says the dialect arrived. The
+                            shared tree is absent by decision, not omission
+                            -- see documentation/step3_measurements.md
 ```

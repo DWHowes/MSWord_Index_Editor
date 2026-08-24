@@ -12,7 +12,7 @@ Measurements: `docx_reader_measurements.md`, fifteen real CUP manuscripts.
 
 **95%+ of this indexer's embedded work arrives as a Word manuscript**, and it
 is the format with the least built for it. This scope covers **the reading
-half only** — what a `.docx` has to be turned into before anybody can index
+half only**: what a `.docx` has to be turned into before anybody can index
 it. It builds no interface and decides nothing about *what* to index.
 
 ---
@@ -57,8 +57,8 @@ paragraph at all, though every book *defines* styles that carry it. A reader
 built on it shows nine manuscripts as one flat run.
 
 **The publisher's style vocabulary works.** Eight of the fifteen share an
-identical coding — `0201A` an A head, `0203C` a C head, `1406RefEntry` the
-bibliography, `0503Capt` a caption — the same style ids in exactly the same
+identical coding, with `0201A` an A head, `0203C` a C head, `1406RefEntry`
+the bibliography and `0503Capt` a caption: the same style ids in exactly the same
 eight books.
 
 So: **a style profile per publisher**, mapping style ids to a small closed set
@@ -68,7 +68,7 @@ of kinds:
     front_matter     reference_entry          excluded
 
 Authored the way a `HouseStyle` is, shipped for CUP because eight books
-justify it, and **a separate record from `HouseStyle`** — that one says how a
+justify it, and **a separate record from `HouseStyle`**, since that one says how a
 publisher wants a *table* rendered; this says how a publisher *codes a
 manuscript*. Same publisher, different fact, and folding them together would
 make each harder to author.
@@ -93,7 +93,8 @@ measured:
   longer than its source, and that is the `INDEX` field's result.
 - **Comments.** A container the backend already lists. Editorial, not
   manuscript.
-- **Front matter** — imprint page, copyright statement, title page — which the
+- **Front matter**, meaning the imprint page, copyright statement and title
+  page, which the
   style vocabulary names outright.
 
 *This is the bibliography ruling arriving in a new format, and the same rule
@@ -104,7 +105,7 @@ bibliography is sometimes wanted and the indexer decides.
 ## 6. Footnotes are indexable, and that is measured
 
 **An `XE` field in a footnote does reach a generated index, with the right
-page** — §5a of the measurements settles it against the general belief, and
+page**: §5a of the measurements settles it against the general belief, and
 Word writes such fields to `word/footnotes.xml`, which this backend already
 reads and writes.
 
@@ -122,7 +123,7 @@ inference.
 The indexer receives **a copy of the manuscript as sent to the copy editor**,
 and editorial staff merge the finished index into a document that has since
 been copy-edited and revised. So what is handed back must differ from what
-arrived **by the added fields and nothing else** — no normalising, no
+arrived **by the added fields and nothing else**: no normalising, no
 whitespace tidying, no rewriting runs.
 
 **The reader must not tempt the writer into cleaning up on the way out.** It
@@ -141,7 +142,7 @@ Table of Authorities source and perfectly sufficient here.
 - **No tables and no text boxes.** Neither occurs in the measured book. They
   will arrive with a different publisher and can be added to the kinds then.
 
-## 9. Where it lives — a question for approval
+## 9. Where it lives: a question for approval
 
 `DocumentBackend.read_text` is a **shared** contract in `bookindexcore`, and
 LaTeX and InDesign implement it too. A structured read could be:
@@ -158,13 +159,13 @@ history says a seam earns its place by being needed by a second caller.
 ## 10. Sequencing
 
 1. **The paragraph record and the reader**, against the flattest manuscript
-   first — *Labor in Hard Times*, three styles — so the no-profile path is
+   first, *Labor in Hard Times* with three styles, so the no-profile path is
    built before the easy one rather than after.
 2. **The profile record, and CUP's**, measured against all eight books that
    share the vocabulary.
 3. **Footnote tying**, scored on the 996 marks: every reference resolves to a
    note, and every note is reachable from a body position.
-4. **The exclusions**, with a count reported rather than a silent drop — a
+4. **The exclusions**, with a count reported rather than a silent drop; a
    reader that removes 44,000 characters says so.
 5. Tests, changelog, `tests/README.md`.
 

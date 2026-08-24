@@ -16,8 +16,8 @@ At phase 4 of the shared-package extraction this was **two seams and nothing els
 `bookindexcore.testing`. No UI, no persistence, no application.
 
 **T3c added a third thing and one capability.** `toa_emission` builds a Table of
-Authorities as a second named index — `XE` fields with `\f`, collected by
-`INDEX \f` — and `OoxmlBackend.place_at` puts a field at a **character offset in
+Authorities as a second named index, using `XE` fields with `\f` collected by
+`INDEX \f`, and `OoxmlBackend.place_at` puts a field at a **character offset in
 the visible text**, splitting the run that contains it. That is the capability
 `_place` had already declared missing in its own docstring, and the visible text
 is byte-identical afterwards, which is the property most worth protecting.
@@ -29,7 +29,7 @@ design:
   colons. One key for the whole entry renders as an extra index level with the
   sort key as visible text.
 - **`\f` filters only on a single character.** `\f "toacases"` is accepted,
-  written, and silently *not* filtered — both `INDEX` fields return everything.
+  written, and silently *not* filtered: both `INDEX` fields return everything.
   Single letters filter exactly, so a table has as many sections as there are
   usable letters, and a document already using `\f "c"` will have those entries
   swept into the table of cases.
@@ -51,7 +51,7 @@ and this environment is the only place it is currently tested for real: a
 dialect and a backend are headless, so if anything here needed Qt to import,
 the assertion would be wrong and this venv is where that shows.
 
-`lxml` is this application's dependency and not the core's — Word's index
+`lxml` is this application's dependency and not the core's, because Word's index
 markup is XML inside a zip. It is declared in `pyproject.toml` and arrives
 with the second install.
 

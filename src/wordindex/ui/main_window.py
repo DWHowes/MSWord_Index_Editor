@@ -26,9 +26,11 @@ from PySide6.QtWidgets import (
     QFileDialog, QLabel, QMainWindow, QMessageBox, QSplitter, QTreeWidget,
     QTreeWidgetItem, QVBoxLayout, QWidget)
 
+from ..entries import all_references, heading_rows
 from ..ooxml_backend import OoxmlBackend
 from ..reader import (
     HEADING, UNKNOWN, outline, propose_profile, read_paragraphs, unprofiled)
+from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
 
 BODY_PART = "word/document.xml"
@@ -47,6 +49,7 @@ class MainWindow(QMainWindow):
 
         self._backend = None
         self._paragraphs: list = []
+        self._references: list = []
 
         self.outline_tree = QTreeWidget()
         self.outline_tree.setHeaderLabels(["Outline"])
@@ -57,11 +60,14 @@ class MainWindow(QMainWindow):
         self.view = ManuscriptView()
         self.view.position_changed.connect(self._show_position)
 
+        self.index_panel = IndexPanel()
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self.outline_tree)
         splitter.addWidget(self.view)
+        splitter.addWidget(self.index_panel)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([260, 900])
+        splitter.setSizes([230, 640, 310])
 
         self.notice = QLabel("")
         self.notice.setWordWrap(True)
@@ -116,12 +122,20 @@ class MainWindow(QMainWindow):
         self.view.show_paragraphs(self._paragraphs)
         self._build_outline()
 
+        # **The entries the book already has.** Reading them is what makes
+        # every later step measurable against twenty real books rather than
+        # against a document somebody typed for a test.
+        self._references = all_references(backend)
+        self.index_panel.show_references(*heading_rows(self._references),
+                                         self._references)
+
         missing = unprofiled(styles, profile)
         unknown = sum(1 for p in self._paragraphs if p.kind == UNKNOWN)
-        self.setWindowTitle(f"Word Index Editor — {path.name}")
+        self.setWindowTitle(f"Word Index Editor: {path.name}")
         self.statusBar().showMessage(
             f"{len(self._paragraphs):,} paragraphs, "
-            f"{sum(len(p.text) for p in self._paragraphs):,} characters")
+            f"{sum(len(p.text) for p in self._paragraphs):,} characters, "
+            f"{len(self._references):,} index entries")
         self._say(len(styles), len(profile.kinds), missing, unknown)
 
     def _say(self, styles: int, placed: int, missing, unknown: int) -> None:

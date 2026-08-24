@@ -25,7 +25,7 @@ at matters**:
     bookindexcore-extraction      74  21,865                         48
 
 *Counted across `views/`, `controllers/` and `models/`.* **`main` does not use
-`bookindexcore` at all** — the adoption lives on the extraction branch and
+`bookindexcore` at all**: the adoption lives on the extraction branch and
 lands with the **6a merge**. The extraction removed about **4,300 lines and
 fourteen files**, 16% of that application, and 48 of the 74 that remain now
 import the core.
@@ -35,7 +35,7 @@ argument for the extraction.** `bookindexcore` ships, ready to use:
 
 | shared already | what it gives |
 |---|---|
-| `ui/style` | `AppStyleConfiguration` — the family's look |
+| `ui/style` | `AppStyleConfiguration`, the family's look |
 | `ui/entry_table`, `ui/tree` | the entry table and the index tree, with delegates |
 | `ui/preferences` | the dialog shell and five tabs |
 | `ui/search` | exact and fuzzy search, windowed, with a worker |
@@ -46,7 +46,7 @@ argument for the extraction.** `bookindexcore` ships, ready to use:
 | `backend`, `sorting`, `checks`, `structure`, `naming`, `style` | everything below the UI |
 
 **So this scope is mostly assembly.** What is genuinely new is three things:
-the editor tab, the entry window, and the reader — and only the first is large.
+the editor tab, the entry window, and the reader; only the first is large.
 
 *The core ships components, not a shell.* Each application assembles its own
 main window; matching the family look means using `AppStyleConfiguration` and
@@ -55,21 +55,21 @@ the same assembly, not inheriting a window.
 ### And one risk that follows from the branch
 
 **Every shared UI component above has exactly one consumer, on a branch that
-has not merged.** The Word editor would be the **second** — which is the test
+has not merged.** The Word editor would be the **second**, which is the test
 a seam needs and this package's own rule for when one has earned its place,
 and also a real risk: an interface with one caller has not been asked a second
 question, and 6a may move it.
 
 **So the sequencing below is deliberately late to the shared UI.** Steps 1 and
-2 — the reader, and a window that opens a `.docx` — touch almost none of it.
+2, the reader and a window that opens a `.docx`, touch almost none of it.
 The entry table, tree, search, preferences and help arrive at steps 3 and 8,
 by which time 6a will have merged or its cost will be visible. *This is the
 same reason `bookindexcore_toa_adoption` gave for making 6a not a gate: a
 second caller is worth more than a pinned version.*
 
 **DECIDED, 24 August 2026: build against the extraction branch and do not wait
-for 6a.** The alternative — land 6a first and build against a merged core —
-was put to the indexer and declined. The reasoning is that an interface with
+for 6a.** The alternative, landing 6a first and building against a merged
+core, was put to the indexer and declined. The reasoning is that an interface with
 one caller has not been asked a second question, and the cheapest moment to
 ask it is while **both** applications are still moving. If the Word editor
 finds that a shared component is shaped for LaTeX alone, that is a finding
@@ -81,7 +81,7 @@ this application, and steps 3 and 8 are where that will hurt.
 
 ## 2. The manuscript is read-only, and that is a rule
 
-The LaTeX editor's tabs are read-only — undo and redo are the only
+The LaTeX editor's tabs are read-only; undo and redo are the only
 user-reachable mutation. **The same holds here and more strongly.**
 
 The indexer receives a copy of the manuscript **as sent to the copy editor**,
@@ -91,8 +91,8 @@ from what arrived **by the added `XE` fields and nothing else**: no
 normalising, no whitespace repair, no rewriting runs.
 
 **The editor edits the index, never the manuscript.** Every feature below is
-constrained by that, and `place_at`'s guarantee — visible text byte-identical
-afterwards — is the property the whole application rests on.
+constrained by that, and `place_at`'s guarantee, visible text byte-identical
+afterwards, is the property the whole application rests on.
 
 ## 3. The editor tab, which is the hard part
 
@@ -111,7 +111,7 @@ So the tab is a **rendered read-only document with an entry layer**:
    quotations, lists and captions distinguishable. From the reader's paragraph
    `kind`, not from Word's own formatting, which is a typesetter's coding and
    often ugly.
-2. **An outline to navigate by**, from the headings — answer 4 makes this
+2. **An outline to navigate by**, from the headings; answer 4 makes this
    their only job. A book is indexed section by section and the indexer must
    always know where they are.
 3. **Entry markers in the flow**, unobtrusive and countable, showing where an
@@ -119,11 +119,11 @@ So the tab is a **rendered read-only document with an entry layer**:
    entry in the index tree; the reverse also.
 4. **Footnotes reachable from their reference mark.** 996 marks in one
    measured book, and §5a of the measurements settled that footnotes *are*
-   indexable — so a note is text to work in, not an annotation to skip. A
+   indexable, so a note is text to work in, not an annotation to skip. A
    linked pane or an expansion in place; **not** a separate document the
    indexer has to hold in their head.
-5. **Excluded regions shown as excluded** — generated index, comments, front
-   matter, bibliography — rather than hidden. An indexer who cannot see that
+5. **Excluded regions shown as excluded**, meaning the generated index,
+   comments, front matter and bibliography, rather than hidden. An indexer who cannot see that
    a region was skipped cannot tell a decision from a defect.
 6. **Selection to entry**: select a passage, create an entry anchored at that
    offset, in one gesture.
@@ -133,7 +133,7 @@ So the tab is a **rendered read-only document with an entry layer**:
 should be measured: a `QTextDocument` built from the reader's records is the
 obvious candidate, and the question is whether it holds a million characters
 with an entry layer over it and stays responsive. *Measure before choosing*,
-on the CUP monograph — 2,074 entries, ~1M characters.
+on the CUP monograph: 2,074 entries, ~1M characters.
 
 ## 4. The index entry window
 
@@ -142,14 +142,14 @@ style toggles, page-reference options. Word's is the same idea and **three
 things make it genuinely different**:
 
 - **A sort key per level.** Word takes `display;sort` on *each* level, joined
-  by colons — measured in T3c, and one key for the whole entry renders as an
+  by colons, measured in T3c, and one key for the whole entry renders as an
   extra index level with the sort key as visible text. The LaTeX form has one
   key for the whole entry. **This is the field the window is really about.**
 - **`\f`, the index type, filters on a single character only.** Also T3c, also
   measured: `\f "toacases"` is accepted, written, and silently not filtered.
   A window offering a free-text index type would be offering a defect.
 - **`\r`, a page range, needs a bookmark** in the document rather than a
-  value, so creating one is an edit to the manuscript's bookmark table — the
+  value, so creating one is an edit to the manuscript's bookmark table: the
   one exception to §2 and the one that has to be justified entry by entry.
 
 Plus what LaTeX also has: cross-references (`\t`), bold and italic page
@@ -158,8 +158,8 @@ numbers (`\b`, `\i`).
 ## 5. Multi-file projects
 
 Most projects are one `.docx`; some are several. **The backend is already
-container-based** — `containers()` returns every part, and a project is a set
-of files each with their own parts — so this is a project-level concept above
+container-based**: `containers()` returns every part, and a project is a set
+of files each with their own parts, so this is a project-level concept above
 the backend rather than a change to it.
 
 What it needs: a file list in the sidebar, an ordering the indexer controls
@@ -177,12 +177,12 @@ shipped**; `reference_entry` **excluded**; footnotes tied to their reference
 marks; generated index, comments and front matter excluded with a count
 reported rather than a silent drop.
 
-**The profile is authored per project, not per publisher** — which follows
+**The profile is authored per project, not per publisher**, which follows
 from not shipping CUP's. A manuscript arrives, the indexer names its heading
 styles once, and the profile is stored with the project. Whether a profile can
 be copied between projects is a convenience question for later.
 
-## 6a. How the repository is laid out — DECIDED 24 August 2026
+## 6a. How the repository is laid out: DECIDED 24 August 2026
 
 The three siblings have three layouts, so this was a choice rather than a
 convention to follow:
@@ -221,7 +221,7 @@ manuscript view, which is when `ui/` earns its directory.
 
 **Settled now because they are annoying to retrofit**: `main.py` at the
 repository root plus a console script in `pyproject.toml`, and tests mirror
-the package — `tests/ui/` when `ui/` exists. Corpus-dependent tests stay
+the package, so `tests/ui/` when `ui/` exists. Corpus-dependent tests stay
 marked and skippable, and the one deliberately unmarked test stays unmarked
 for the reason in its docstring.
 
@@ -252,7 +252,7 @@ cannot be judged.
 5. **The entry window**: create, edit, delete, with per-level sort keys.
 6. **Placement**: selection to entry, through `place_at`.
 7. **Multi-file projects.**
-8. **Check Index, search, preferences, help** — assembly of what already
+8. **Check Index, search, preferences, help**: assembly of what already
    exists.
 9. **The style-profile editor.**
 10. Packaging, and the User Guide.
@@ -274,7 +274,7 @@ cannot be judged.
 1. **Does the tab show the manuscript formatted, or plain with structure
    marked?** Formatted is closer to what the indexer reads and further from
    what the file is honest about; a typesetter's coding is not a designer's.
-   *Recommended: structure marked, formatting ignored* — but this is the
+   *Recommended: structure marked, formatting ignored*, but this is the
    indexer's call and it shapes step 2.
 2. **Where do footnotes appear?** A linked pane beside the body, or expanded
    in place at the reference mark. Both are defensible; the second is closer

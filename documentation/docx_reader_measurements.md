@@ -13,7 +13,7 @@ Nothing has been built. This is what a reader would have to cope with.
 
 `MSWord_Index_Editor` is **two seams and no application**: `XEDialect` and
 `OoxmlBackend`, plus T3c's `toa_emission`. The backend is better than its
-absence of a UI suggests — it reads and writes `XE` fields in a `.docx`
+absence of a UI suggests: it reads and writes `XE` fields in a `.docx`
 **offline, with no Word installation**, handles all three field shapes
 including the split `instrText` that loses entries silently, and can place a
 field at a character offset in the visible text.
@@ -37,12 +37,12 @@ A publisher's manuscript is **style-coded**, and the codes are the structure:
 | `0101Para`, `0103ParaFirst`, `0102ParaContinuation` | body |
 | `0301UL`, `0302NL`, `0303BL`, `0304SubList` | lists |
 | `0503Capt` | captions |
-| `1406RefEntry` | **the bibliography** — 262 paragraphs in one book |
+| `1406RefEntry` | **the bibliography**, 262 paragraphs in one book |
 | `1140ImprintPage`, `1128TPTitle`, `1141CopyrightStmt` | front matter |
 
 `read_text` flattens all of it into one string. An indexer working through a
 book needs to know which chapter and which section they are in, and **the file
-says so** — this is declared metadata, not something to infer.
+says so**: this is declared metadata, not something to infer.
 
 *It is also the earlier bibliography ruling arriving in a new format:
 `1406RefEntry` is the author's reference list, and it is not manuscript text.*
@@ -79,13 +79,13 @@ of these fifteen manuscripts as one flat run of text.
 ## 4. What does work is the publisher's vocabulary
 
 **Eight of the fifteen share an identical style vocabulary**, the numbered CUP
-coding — `0201A`, `0101Para`, `1302CT`, `1140ImprintPage` and the rest, all
+coding: `0201A`, `0101Para`, `1302CT`, `1140ImprintPage` and the rest, all
 appearing in exactly the same eight books. The other seven use something else:
 different typesetters, or an older house template. *Labor in Hard Times* has
 **three styles in the whole document.**
 
 So structure in a `.docx` is **a publisher fact**, declared once and true of
-every book that publisher sends — which is the shape this package already has
+every book that publisher sends, which is the shape this package already has
 a mechanism for. A CUP profile would carry that vocabulary the way a
 `HouseStyle` carries a citation convention, and a book that does not match one
 is the case the indexer has to answer for themselves.
@@ -95,8 +95,8 @@ is the case the indexer has to answer for themselves.
 - **Footnotes are their own container**, and substantial: 203,865 characters
   and 996 reference marks in the CUP monograph. They are indexable text
   and the reader has to tie each to the point in the body that calls it.
-  *That book's own index puts no `XE` field in a footnote at all* — 2,074
-  fields, none of them in `footnotes.xml` — which is a decision worth asking
+  *That book's own index puts no `XE` field in a footnote at all*: 2,074
+  fields, none of them in `footnotes.xml`, which is a decision worth asking
   about rather than assuming.
 - **The generated index is in the document.** The indexed copy of the CUP monograph is 44,000 characters longer than the source, and that is the
   `INDEX` field's result. It is not manuscript text and must not be read as
@@ -115,7 +115,7 @@ fixed until the page is composed. The indexer had not verified it; their tool,
 Klarso Index Manager, adds footnote entries that *sometimes* appear and
 sometimes do not, and nobody knew whether it writes to `footnotes.xml` at all.
 
-A document was built with four entries — body and footnote, on two pages — and
+A document was built with four entries, body and footnote on two pages, and
 Word was asked to generate the index. It produced:
 
     BodyOne, 1
@@ -136,10 +136,10 @@ And **Word puts them in `word/footnotes.xml`**, which is what
 Read back through our own backend, all four are found in the right containers.
 
 **So the unreliability is Index Manager's, not Word's**, and writing directly
-to `footnotes.xml` is not a workaround — it is what Word does. *The measurement
+to `footnotes.xml` is not a workaround; it is what Word does. *The measurement
 was nearly lost to a wrong constant: `42` is `wdFieldNextIf`, not
 `wdFieldIndexEntry`, and the first run wrote `NEXTIF XE "BodyOne"` and reported
-"No index entries found" — a clean, decisive-looking negative that would have
+"No index entries found", a clean, decisive-looking negative that would have
 confirmed the folklore.* Reading the field codes in the saved file is what
 caught it.
 
@@ -154,19 +154,19 @@ so each must be tied to the point in the body that calls it.
 corrected picture is better rather than worse.
 
 The scan picked, per project folder, the largest `.docx` not obviously named
-like an index. That rule chose **index documents** for several projects — a
-finished index is a big Word file too — and excluded `_Archive`, where some
+like an index. That rule chose **index documents** for several projects,
+since a finished index is a big Word file too, and excluded `_Archive`, where some
 manuscripts live. The tell was there to be read and was not: *every* file it
 reported with a tiny style count had **no footnotes and no `XE` fields**,
 which no manuscript of a scholarly book ever has.
 
-**Manuscripts identified by content instead** — a real style vocabulary, and
+**Manuscripts identified by content instead**: a real style vocabulary, and
 footnotes:
 
 | | manuscripts | styles | verdict |
 |---|---|---|---|
 | real manuscripts found | **14** | **10 to 54** | never 3 |
-| files the old scan picked | — | 3 or 4 | all index documents |
+| files the old scan picked | n/a | 3 or 4 | all index documents |
 
 ### What the correction changes
 
@@ -182,7 +182,7 @@ leftover:
 
 **Both encode the level in the style's own name.** So the earlier claim that
 *"seven of fifteen match no CUP profile"* was an artefact of reading indexes,
-and so was *"Labor in Hard Times has three styles in the whole document"* —
+and so was *"Labor in Hard Times has three styles in the whole document"*,
 its manuscript is `Pre_Edited_Labor_in_Hard_Times.docx`, **38 styles**, and it
 is the **unindexed pre-copy-edit copy**, 0 `XE` fields: the pristine "as
 received" case and the truest starting point a reader could have.
@@ -191,7 +191,7 @@ The flattest real manuscript is *The Cost of Doing Business*, **10 styles**.
 
 ### And what it does not change
 
-**Do not ship a vocabulary** still holds — the indexer's answer, and a third
+**Do not ship a vocabulary** still holds, on the indexer's answer, and a third
 publisher will bring a third scheme. What changes is the *cost* of authoring a
 profile: with names like `Bhead` and `0202B` the indexer **confirms** a
 mapping rather than constructing one, and the fallback is a rarer path than
@@ -210,7 +210,7 @@ chosen by a filename is a measurement of filenames.***
 for approval rather than as a plan:
 
 1. **A paragraph record**, not a string: text, style id, and what the style
-   *means* — heading at a level, body, list, caption, front matter, reference
+   *means*: heading at a level, body, list, caption, front matter, reference
    entry, excluded.
 2. **A publisher style profile** mapping style ids to those meanings, authored
    the way a `HouseStyle` is and shipped for CUP because eight books prove it.

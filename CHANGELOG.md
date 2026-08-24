@@ -5,18 +5,88 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
-### A window that opens a manuscript and shows it — step 2
+### The index a book already has: step 3
+
+`wordindex.entries` turns every `XE` field into the shared `IndexReference`,
+and the module is short because **the record already had a field for each of
+Word's odd ones**. Read on a book this indexer indexed: 2,074 entries, 1,127
+index terms, 71 cross-references, 82 bold locators, and **1,539 entries
+carrying a `
+ "idxintern*"` bookmark range** written by the tool the indexer
+uses today.
+
+That last figure settles a design question the scope had left open. **Word
+spells a page range as one entry naming a bookmark**, not as an opener and a
+closer, so `range_extent` is the field that holds it and `range_role` is None
+on every entry in a real book. The tree's `is_range_closer` guard is LaTeX's
+paired form and can never fire here.
+
+The entry id is the **companion bookmark**, not the field's ordinal. An
+ordinal is a position, and positions move the moment an entry is added above
+them.
+
+### The shared entry table fits. The shared tree does not.
+
+**This is what building a second caller was for.** `bookindexcore.ui.entry_table`
+was extracted with a `to_record` adapter and a docstring naming this case, and
+its default heading split says the shape is "true of Word and InDesign". It
+took `configure(XE_DIALECT)` and nothing else; neither adapter it offers was
+needed.
+
+`bookindexcore.ui.tree` was extracted as it stood. Underneath the dictionary
+shape it reads, which `entries.heading_rows` can supply, it builds every
+reference row as
+
+    file_path   line_number   column_offset   absolute_position   macro_command
+
+renders its second column as `[unique_id_number]`, and coerces every id with
+`int()`. Word's ids are `wim_<uuid>` bookmark anchors, **strings the shared
+record explicitly permits**: `EntryId = Union[int, str]`. So it is the LaTeX
+editor's tree with a dialect injected, and its second column answers *where in
+the source*, a question with no meaning for a host whose entries have no line
+and whose pages do not exist until the publisher composes the book.
+
+It is left out of this step **rather than fed a shape that would flatter it**.
+What to do about it is a decision for whoever lands 6a, now with two
+applications' evidence instead of one.
+
+### `propose_profile` reads one CUP vocabulary far better than the other
+
+Found because step 3 put a real book on the screen. Measured across the whole
+corpus, one file per book: **93% of styles placed on the hyphen-numbered
+vocabulary and 43% on the numbered one**, because the numbered vocabulary
+abbreviates and the name matching looks for whole words. `0105Ext` is a
+quotation, `0301UL` a list, `0607TB` table body, and **`1301CN` and `1302CT`
+are the chapter number and title, missed in all eleven numbered manuscripts,
+so those books' outlines have no chapters in them**. Every one of those was
+confirmed from the text it holds, not inferred from its letters.
+
+`propose_profile` is not wrong: it applies nothing and `unprofiled()` names
+every style it could not place, so the indexer is told rather than misled. But
+**step 9's style-profile editor is carrying more weight than its position in
+the scope suggests**. See `documentation/step3_measurements.md`.
+
+### Every em-dash removed from the documentation
+
+The indexer does not use em-dashes as punctuation, and it is their writing
+voice in documents that go out under their name. 80 had accumulated across the
+changelog, the READMEs, the scope and the three measurement documents, plus one
+in the window title. Replaced per instance rather than by substitution: a
+colon where the dash introduced an explanation, a semicolon where it joined two
+clauses, commas around a parenthetical, and nothing at all in a title.
+
+### A window that opens a manuscript and shows it: step 2
 
 The step that proves or kills the rendering choice, taken before entries so
 nothing expensive is built on a guess. A `QTextDocument` assembled once from
 the reader's records, one block per paragraph, read-only. **Under a second for
-every book on the shelf** — 0.36 s for 648,000 characters, 0.62 s for the
+every book on the shelf**: 0.36 s for 648,000 characters, 0.62 s for the
 5,281-paragraph one. See `documentation/step2_measurements.md`.
 
 Structure marked, formatting ignored: a heading looks like a heading at its
 depth, a quotation is indented, and everything the indexer may not index is
 greyed **rather than hidden**, because a region that vanished would be
-indistinguishable from a defect. Nothing reads a `w:rPr` — the manuscript's
+indistinguishable from a defect. Nothing reads a `w:rPr`; the manuscript's
 formatting is a typesetter's coding, not a designer's.
 
 The outline nests parts above chapters above A heads, and is **navigation
@@ -36,19 +106,19 @@ reader cannot index a page whose columns have run together, and a search
 cannot find a phrase across the join.
 
 `read_text`, `text_positions` and the reader share one coordinate space, so
-the fix is **one walk they all call** — three copies of that arithmetic is how
-it drifts. Only a `w:t` gets a span: a tab is a position, not a place to split
+the fix is **one walk they all call**, because three copies of that
+arithmetic is how it drifts. Only a `w:t` gets a span: a tab is a position, not a place to split
 a run.
 
 A `w:br` then had to be kept inside its block, since Qt starts a new block at
 a newline and that would have broken one-block-one-paragraph. The view shows
-it as U+2028, **one character for one character**, so no offset moves — a
+it as U+2028, **one character for one character**, so no offset moves; a
 substitution allowed in the view precisely because it costs nothing, and not
 allowed in the reader.
 
 *The defect had been in the backend since T3c under a green suite.*
 
-### A manuscript an indexer can navigate — step 1 of the editor scope
+### A manuscript an indexer can navigate: step 1 of the editor scope
 
 `wordindex.reader` reads a `.docx` as a sequence of **paragraph records**
 rather than one string. `read_text` returns the concatenated `w:t` of each
@@ -58,7 +128,7 @@ begins.
 
 A `Paragraph` carries its text, the style the file gave it, what that style
 **means**, its heading level, its footnote reference marks, and its
-**offset** — the field the module is built on. That offset is in the space
+**offset**, the field the module is built on. That offset is in the space
 `text_positions` defines, which is exactly what `read_text` returns and
 exactly what `place_at` takes, so **a paragraph the reader shows is one an
 entry can be placed in.** *A reader whose offsets do not match the writer's is
@@ -66,8 +136,8 @@ a viewer.* Checked on a real book: 2,154 paragraphs, 650,144 characters, zero
 mismatches.
 
 **Structure is declared, not inferred.** Measured over fourteen real
-manuscripts: Word's own `outlineLvl` is unusable — nine books apply it to no
-paragraph at all, though every book *defines* styles that carry it — while the
+manuscripts: Word's own `outlineLvl` is unusable, since nine books apply it to no
+paragraph at all though every book *defines* styles that carry it, while the
 paragraph style always says. All fourteen fall into two vocabularies, each
 naming its own heading level: `0201A`/`0202B`/`0203C` in eight books and
 `01-Ahead0`/`01-Bhead`/`01-Chead` in six.
@@ -76,10 +146,10 @@ naming its own heading level: `0201A`/`0202B`/`0203C` in eight books and
 indexer's decision: a third publisher will bring a third scheme. A manuscript
 with no profile reads as `UNKNOWN` throughout and `unprofiled()` names the
 styles nobody has placed. `propose_profile` makes confirming one cheap and
-**applies nothing** — `read_paragraphs` uses the profile it is given.
+**applies nothing**: `read_paragraphs` uses the profile it is given.
 
 *The rule earned itself on the first run.* 411 paragraphs of the measured book
-carry no style at all, and the obvious guess — no style means body — would
+carry no style at all, and the obvious guess, that no style means body, would
 have marked the series-editor list and the blurb as indexable text. They are
 front matter.
 
@@ -91,6 +161,6 @@ nothing.
 
 Two things the suite caught while it was being written: a generic `Heading`
 pattern swallowing `Heading 2` and calling it an A head, and a wrong corpus
-path that made every corpus test **skip silently** — so the offset contract
+path that made every corpus test **skip silently**, so the offset contract
 was not being checked at all, and only the one test without a skip marker
 revealed it.
