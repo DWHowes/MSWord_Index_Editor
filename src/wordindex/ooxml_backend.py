@@ -57,6 +57,40 @@ RANGE_PREFIX = "wir_"
 
 #: Parts that may hold XE fields (HLD §2.5). Headers and footers are numbered,
 #: so the match is by prefix rather than by an exact list.
+#: What a paragraph contributes to the visible text, in document order.
+#:
+#: `w:t` is the text; `w:tab` is a tab character and `w:br` a line break, and
+#: both are as visible as any letter. Nothing else in a run reaches the page
+#: as a character -- a field's instruction text is hidden (HLD §2.1) and is
+#: excluded by looking only at these three tags.
+_VISIBLE = {"t": None, "tab": "\t", "br": "\n"}
+
+
+def _visible_nodes(para):
+    """
+    ``(node, text)`` for everything the paragraph shows, in order.
+
+    ``node`` is the `w:t` element for text and **None** for a tab or a break,
+    because only a `w:t` can be split when a field is placed inside it. The
+    offsets still have to count them, which is the whole reason this walk
+    exists rather than an iteration over `w:t`.
+    """
+    for node in para.iter():
+        tag = etree.QName(node).localname if node.tag is not etree.Comment \
+            else ""
+        if tag not in _VISIBLE:
+            continue
+        if tag == "t":
+            yield node, (node.text or "")
+        else:
+            yield None, _VISIBLE[tag]
+
+
+def _visible(para):
+    """Just the text, for `read_text`."""
+    return (text for _node, text in _visible_nodes(para))
+
+
 PART_PREFIXES = (
     "word/document.xml",
     "word/footnotes.xml",
@@ -166,14 +200,23 @@ class OoxmlBackend(DocumentBackend):
         Field instruction text is excluded, because it is not visible in the
         rendered document -- ``XE`` fields are hidden text (HLD §2.1). This is
         what a story reader would show.
+
+        **A tab is a character and so is a line break.** This took `w:t` alone
+        and dropped both, so a paragraph laid out with tabs came out with its
+        words run together: the abbreviations list of a real book read
+        *"ECHR or the CourtEuropean Court of Human Rights"*. Between **110 and
+        809 paragraphs a book** contain one, measured over three manuscripts,
+        and a reader who cannot tell those two columns apart cannot index the
+        page -- nor can a search find *Court European* across the join.
+
+        Found by looking at the first window that ever displayed this text,
+        which is what step 2 of the editor scope existed to do.
         """
         tree = self._trees.get(container)
         if tree is None:
             return ""
-        paragraphs = []
-        for para in tree.getroot().iter(_q("p")):
-            paragraphs.append("".join(node.text or "" for node in para.iter(_q("t"))))
-        return "\n".join(paragraphs)
+        return "\n".join("".join(_visible(para))
+                          for para in tree.getroot().iter(_q("p")))
 
     def iter_entries(self, container: str):
         yield from self._fields.get(container, ())
@@ -319,9 +362,13 @@ class OoxmlBackend(DocumentBackend):
             if not first:
                 offset += 1                       # the newline `read_text` joins with
             first = False
-            for node in para.iter(_q("t")):
-                text = node.text or ""
-                spans.append((offset, offset + len(text), node))
+            # **Walked in document order over text, tabs and breaks alike**,
+            # because `read_text` counts all three. Iterating `w:t` only put
+            # every span after a tab one character early, and only a `w:t`
+            # gets a span: a tab is a position, not a place to split a run.
+            for node, text in _visible_nodes(para):
+                if node is not None:
+                    spans.append((offset, offset + len(text), node))
                 offset += len(text)
         return spans
 

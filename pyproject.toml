@@ -33,6 +33,11 @@ dependencies = ["lxml>=5.0"]
 qt  = ["PySide6-Essentials>=6.11", "shiboken6>=6.11"]
 dev = ["pytest>=8.0"]
 
+[project.scripts]
+# Agrees with `main.py` at the repository root deliberately: that is what a
+# person types, this is what a packaged build wants.
+wordindexeditor = "wordindex.ui.main_window:run"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/wordindex"]
 

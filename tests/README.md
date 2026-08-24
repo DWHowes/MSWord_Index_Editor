@@ -20,6 +20,9 @@ what said so.
 
 ```
 tests/
+  conftest.py               offscreen Qt, set before anything can import it,
+                            and one QApplication for the session
+
   docx_fixtures.py          the smallest .docx that exercises a thing, built
                             in memory rather than committed as a binary
 
@@ -52,4 +55,17 @@ tests/
                             Plus: headings are navigation only and never
                             indexable, and proposing a profile applies
                             nothing.
+
+  ui/test_manuscript_view.py
+                            step 2: block n is paragraph n, which is what
+                            makes a caret position an offset `place_at` can
+                            take; excluded regions are shown and greyed
+                            rather than hidden; and the widget cannot be
+                            typed into, because the manuscript is not this
+                            application's to change
+
+  ui/test_main_window.py    opening a book, the nested outline, and the
+                            notice that names the styles nobody has placed
+                            -- an indexer told only a count cannot tell a
+                            decision from a defect
 ```

@@ -182,6 +182,52 @@ from not shipping CUP's. A manuscript arrives, the indexer names its heading
 styles once, and the profile is stored with the project. Whether a profile can
 be copied between projects is a convenience question for later.
 
+## 6a. How the repository is laid out — DECIDED 24 August 2026
+
+The three siblings have three layouts, so this was a choice rather than a
+convention to follow:
+
+    LaTeX editor      flat: views/ controllers/ models/ main.py   not a package
+    InDesign editor   app/ split by concern: domain ui idml sync  not a package
+    Word editor       src/wordindex/, hatchling + pyproject       installable
+
+**`src/wordindex/` stays.** It is the only one of the three a test suite
+imports without path games, the only one pip and PyInstaller both understand,
+and it exists because this repository began as a library. Becoming an
+application is not a reason to give it up, and *the LaTeX editor's flat layout
+is the thing least worth copying.*
+
+**Split by concern, like the InDesign editor, not by MVC layer.** `views/` and
+`controllers/` says what a module is to Qt; `document/` and `project/` says
+what it is to an indexer, and that ages better.
+
+    src/wordindex/
+      xe_dialect.py      seam: the XE grammar                (exists)
+      ooxml_backend.py   seam: read and write XE in a zip    (exists)
+      toa_emission.py    T3c                                 (exists)
+      reader.py          step 1                              (exists)
+
+      document/          reading a .docx as a manuscript
+      project/           multi-file projects, ordering, persistence
+      ui/                Word-specific windows; shared parts stay in the core
+    main.py              the entry point, as both siblings have
+
+**Those directories are not created in advance.** `reader.py` is one module,
+and moving it into `document/` before a second module lives there is the
+mistake this project already has a rule against: *a seam earns its place by
+being needed twice.* So the package stays flat inside until a concern has two
+modules, and then that concern is promoted. Step 2 produces a window and a
+manuscript view, which is when `ui/` earns its directory.
+
+**Settled now because they are annoying to retrofit**: `main.py` at the
+repository root plus a console script in `pyproject.toml`, and tests mirror
+the package — `tests/ui/` when `ui/` exists. Corpus-dependent tests stay
+marked and skippable, and the one deliberately unmarked test stays unmarked
+for the reason in its docstring.
+
+*Noted, not proposed: the LaTeX editor's flat layout is diverging from two
+package-shaped siblings rather than converging. Not a thing to fix here.*
+
 ## 7. Sequencing
 
 Each step ends with something runnable, because a window that cannot be opened

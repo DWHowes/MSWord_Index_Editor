@@ -49,6 +49,8 @@ from typing import Optional
 
 from lxml import etree
 
+from .ooxml_backend import _visible_nodes
+
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 
@@ -210,7 +212,11 @@ def read_paragraphs(backend, container: str,
         if not first:
             offset += 1                    # the newline `read_text` joins with
         first = False
-        text = "".join(node.text or "" for node in para.iter(_q("t")))
+        # **The same walk the backend uses**, imported rather than
+        # copied: read_text, text_positions and this must agree to the
+        # character or the offset contract is a comment rather than a
+        # fact, and three copies of one arithmetic is how they drift.
+        text = "".join(t for _node, t in _visible_nodes(para))
         style_node = para.find(f".//{_q('pStyle')}")
         style = style_node.get(_q("val")) if style_node is not None else ""
         notes = tuple(

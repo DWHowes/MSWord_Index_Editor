@@ -5,6 +5,49 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### A window that opens a manuscript and shows it — step 2
+
+The step that proves or kills the rendering choice, taken before entries so
+nothing expensive is built on a guess. A `QTextDocument` assembled once from
+the reader's records, one block per paragraph, read-only. **Under a second for
+every book on the shelf** — 0.36 s for 648,000 characters, 0.62 s for the
+5,281-paragraph one. See `documentation/step2_measurements.md`.
+
+Structure marked, formatting ignored: a heading looks like a heading at its
+depth, a quotation is indented, and everything the indexer may not index is
+greyed **rather than hidden**, because a region that vanished would be
+indistinguishable from a defect. Nothing reads a `w:rPr` — the manuscript's
+formatting is a typesetter's coding, not a designer's.
+
+The outline nests parts above chapters above A heads, and is **navigation
+only**. The notice under the text says how many styles were recognised and
+names every one that was not.
+
+### A tab is a character, and `read_text` was dropping it
+
+**Found by looking at the first window that ever displayed this text**, which
+is what step 2 existed to do. The abbreviations list read
+
+    ECHR or the CourtEuropean Court of Human Rights
+
+because `read_text` took `w:t` alone and ignored `w:tab` and `w:br`. Measured:
+**110, 809 and 783 tabs** across three manuscripts, in as many paragraphs. A
+reader cannot index a page whose columns have run together, and a search
+cannot find a phrase across the join.
+
+`read_text`, `text_positions` and the reader share one coordinate space, so
+the fix is **one walk they all call** — three copies of that arithmetic is how
+it drifts. Only a `w:t` gets a span: a tab is a position, not a place to split
+a run.
+
+A `w:br` then had to be kept inside its block, since Qt starts a new block at
+a newline and that would have broken one-block-one-paragraph. The view shows
+it as U+2028, **one character for one character**, so no offset moves — a
+substitution allowed in the view precisely because it costs nothing, and not
+allowed in the reader.
+
+*The defect had been in the backend since T3c under a green suite.*
+
 ### A manuscript an indexer can navigate — step 1 of the editor scope
 
 `wordindex.reader` reads a `.docx` as a sequence of **paragraph records**
