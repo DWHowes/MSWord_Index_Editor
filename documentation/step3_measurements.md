@@ -87,6 +87,26 @@ applications' evidence instead of one.
 works, and it is ready to move, but promoting it now would be promoting a
 shape that only one of the two widgets can use.
 
+### What was fixed straight away, and what was left
+
+The id coercions went in on 24 August 2026, because they were the part that
+made the tree **reject** valid shared records rather than merely render them
+poorly. Fixing them turned up a second defect in the same class and a quieter
+one: the uid a reference is deduplicated on was `file_path:line_number`, which
+for a host with neither is the constant `"None:None"`, so **only the first
+reference under each heading survived and the rest were dropped without
+raising**. That is worse than the crash, because a crash gets reported.
+
+The tree now populates a real Word book: 1,127 headings, 1,167 nodes, all
+2,074 references carried.
+
+What is left is the payload, the navigation signal and the column label, all
+of which are 6a's. **Decided for that work: for a host with no pages, the
+References column shows a reference count**, which is how Index Manager
+presents it. An indexer working a Word manuscript has no locators at all until
+the publisher composes the book, so a count is the only honest thing that
+column can say.
+
 ---
 
 ## 3. `propose_profile` reads one publisher vocabulary far better than the other
