@@ -20,17 +20,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bookindexcore.backend.locator import Locator, SourceEdit
 from bookindexcore.ui.style import AppStyleConfiguration
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QFileDialog, QLabel, QMainWindow, QMessageBox, QSplitter, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout, QWidget)
+    QDockWidget, QFileDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from ..entries import all_references, heading_rows
 from ..ooxml_backend import OoxmlBackend
 from ..profiles import load_profile, save_profile
 from ..reader import (
     HEADING, UNKNOWN, outline, propose_profile, read_paragraphs, unprofiled)
+from .entry_window import EntryWindow
 from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
 from .profile_editor import ProfileEditor
@@ -55,6 +57,7 @@ class MainWindow(QMainWindow):
         self._paragraphs: list = []
         self._references: list = []
         self._positions: dict = {}
+        self._dirty = False
         self._profile = None
         #: True when the profile on screen is this application's guess rather
         #: than the indexer's decision. The notice says which, because a
@@ -77,7 +80,20 @@ class MainWindow(QMainWindow):
         # a row click moves the manuscript to the marker. Each side blocks the
         # other's echo, so the two do not chase each other.
         self.view.entry_clicked.connect(self.index_panel.select_entry)
+        self.view.entry_clicked.connect(self._show_in_entry_window)
         self.index_panel.entry_selected.connect(self._go_to_entry)
+        self.index_panel.entry_selected.connect(self._show_in_entry_window)
+
+        self.entry_window = EntryWindow()
+        self.entry_window.entry_edited.connect(self._edit_entry)
+        self.entry_window.entry_created.connect(self._create_entry)
+        self.entry_window.entry_deleted.connect(self._delete_entry)
+
+        dock = QDockWidget("Index entry", self)
+        dock.setObjectName("entry_window")
+        dock.setWidget(self.entry_window)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        self.entry_dock = dock
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self.outline_tree)
@@ -106,6 +122,13 @@ class MainWindow(QMainWindow):
         self.styles_action = manuscript_menu.addAction(
             "&Styles…", self.edit_profile)
         self.styles_action.setEnabled(False)
+
+        index_menu = self.menuBar().addMenu("&Index")
+        self.save_action = index_menu.addAction("&Save entries", self.save)
+        self.save_action.setEnabled(False)
+        index_menu.addSeparator()
+        index_menu.addAction("&Entry window",
+                             lambda: self.entry_dock.setVisible(True))
 
         self.statusBar().showMessage("Open a Word manuscript to begin.")
 
@@ -157,6 +180,9 @@ class MainWindow(QMainWindow):
         self._positions = backend.entry_positions(BODY_PART)
 
         self.styles_action.setEnabled(True)
+        self._dirty = False
+        self.save_action.setEnabled(False)
+        self.entry_window.show_entry(None)
         self.setWindowTitle(f"Word Index Editor: {path.name}")
         self._apply_profile()
 
@@ -220,6 +246,120 @@ class MainWindow(QMainWindow):
 
     def _go_to_entry(self, entry_id) -> None:
         self.view.select_entry(entry_id)
+
+    def _show_in_entry_window(self, entry_id) -> None:
+        self.entry_window.show_entry(self._reference(entry_id))
+
+    def _reference(self, entry_id):
+        for reference in self._references:
+            if reference.entry_id == entry_id:
+                return reference
+        return None
+
+    # -- changing the index -----------------------------------------------
+
+    def _edit_entry(self, entry_id, instruction: str) -> None:
+        reference = self._reference(entry_id)
+        if reference is None:
+            return
+        self._run(SourceEdit(
+            entry_id=entry_id,
+            locator=reference.locator,
+            before=(reference.locator.hint or {}).get("instruction", ""),
+            after=instruction,
+        ), f"Changed {entry_id}")
+
+    def _delete_entry(self, entry_id) -> None:
+        reference = self._reference(entry_id)
+        if reference is None:
+            return
+        heading = reference.heading_raw or str(entry_id)
+        if QMessageBox.question(
+                self, "Delete this entry?",
+                f"Delete the index entry for\n\n    {heading}\n\n"
+                f"from the manuscript?") != QMessageBox.StandardButton.Yes:
+            return
+        # **An empty `after` is what removes an entry.** Not a separate
+        # method: rewrite, insertion and deletion are all edits, so a command
+        # holding a mixture of the three inverts without special cases.
+        self._run(SourceEdit(entry_id=entry_id, locator=reference.locator,
+                             before=(reference.locator.hint or {}).get(
+                                 "instruction", ""),
+                             after=""),
+                  f"Deleted {heading}")
+
+    def _create_entry(self, instruction: str) -> None:
+        """
+        A new entry at the caret.
+
+        **Step 7 is the gesture, not the capability.** `place_at` puts a field
+        at a character offset and `offset_at_cursor` is that offset, so an
+        entry can be created now; what step 7 adds is selecting a passage and
+        getting an entry from it without visiting the window.
+        """
+        if self._backend is None:
+            return
+        offset = self.view.offset_at_cursor()
+        if offset < 0:
+            self.entry_window.notice.setText(
+                "Put the caret in the manuscript first.")
+            return
+
+        paragraph = self.view.paragraph_at(
+            self.view.textCursor().blockNumber())
+        if paragraph is not None and not paragraph.indexable:
+            # Answer 4 of 24 August: a heading is navigation and never an
+            # insertion point, and §5's excluded regions are not the
+            # indexer's to work in. **This is the rule that could not be
+            # tested until step 4 gave a manuscript a real profile.**
+            self.entry_window.notice.setText(
+                f"This is {paragraph.kind.replace('_', ' ')}, not indexable "
+                f"text. Nothing was created.")
+            return
+
+        result = self._backend.place_at(BODY_PART, offset, instruction)
+        if not result.ok:
+            QMessageBox.warning(self, "Could not create", str(result.reason))
+            return
+        self._after_change("Created an entry")
+
+    def _run(self, edit, said: str) -> None:
+        result = self._backend.apply(edit)
+        if not result.ok:
+            QMessageBox.warning(self, "Could not change", str(result.reason))
+            return
+        self._after_change(said)
+
+    def _after_change(self, said: str) -> None:
+        """
+        Re-read the index from the document and redraw everything on it.
+
+        **Read back rather than patched.** The backend rescans a part after
+        every mutation, which is what keeps ordinals honest, so the cheapest
+        correct thing this window can do is ask it again. Anything else is a
+        second copy of the truth.
+        """
+        self._references = all_references(self._backend)
+        self._positions = self._backend.entry_positions(BODY_PART)
+        self.index_panel.show_references(*heading_rows(self._references),
+                                         self._references)
+        self._draw_markers()
+        self._dirty = True
+        self.save_action.setEnabled(True)
+        self.statusBar().showMessage(f"{said}. {len(self._references):,} "
+                                     f"entries, not yet saved.")
+
+    def save(self) -> None:
+        """Write the document back. Nothing reaches disk before this."""
+        if self._backend is None or not self._dirty:
+            return
+        if self._backend.save():
+            self._dirty = False
+            self.save_action.setEnabled(False)
+            self.statusBar().showMessage(f"Saved {self._path.name}.")
+        else:
+            QMessageBox.warning(self, "Could not save",
+                                "The document was not written.")
 
     def _say(self, styles: int, placed: int, missing, unknown: int) -> None:
         """

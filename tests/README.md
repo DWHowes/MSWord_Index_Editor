@@ -86,6 +86,23 @@ tests/
                                 write them reliably, and the reader does not
                                 inherit that limit.
 
+  test_instruction_composer.py
+                            step 6: changing one thing in an XE instruction
+                            without losing the rest. The whole file is about
+                            what an edit must not destroy, because 1,539 of
+                            2,074 entries in a real book carry a \r bookmark
+                            nothing here offers to edit. Includes a \z switch
+                            invented for the purpose, which no version of this
+                            code has heard of, surviving an edit
+
+  ui/test_entry_window.py   step 6: the window itself. One class per thing
+                            scope §4 says makes Word different -- the
+                            per-level sort key, the one-character index type,
+                            the range that is shown and not offered -- plus
+                            what the window refuses to do: an empty main entry
+                            is a slip and not a delete, and a gap ends the
+                            heading rather than promoting what is under it
+
   ui/test_entry_markers.py  step 5: the entry layer over the manuscript.
                             Nothing is inserted into the document, because a
                             marker character would move every offset after

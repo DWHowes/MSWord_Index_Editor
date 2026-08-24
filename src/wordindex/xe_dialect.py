@@ -572,6 +572,82 @@ class XEDialect:
         """The quoted heading text of a whole ``XE`` instruction."""
         return self._entry_text(raw)
 
+    # -- composing a whole instruction --------------------------------------
+    #
+    # **Surgical, never rebuilt.** Every method here changes one thing and
+    # copies the rest of the instruction through untouched, which matters more
+    # than it sounds: 1,539 of the 2,074 entries in a measured book carry a
+    # `\r` bookmark this application does not offer to edit, and a composer
+    # that assembled an instruction from the fields it knows about would
+    # silently drop the range from every entry an indexer so much as retyped.
+    # `\y` is in the same position. *A writer that only writes what it
+    # understands is a writer that deletes what it does not.*
+
+    def new_instruction(self, text: str) -> str:
+        r"""A fresh ``XE`` instruction for already-escaped entry text."""
+        return f'XE "{(text or "").strip()}"'
+
+    def with_entry_text(self, raw: str, text: str) -> str:
+        r"""
+        Replace the heading, keeping every switch exactly as it stands.
+
+        ``text`` is *stored* text: levels joined by ``:``, each of them
+        ``display;sort``, already escaped. :meth:`build_level` and
+        :meth:`join_levels` are what a caller holding user input goes through.
+        """
+        current = (raw or "").strip()
+        if not current.startswith("XE"):
+            return self.new_instruction(text)
+        after = self._after_text(current)
+        return (self.new_instruction(text) + after).rstrip()
+
+    def with_page_style(self, raw: str, style: str) -> str:
+        r"""
+        Set ``\b`` and ``\i`` to match a canonical page style.
+
+        Both are written, or removed, on every call. They are **independent
+        switches**, so setting *bold* on an entry that was *bold italic* has
+        to clear the italic rather than leave it: this is the one place where
+        Word's closed four-value vocabulary and its two-switch spelling have
+        to be reconciled, and doing it in one method is what stops a caller
+        getting it half right.
+        """
+        wanted = self.build_page_style(style, None)
+        bold, italic = _SWITCHES_BY_STYLE.get(wanted or STANDARD_PAGE_STYLE,
+                                              (False, False))
+        return self._with_flag(self._with_flag(raw, "b", bold), "i", italic)
+
+    def with_xref(self, raw: str, kind: str = "", target: str = "") -> str:
+        r"""
+        Set or clear ``\t``. An empty target removes the switch.
+
+        Word stores the rendered words, *"See also Foo"*, not a structured
+        kind, so this goes through :meth:`build_xref` rather than writing the
+        target alone.
+        """
+        target = (target or "").strip()
+        payload = self.build_xref(kind, target) if target else ""
+        return self._with_switch(raw, "t", payload, quoted=True)
+
+    def _with_flag(self, raw: str, switch: str, on: bool) -> str:
+        r"""
+        A switch that carries no value at all, such as ``\b``.
+
+        :meth:`_with_switch` cannot express this: it treats an empty value as
+        *remove*, which is exactly what a valueless switch needs to mean when
+        it is present.
+        """
+        text = (raw or "").strip()
+        if not text.startswith("XE"):
+            return raw or ""
+
+        after = self._after_text(text)
+        head = text[: len(text) - len(after)]
+        stripped = _SWITCH.sub(
+            lambda m: "" if m.group("name") == switch else m.group(0), after)
+        stripped = re.sub(r"\s{2,}", " ", stripped).rstrip()
+        return (head + stripped + (f" \\{switch}" if on else "")).rstrip()
+
     # -- internals ----------------------------------------------------------
 
     @staticmethod

@@ -274,12 +274,18 @@ class OoxmlBackend(DocumentBackend):
         travels with the text around it, which is what lets this backend
         inherit the base class's empty ``relocate_after``.
 
-        **[NEEDS RIGOROUS TESTING IN PHASE 8.]** Placement in particular. This
-        application has no UI yet, so every path here has been exercised by the
-        conformance battery and by nothing else — and the reason the interface
-        changed at all is that the *previous* shape looked correct under the
-        battery and turned out to be unusable by a real insertion path. The
-        same could be true of this one. See HLD §11.
+        **The real caller arrived at step 6 and this shape held.** The note
+        that stood here said every path had been exercised by the conformance
+        battery and by nothing else, and that the *previous* interface had
+        looked correct under the battery while being unusable by a real
+        insertion path. The entry window is that real caller: rewrite,
+        placement and removal were driven through it on the CUP monograph, saved, and reopened from disk, with **the visible text
+        identical afterwards** and a `` bookmark preserved through an edit
+        that did not mention it. See `documentation/step6_measurements.md`.
+
+        What is still untested is placement into a *footnote* container, and
+        anything under a live Word instance, which belongs to the v2 COM
+        backend. See HLD §11.
         """
         if not edit.names_an_entry:
             return self._place(edit)

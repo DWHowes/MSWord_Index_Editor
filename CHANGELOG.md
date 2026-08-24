@@ -5,6 +5,45 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The index entry window: step 6
+
+Create, edit and delete, with per-level sort keys. Scope §4.
+
+**The dialect could read an instruction and not change one.** Four composers
+added on the shape `with_index_class` already had: surgery, never a rebuild.
+The reason is a number: **1,539 of the 2,074 entries in a measured book carry
+a `\r` bookmark this application does not offer to edit**, so a composer that
+assembled an instruction from the fields it models would have dropped the
+range from every entry an indexer so much as retyped. *A writer that only
+writes what it understands is a writer that deletes what it does not.* The
+tests include a `\z` switch invented for the purpose surviving an edit.
+
+The three things scope §4 said make Word's window different are all visible in
+it. **A sort key per level**, `display;sort` on each, with `as displayed` as
+the placeholder because a blank key is not the same as a key equal to the
+display text. **`\f` one character wide**, because `\f "toacases"` is
+accepted, written and silently not filtered. **`\r` shown and not offered**,
+since minting a bookmark is the one exception to §2 and is still open in §9.
+
+**The first real caller of `apply`.** Its docstring said every path had been
+exercised by the conformance battery and by nothing else, and that the
+previous interface had looked correct under the battery while being unusable
+by a real insertion path. Driven through the window on the CUP monograph,
+saved and reopened: 2,074 entries before, 2,074 after one edit, one creation
+and one deletion, **the visible text identical**, and the range preserved
+through an edit that never mentioned it. The note is updated rather than
+deleted: placement into a footnote container is still untested.
+
+**A silent downgrade, caught by its own test.** Choosing *None* for the
+cross-reference left the target in the box and passed it through, so
+`See also Dogs` became `See Dogs`: a downgrade, not a removal. *The fourth
+defect this session that fails by giving a wrong answer rather than an error.*
+
+Creating an entry with the caret in a heading or an excluded region is refused
+by name. **That rule could not be tested honestly until step 4**, because it
+reads `Paragraph.kind` and before a real profile most of a numbered manuscript
+said "not decided". See `documentation/step6_measurements.md`.
+
 ### Entry markers, and selection both ways: step 5
 
 An entry did not know where it was. `iter_entries` gives an anchor and an
