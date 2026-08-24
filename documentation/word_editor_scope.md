@@ -15,11 +15,23 @@ application that would do it is the one that does not exist.
 ## 1. The size of it, stated before anything else
 
 `MSWord_Index_Editor` today is **two seams**: `XEDialect` and `OoxmlBackend`,
-plus T3c's `toa_emission`. The LaTeX Indexing Editor, for scale, is about
-**16,000 lines** — 25 view modules and 21 controllers.
+plus T3c's `toa_emission`.
 
-**The Word editor should be a fraction of that, and the reason is the whole
-argument for the extraction.** `bookindexcore` now ships, ready to use:
+The LaTeX Indexing Editor is the scale reference, and **which branch you look
+at matters**:
+
+    branch                     files   lines   files importing the core
+    main                          88  26,181                          0
+    bookindexcore-extraction      74  21,865                         48
+
+*Counted across `views/`, `controllers/` and `models/`.* **`main` does not use
+`bookindexcore` at all** — the adoption lives on the extraction branch and
+lands with the **6a merge**. The extraction removed about **4,300 lines and
+fourteen files**, 16% of that application, and 48 of the 74 that remain now
+import the core.
+
+**The Word editor should be a fraction of 21,865, and that is the whole
+argument for the extraction.** `bookindexcore` ships, ready to use:
 
 | shared already | what it gives |
 |---|---|
@@ -39,6 +51,21 @@ the editor tab, the entry window, and the reader — and only the first is large
 *The core ships components, not a shell.* Each application assembles its own
 main window; matching the family look means using `AppStyleConfiguration` and
 the same assembly, not inheriting a window.
+
+### And one risk that follows from the branch
+
+**Every shared UI component above has exactly one consumer, on a branch that
+has not merged.** The Word editor would be the **second** — which is the test
+a seam needs and this package's own rule for when one has earned its place,
+and also a real risk: an interface with one caller has not been asked a second
+question, and 6a may move it.
+
+**So the sequencing below is deliberately late to the shared UI.** Steps 1 and
+2 — the reader, and a window that opens a `.docx` — touch almost none of it.
+The entry table, tree, search, preferences and help arrive at steps 3 and 8,
+by which time 6a will have merged or its cost will be visible. *This is the
+same reason `bookindexcore_toa_adoption` gave for making 6a not a gate: a
+second caller is worth more than a pinned version.*
 
 ## 2. The manuscript is read-only, and that is a rule
 
