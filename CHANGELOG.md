@@ -5,6 +5,43 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Entry markers, and selection both ways: step 5
+
+An entry did not know where it was. `iter_entries` gives an anchor and an
+ordinal, and an ordinal says *fourth field in this part*, which cannot be
+drawn on a page. `OoxmlBackend.entry_positions` is the inverse of `place_at`:
+`anchor -> character offset in the visible text`. **The two share their
+arithmetic through one walk**, `_walk_para`, because a marker drawn one
+character out is worse than no marker. All 2,074 fields of a measured book are
+positioned, in document order, inside a known paragraph.
+
+**Nothing is inserted into the document.** A marker character would move every
+offset after it, so the layer is `ExtraSelection` formatting over text that is
+character for character what the reader produced.
+
+**The marker design was a guess and the data corrected it.** Running forward
+from the anchor to the next space seemed obvious and produced markers one
+space wide: Word entries are points *between* words, so the anchor sits on the
+space or comma beside the text it is about, and four of the first five in a
+measured book were on whitespace or punctuation. The rule now takes the token
+holding the anchor, or the one after it when the anchor is on a space, which
+gives `asteroid`, `Ruggie,`, `phenomenon`. **It is still a heuristic**: the
+tool that wrote these fields put some before the indexed phrase and some
+after, which is why the tooltip names the entries rather than the marker
+claiming to be the term.
+
+Two defects found on the way. The tests caught `show_paragraphs` clearing the
+marks but not the widget's selections, leaving **stale cursors into a
+discarded document** when a style profile changes. And the shared table's
+`entry_row_selected` was `Signal(int)`: emitting a `wim_<uuid>` does not
+raise, it prints a Shiboken warning to stderr and **delivers 0**, so clicking
+any row would have selected entry zero. Widened to `Signal(object)` in the
+core; the LaTeX editor's 1,761 tests pass untouched. *That is the third defect
+of this shape found by being the second caller.*
+
+Measured on the two biggest books: entry layer 0.59 s and 0.39 s, selection
+under 0.03 s. See `documentation/step5_measurements.md`.
+
 ### The style-profile editor, moved from step 9 to step 4
 
 Approved 24 August 2026, on step 3's sweep: `propose_profile` places 93% of

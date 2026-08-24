@@ -38,6 +38,8 @@ retrofit.
 
 from __future__ import annotations
 
+import bisect
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (
     QColor, QFont, QTextBlockFormat, QTextCharFormat, QTextCursor,
@@ -85,12 +87,28 @@ class ManuscriptView(QTextEdit):
     #: A paragraph index, as the caret moves. The window shows where it is.
     position_changed = Signal(int)
 
+    #: An entry id, when the indexer clicks a marker. The window selects it in
+    #: the index panel: scope §3 item 3, "clicking one selects that entry in
+    #: the index tree; the reverse also".
+    entry_clicked = Signal(str)
+
+    #: How near a click must land to count as hitting a marker, in characters.
+    #: A marker is a word wide, so this only catches the click that lands in
+    #: the space just before one.
+    CLICK_SLACK = 2
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setReadOnly(True)
         self.setUndoRedoEnabled(False)
         self.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
         self._paragraphs: list = []
+        #: Paragraph start offsets, for bisecting an entry's offset back to
+        #: the paragraph holding it. Rebuilt with the document.
+        self._starts: list = []
+        self._marks: dict = {}
+        self._mark_offsets: list = []
+        self._selected = None
         self.cursorPositionChanged.connect(self._announce)
 
     # -- building ---------------------------------------------------------
@@ -105,6 +123,12 @@ class ManuscriptView(QTextEdit):
         that opens and a book that hangs.
         """
         self._paragraphs = list(paragraphs)
+        self._starts = [p.offset for p in self._paragraphs]
+        # A new document has no markers on it until somebody says otherwise;
+        # keeping the old ones would draw a previous book's entries over this
+        # one, and a re-profile rebuilds the document without touching them.
+        self._marks = {}
+        self._mark_offsets = []
         document = QTextDocument(self)
         document.setUndoRedoEnabled(False)
         document.setDocumentLayout(document.documentLayout())
@@ -122,6 +146,10 @@ class ManuscriptView(QTextEdit):
         cursor.endEditBlock()
 
         self.setDocument(document)
+        # **Clearing the marks is not enough**: the selections stay on the
+        # widget, holding cursors into the document just discarded. Found by
+        # the test that rebuilds through a new style profile.
+        self.setExtraSelections([])
         self.moveCursor(QTextCursor.MoveOperation.Start)
 
     def _block_format(self, paragraph) -> QTextBlockFormat:
@@ -193,3 +221,198 @@ class ManuscriptView(QTextEdit):
 
     def _announce(self) -> None:
         self.position_changed.emit(self.textCursor().blockNumber())
+
+    # -- the entry layer --------------------------------------------------
+
+    def show_entries(self, marks) -> None:
+        r"""
+        Draw a marker wherever an `XE` field sits. Step 5.
+
+        `marks` is `(entry_id, offset, label)`, the offset being the one
+        :meth:`~.ooxml_backend.OoxmlBackend.entry_positions` reports, in
+        `read_text` space, which is the space this view's arithmetic already
+        works in.
+
+        **Nothing is inserted into the document.** A marker character would
+        move every offset after it and break the one contract everything here
+        rests on, so the layer is `ExtraSelection` formatting over text that
+        is character for character what the reader produced. *The entry layer
+        sits over the manuscript; it is never mixed into it.*
+
+        **A marker covers the word the entry is anchored to**, not one
+        character. That is how an indexer thinks about it, and a single tinted
+        character is easy to lose in a page of prose. Several entries on one
+        word are one marker: in a measured book *Bennu* carries two fields at
+        the same offset, so drawing one marker per field would stack invisible
+        duplicates and count wrong.
+        """
+        by_offset: dict = {}
+        for entry_id, offset, label in marks:
+            by_offset.setdefault(int(offset), []).append((entry_id, label))
+
+        self._marks = {}
+        for offset, held in sorted(by_offset.items()):
+            span = self._span_for(offset)
+            if span is not None:
+                self._marks[offset] = (span, tuple(held))
+
+        # Sorted once, so a click finds the nearest marker by bisection rather
+        # than by walking two thousand of them.
+        self._mark_offsets = sorted(self._marks)
+        self._selected = None
+        self._redraw_markers()
+
+    def _span_for(self, offset: int):
+        """
+        ``(block number, start, end)`` for the word an entry is anchored to.
+
+        None for an offset in no paragraph, which is not an error: a field can
+        sit in a part this view is not showing.
+        """
+        index = bisect.bisect_right(self._starts, offset) - 1
+        if not (0 <= index < len(self._paragraphs)):
+            return None
+        paragraph = self._paragraphs[index]
+        if offset > paragraph.end:
+            return None
+
+        local = offset - paragraph.offset
+        text = paragraph.text
+        # Past the last word, or a blank paragraph: fall back to the final
+        # character so an entry at the end of a paragraph still shows.
+        if local >= len(text):
+            return (index, max(0, len(text) - 1), len(text)) if text else None
+
+        # **The word the anchor touches, and this was measured rather than
+        # designed.** The first attempt ran forward from the anchor to the
+        # next space, which seemed obvious and produced markers one space
+        # wide: real entries sit *between* words, at the space or the comma
+        # beside the text they are about. Of the first five in a measured
+        # book, four anchored on a space or a full stop.
+        #
+        # So: an anchor on a visible character belongs to the token holding
+        # it, `Ruggie,` for an entry filed under *Ruggie, John*; an anchor on
+        # a space takes the token after it, `asteroid` for an entry that
+        # opens *The asteroid 101955 Bennu is just*. Either way the marker
+        # lands on something the indexer can see and click.
+        start = local
+        if text[start].isspace():
+            while start < len(text) and text[start].isspace():
+                start += 1
+            if start >= len(text):             # trailing space: mark backwards
+                start = local
+                while start > 0 and text[start - 1].isspace():
+                    start -= 1
+                while start > 0 and not text[start - 1].isspace():
+                    start -= 1
+        else:
+            while start > 0 and not text[start - 1].isspace():
+                start -= 1
+
+        end = start
+        while end < len(text) and not text[end].isspace():
+            end += 1
+        if end == start:
+            end = min(len(text), start + 1)
+        return (index, start, end)
+
+    def _redraw_markers(self) -> None:
+        document = self.document()
+        selections = []
+        for offset in self._mark_offsets:
+            span, held = self._marks[offset]
+            block_number, start, end = span
+            block = document.findBlockByNumber(block_number)
+            if not block.isValid():
+                continue
+
+            cursor = QTextCursor(block)
+            cursor.setPosition(block.position() + start)
+            cursor.setPosition(block.position() + end,
+                               QTextCursor.MoveMode.KeepAnchor)
+
+            selection = QTextEdit.ExtraSelection()
+            selection.cursor = cursor
+            selection.format = self._marker_format(
+                held,
+                selected=any(e == self._selected for e, _label in held))
+            selections.append(selection)
+        self.setExtraSelections(selections)
+
+    def _marker_format(self, held=(), *, selected: bool) -> QTextCharFormat:
+        """
+        Unobtrusive, and taken from the palette so it survives a theme.
+
+        An underline rather than a block of colour: the manuscript is what the
+        indexer is reading, and a marker that shouts drowns it.
+
+        **The tooltip is where "countable" lives.** A marker says an entry is
+        here; the tooltip says which, and how many, without ever showing a
+        field code. That matters more than it sounds: the marked word is the
+        one nearest the anchor and is often not the indexed term at all,
+        because Word entries are points between words and the tool that wrote
+        them put some before the phrase and some after.
+        """
+        fmt = QTextCharFormat()
+        if held:
+            names = [label or "(no heading)" for _id, label in held]
+            joined = "\n".join(names)
+            fmt.setToolTip(joined if len(names) == 1
+                           else f"{len(names)} entries here:\n{joined}")
+        accent = self.palette().link().color()
+        fmt.setUnderlineColor(accent)
+        fmt.setUnderlineStyle(
+            QTextCharFormat.UnderlineStyle.WaveUnderline if selected
+            else QTextCharFormat.UnderlineStyle.SingleUnderline)
+        if selected:
+            tint = QColor(accent)
+            tint.setAlpha(60)
+            fmt.setBackground(tint)
+        return fmt
+
+    # -- finding one ------------------------------------------------------
+
+    def entries_at_offset(self, offset: int) -> tuple:
+        """Every entry anchored at the marker this offset falls in, or ()."""
+        if not self._mark_offsets:
+            return ()
+        index = bisect.bisect_left(self._mark_offsets, offset)
+        for candidate in (index, index - 1):
+            if not 0 <= candidate < len(self._mark_offsets):
+                continue
+            span, held = self._marks[self._mark_offsets[candidate]]
+            paragraph = self._paragraphs[span[0]]
+            if (paragraph.offset + span[1] - self.CLICK_SLACK
+                    <= offset <= paragraph.offset + span[2]):
+                return held
+        return ()
+
+    def select_entry(self, entry_id) -> None:
+        """
+        Show one entry as the current one and scroll to it.
+
+        The other half of §3 item 3: the index panel selects a row and the
+        manuscript goes there.
+        """
+        self._selected = entry_id
+        for span, held in self._marks.values():
+            if any(e == entry_id for e, _label in held):
+                block = self.document().findBlockByNumber(span[0])
+                if block.isValid():
+                    cursor = QTextCursor(block)
+                    cursor.setPosition(block.position() + span[1])
+                    self.setTextCursor(cursor)
+                    self.ensureCursorVisible()
+                break
+        self._redraw_markers()
+
+    def mousePressEvent(self, event) -> None:
+        super().mousePressEvent(event)
+        cursor = self.cursorForPosition(event.pos())
+        paragraph = self.paragraph_at(cursor.blockNumber())
+        if paragraph is None:
+            return
+        held = self.entries_at_offset(
+            paragraph.offset + cursor.positionInBlock())
+        if held:
+            self.entry_clicked.emit(str(held[0][0]))

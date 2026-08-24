@@ -54,6 +54,7 @@ class MainWindow(QMainWindow):
         self._plain: list = []
         self._paragraphs: list = []
         self._references: list = []
+        self._positions: dict = {}
         self._profile = None
         #: True when the profile on screen is this application's guess rather
         #: than the indexer's decision. The notice says which, because a
@@ -71,6 +72,12 @@ class MainWindow(QMainWindow):
         self.view.position_changed.connect(self._show_position)
 
         self.index_panel = IndexPanel()
+
+        # **Both halves of scope §3 item 3.** A marker click selects the row;
+        # a row click moves the manuscript to the marker. Each side blocks the
+        # other's echo, so the two do not chase each other.
+        self.view.entry_clicked.connect(self.index_panel.select_entry)
+        self.index_panel.entry_selected.connect(self._go_to_entry)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self.outline_tree)
@@ -144,6 +151,11 @@ class MainWindow(QMainWindow):
         self.index_panel.show_references(*heading_rows(self._references),
                                          self._references)
 
+        # **Where each entry sits in the visible text.** An ordinal says
+        # "fourth field in this part" and cannot be drawn on a page; this is
+        # the number that can.
+        self._positions = backend.entry_positions(BODY_PART)
+
         self.styles_action.setEnabled(True)
         self.setWindowTitle(f"Word Index Editor: {path.name}")
         self._apply_profile()
@@ -183,6 +195,7 @@ class MainWindow(QMainWindow):
 
         self.view.show_paragraphs(self._paragraphs)
         self._build_outline()
+        self._draw_markers()
 
         missing = unprofiled(styles, profile)
         unknown = sum(1 for p in self._paragraphs if p.kind == UNKNOWN)
@@ -191,6 +204,22 @@ class MainWindow(QMainWindow):
             f"{sum(len(p.text) for p in self._paragraphs):,} characters, "
             f"{len(self._references):,} index entries")
         self._say(len(styles), len(profile.kinds), missing, unknown)
+
+    def _draw_markers(self) -> None:
+        """
+        The entry layer over the manuscript.
+
+        Redrawn after every `show_paragraphs`, because rebuilding the document
+        drops its `ExtraSelection`s: re-reading through a new style profile
+        would otherwise leave a book with its markers silently gone.
+        """
+        self.view.show_entries(
+            (r.entry_id, self._positions[r.entry_id], r.heading_raw)
+            for r in self._references
+            if r.entry_id in self._positions)
+
+    def _go_to_entry(self, entry_id) -> None:
+        self.view.select_entry(entry_id)
 
     def _say(self, styles: int, placed: int, missing, unknown: int) -> None:
         """

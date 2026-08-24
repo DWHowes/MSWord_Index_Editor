@@ -43,6 +43,7 @@ from __future__ import annotations
 
 from bookindexcore.ui import entry_table
 from bookindexcore.ui.entry_table.entry_table import EntryModifierList
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from ..xe_dialect import XE_DIALECT
@@ -56,9 +57,14 @@ entry_table.entry_table.configure(XE_DIALECT)
 class IndexPanel(QWidget):
     """The book's own entries, in the shared table."""
 
+    #: The entry the indexer picked. Forwarded from the shared table rather
+    #: than re-derived, so there is one answer to "which entry is current".
+    entry_selected = Signal(object)
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.table = EntryModifierList()
+        self.table.entry_row_selected.connect(self.entry_selected)
 
         self.heading_count = QLabel("")
         self.heading_count.setStyleSheet("color: palette(mid);")
@@ -84,3 +90,26 @@ class IndexPanel(QWidget):
     def clear(self) -> None:
         self.table.populate_entry_modifier_display([])
         self.heading_count.setText("")
+
+    def select_entry(self, entry_id) -> None:
+        """
+        Put the table on one entry, without saying so again.
+
+        **Signals are blocked for the move.** This is called when the
+        manuscript's marker was clicked, and letting the table re-announce the
+        selection would send it straight back to the view: the two halves of
+        scope §3 item 3 would chase each other.
+        """
+        model = self.table.base_model
+        for row in range(model.rowCount()):
+            item = model.item(row, 0)
+            if item is not None and item.data(Qt.ItemDataRole.DisplayRole) == entry_id:
+                view = self.table.entries_table_view
+                proxy = self.table.proxy_model.mapFromSource(model.index(row, 0))
+                blocked = view.blockSignals(True)
+                try:
+                    view.setCurrentIndex(proxy)
+                    view.scrollTo(proxy)
+                finally:
+                    view.blockSignals(blocked)
+                return

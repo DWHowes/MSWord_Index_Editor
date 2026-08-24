@@ -66,6 +66,31 @@ RANGE_PREFIX = "wir_"
 _VISIBLE = {"t": None, "tab": "\t", "br": "\n"}
 
 
+def _walk_para(para):
+    """
+    ``(tag, node, visible_text)`` for **every** element, in document order.
+
+    The one walk everything else is expressed in terms of. ``visible_text`` is
+    what this element contributes to :meth:`OoxmlBackend.read_text`, and it is
+    ``""`` for the elements that contribute nothing: an ``instrText``, a field
+    character, a bookmark.
+
+    *A tab is a character.* That was a real defect. `read_text` counted only
+    ``w:t``, ran an abbreviations list together, and put every span after a
+    tab one character early. Three consumers now share this arithmetic rather
+    than keeping three copies of it, which is the only way it stays honest.
+    """
+    for node in para.iter():
+        tag = etree.QName(node).localname if node.tag is not etree.Comment \
+            else ""
+        if tag == "t":
+            yield tag, node, (node.text or "")
+        elif tag in _VISIBLE:
+            yield tag, node, _VISIBLE[tag]
+        else:
+            yield tag, node, ""
+
+
 def _visible_nodes(para):
     """
     ``(node, text)`` for everything the paragraph shows, in order.
@@ -75,15 +100,10 @@ def _visible_nodes(para):
     offsets still have to count them, which is the whole reason this walk
     exists rather than an iteration over `w:t`.
     """
-    for node in para.iter():
-        tag = etree.QName(node).localname if node.tag is not etree.Comment \
-            else ""
+    for tag, node, text in _walk_para(para):
         if tag not in _VISIBLE:
             continue
-        if tag == "t":
-            yield node, (node.text or "")
-        else:
-            yield None, _VISIBLE[tag]
+        yield (node if tag == "t" else None), text
 
 
 def _visible(para):
@@ -371,6 +391,48 @@ class OoxmlBackend(DocumentBackend):
                     spans.append((offset, offset + len(text), node))
                 offset += len(text)
         return spans
+
+    def entry_positions(self, container: str) -> dict:
+        r"""
+        ``anchor -> character offset`` for every ``XE`` field in a part.
+
+        **Where an entry sits in the visible text**, which is the one thing a
+        field did not know about itself. :meth:`iter_entries` gives an anchor
+        and an ordinal; an ordinal says *fourth field in this part* and cannot
+        be drawn on a page. This is the inverse of :meth:`place_at`: that puts
+        a field at an offset, this says what offset a field is already at, and
+        the two share the arithmetic through :func:`_walk_para` because a
+        marker drawn one character out is worse than no marker.
+
+        The offset is the position **before** anything the field itself
+        contains, so a marker sits at the word the entry was anchored to
+        rather than after it. An ``XE`` field is hidden and contributes no
+        visible text, so in practice nothing separates the two; taking the
+        leading edge is what keeps that true if one ever does.
+        """
+        tree = self._trees.get(container)
+        if tree is None:
+            return {}
+
+        # Identity, not equality: two fields can carry byte-identical XML and
+        # they are still two entries in two places.
+        starts = {id(field._nodes[0]): field.anchor
+                  for field in self._fields.get(container, ())
+                  if field._nodes}
+
+        found: dict = {}
+        offset = 0
+        first = True
+        for para in tree.getroot().iter(_q("p")):
+            if not first:
+                offset += 1                       # the newline `read_text` joins with
+            first = False
+            for _tag, node, text in _walk_para(para):
+                anchor = starts.get(id(node))
+                if anchor is not None:
+                    found.setdefault(anchor, offset)
+                offset += len(text)
+        return found
 
     def place_at(self, container: str, offset: int, instruction: str) -> EditResult:
         r"""

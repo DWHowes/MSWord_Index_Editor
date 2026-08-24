@@ -86,6 +86,15 @@ tests/
                                 write them reliably, and the reader does not
                                 inherit that limit.
 
+  ui/test_entry_markers.py  step 5: the entry layer over the manuscript.
+                            Nothing is inserted into the document, because a
+                            marker character would move every offset after
+                            it; several entries on one word are one marker,
+                            since a real book has two at the same offset; and
+                            which word a marker covers was measured rather
+                            than designed, because running forward from the
+                            anchor gave markers one space wide
+
   test_profiles.py          step 4: a style profile that survives closing the
                             window. Mostly about the quiet failures -- a
                             partial write losing every profile the indexer
