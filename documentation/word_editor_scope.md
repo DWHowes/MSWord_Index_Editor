@@ -67,6 +67,18 @@ by which time 6a will have merged or its cost will be visible. *This is the
 same reason `bookindexcore_toa_adoption` gave for making 6a not a gate: a
 second caller is worth more than a pinned version.*
 
+**DECIDED, 24 August 2026: build against the extraction branch and do not wait
+for 6a.** The alternative — land 6a first and build against a merged core —
+was put to the indexer and declined. The reasoning is that an interface with
+one caller has not been asked a second question, and the cheapest moment to
+ask it is while **both** applications are still moving. If the Word editor
+finds that a shared component is shaped for LaTeX alone, that is a finding
+about the seam, and it is worth more arriving now than after a merge has
+frozen it.
+
+*The cost is accepted rather than unforeseen*: a component may change under
+this application, and steps 3 and 8 are where that will hurt.
+
 ## 2. The manuscript is read-only, and that is a rule
 
 The LaTeX editor's tabs are read-only — undo and redo are the only
