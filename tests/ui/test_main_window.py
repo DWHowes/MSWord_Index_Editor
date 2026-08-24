@@ -109,3 +109,19 @@ class TestTheStatusLineSaysWhereYouAre:
         paragraph = window._paragraphs[600]
         assert paragraph.kind in said
         assert "offset" in said
+
+
+class TestTheNoticeCountsThisProject:
+    def test_a_profile_naming_absent_styles_does_not_inflate_the_count(
+            self, qt_app):
+        """
+        A profile authored for a whole book and applied to part of it names
+        styles the open documents do not use. Counting the profile's entries
+        made the notice read **"13 of 10 styles recognised"**, which is not a
+        thing that can be true.
+        """
+        from wordindex.ui.main_window import MainWindow
+
+        window = MainWindow()
+        window._say(styles=10, placed=8, missing=("a", "b"), unknown=0)
+        assert window.notice.text().startswith("8 of 10 styles recognised")

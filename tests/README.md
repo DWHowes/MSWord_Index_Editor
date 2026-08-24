@@ -86,6 +86,23 @@ tests/
                                 write them reliably, and the reader does not
                                 inherit that limit.
 
+  test_project.py           step 8: several documents, in an order the
+                            indexer chose. The order is the point: a real
+                            17-chapter book sorted by name puts chapter 12
+                            first, which is why the indexer had renamed all
+                            eighteen files by hand. Also pins that an anchor
+                            is MINTED ON OPEN and so is not stable across two
+                            opens of one file -- found by writing an
+                            assertion that compared them
+
+  ui/test_file_list.py      step 8: the documents, orderable. A LaTeX project
+                            is a tree with a root because \input nests; a
+                            Word project is a flat ordered list, because
+                            nothing includes anything else and the only
+                            structure is reading order. A document that would
+                            not open stays on the list, marked, rather than
+                            disappearing
+
   ui/test_selection_to_entry.py
                             step 7: what the indexer has chosen and where it
                             is. A selection maps to read_text offsets by the

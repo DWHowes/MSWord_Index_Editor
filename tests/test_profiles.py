@@ -13,8 +13,9 @@ import json
 import pytest
 
 from wordindex.profiles import (
-    STORE_ENV, STORE_VERSION, forget_profile, from_dict, known_documents,
-    load_profile, save_profile, store_path, to_dict,
+    STORE_ENV, STORE_VERSION, forget_profile, forget_project, from_dict,
+    known_documents, known_projects, load_profile, load_project, save_profile,
+    save_project, store_path, to_dict,
 )
 from wordindex.reader import BODY, HEADING, StyleProfile
 
@@ -134,3 +135,60 @@ class TestEncoding:
     def test_something_that_is_not_a_profile_at_all(self):
         assert from_dict(None) is None
         assert from_dict({"name": "no kinds here"}) is None
+
+
+class TestProjects:
+    """
+    Projects live in the same store as profiles, for the same reason: **the
+    manuscript's folder is the publisher's**, and a project file dropped in
+    there would be one more thing for editorial staff to wonder about.
+    """
+
+    def test_a_project_round_trips_in_order(self, tmp_path):
+        documents = [tmp_path / "c.docx", tmp_path / "a.docx",
+                     tmp_path / "b.docx"]
+        save_project("Collection", documents)
+        assert list(load_project("Collection")) == documents
+
+    def test_an_unknown_project_is_none(self):
+        assert load_project("never named") is None
+
+    def test_projects_and_profiles_share_one_file(self, tmp_path, profile):
+        """
+        The bug this guards: a writer that read only its own half of the store
+        would drop the other every time it saved.
+        """
+        save_profile(tmp_path / "book.docx", profile)
+        save_project("Collection", [tmp_path / "book.docx"])
+        assert load_profile(tmp_path / "book.docx") == profile
+        assert load_project("Collection") is not None
+
+    def test_saving_a_profile_does_not_lose_the_projects(self, tmp_path,
+                                                         profile):
+        save_project("Collection", [tmp_path / "one.docx"])
+        save_profile(tmp_path / "other.docx", profile)
+        assert load_project("Collection") is not None
+
+    def test_a_project_key_is_not_resolved_as_a_path(self, profile):
+        """
+        `Project.key` is `project:Some Book` for anything larger than one
+        document. Resolving that would file every project under whatever
+        folder the application happened to start in.
+        """
+        save_profile("project:Collection", profile)
+        assert load_profile("project:Collection") == profile
+
+    def test_documents_that_have_moved_are_still_returned(self, tmp_path):
+        """
+        Dropping them here would leave the indexer with a project that quietly
+        shrank. The caller opens what it can and reports what it could not.
+        """
+        gone = tmp_path / "not here.docx"
+        save_project("Collection", [gone])
+        assert list(load_project("Collection")) == [gone]
+
+    def test_forgetting_one(self, tmp_path):
+        save_project("Collection", [tmp_path / "a.docx"])
+        forget_project("Collection")
+        assert load_project("Collection") is None
+        assert known_projects() == ()

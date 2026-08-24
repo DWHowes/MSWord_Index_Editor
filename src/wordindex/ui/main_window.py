@@ -1,19 +1,33 @@
 r"""
-The window: open a `.docx`, show it, navigate it -- step 2.
+The window: a project, its manuscripts, and one index across them.
 
-Deliberately small. It opens one file, shows the manuscript, offers the
-outline beside it, and says what the reader could not place. **There are no
-entries here yet**: the step exists to prove the rendering choice against a
-real book before anything expensive is built on it.
+Grown a step at a time and it shows, deliberately. Step 2 opened one file and
+proved the rendering choice; step 3 added the entry table; step 4 the style
+profile; step 5 the entry markers; step 6 the entry window; step 7 the mark
+gesture; step 8 made all of it a *project*.
 
-**What it does not touch is the point.** The shared entry table, index tree,
-search, preferences and help are not wired in, because every one of them has
-exactly one consumer today -- the LaTeX editor, on a branch that has not
-merged -- and the scope puts them at steps 3 and 8 so this application is not
-the thing that breaks when 6a lands.
+**One document is a project of one**, so there is a single path through here
+rather than two. That is not a convenience: two paths would have meant the
+lone-document behaviour drifting away from the multi-document one, and the
+lone document is the common case.
+
+#### The three things a project changes
+
+**Which backend an edit goes to.** Every document's body is
+`word/document.xml`, so a locator's container cannot say which file an entry
+is in. The anchor can, and `OpenProject` holds that map.
+
+**What the profile covers.** One profile for the project, proposed from every
+document's styles, because a proposal made from one chapter would be missing
+whatever appears only in another and the indexer would meet the gap halfway
+through the book.
+
+**What the index is.** One list across every document, so clicking an entry
+from a chapter that is not open switches to it rather than doing nothing.
 
 The family look comes from `bookindexcore.ui.style.AppStyleConfiguration`,
-which is the one shared thing used here.
+and the entry table from `bookindexcore.ui.entry_table`. The shared *tree* is
+still absent, on step 3's finding: see `documentation/step3_measurements.md`.
 """
 
 from __future__ import annotations
@@ -25,16 +39,18 @@ from bookindexcore.ui.style import AppStyleConfiguration
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
-    QDockWidget, QFileDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
+    QDockWidget, QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from ..entries import all_references, heading_rows
-from ..ooxml_backend import OoxmlBackend
-from ..profiles import load_profile, save_profile
+from ..profiles import (
+    load_profile, load_project, save_profile, save_project)
+from ..project import OpenProject, Project
 from ..xe_dialect import XE_DIALECT
 from ..reader import (
-    HEADING, UNKNOWN, outline, propose_profile, read_paragraphs, unprofiled)
+    HEADING, UNKNOWN, outline, unprofiled)
 from .entry_window import EntryWindow
+from .file_list import FileList
 from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
 from .profile_editor import ProfileEditor
@@ -53,19 +69,22 @@ class MainWindow(QMainWindow):
         self.menuBar().setStyleSheet(
             AppStyleConfiguration.get_unified_menu_stylesheet())
 
-        self._backend = None
+        #: The open project, or None. **One document is a project of one**,
+        #: so there is a single path through here rather than two.
+        self.session = None
         self._path = None
         self._plain: list = []
         self._paragraphs: list = []
         self._references: list = []
         self._positions: dict = {}
+        #: The profile, and whether it is still a guess, belong to the open
+        #: project now: one book, one answer for every chapter.
         self._dirty = False
-        self._profile = None
-        #: True when the profile on screen is this application's guess rather
-        #: than the indexer's decision. The notice says which, because a
-        #: proposal presented as a decision is the whole failure mode step 4
-        #: exists to prevent.
-        self._profile_is_proposed = False
+
+        self.file_list = FileList()
+        self.file_list.document_chosen.connect(self.show_document)
+        self.file_list.order_changed.connect(self._reorder)
+        self.file_list.document_removed.connect(self._remove_document)
 
         self.outline_tree = QTreeWidget()
         self.outline_tree.setHeaderLabels(["Outline"])
@@ -97,8 +116,14 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
         self.entry_dock = dock
 
+        sidebar = QSplitter(Qt.Orientation.Vertical)
+        sidebar.addWidget(self.file_list)
+        sidebar.addWidget(self.outline_tree)
+        sidebar.setStretchFactor(1, 3)
+        sidebar.setSizes([150, 560])
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(self.outline_tree)
+        splitter.addWidget(sidebar)
         splitter.addWidget(self.view)
         splitter.addWidget(self.index_panel)
         splitter.setStretchFactor(1, 1)
@@ -116,7 +141,15 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(holder)
 
         file_menu = self.menuBar().addMenu("&File")
-        file_menu.addAction("&Open…", self.choose_file)
+        file_menu.addAction("&Open document…", self.choose_file)
+        file_menu.addSeparator()
+        file_menu.addAction("Open &project…", self.choose_project)
+        self.add_action = file_menu.addAction(
+            "&Add document to project…", self.choose_addition)
+        self.add_action.setEnabled(False)
+        self.name_action = file_menu.addAction(
+            "&Name this project…", self.name_project)
+        self.name_action.setEnabled(False)
         file_menu.addSeparator()
         file_menu.addAction("E&xit", self.close)
 
@@ -150,85 +183,209 @@ class MainWindow(QMainWindow):
         if path:
             self.open_document(Path(path))
 
-    def open_document(self, path: Path) -> None:
+    def choose_project(self) -> None:
         """
-        Read a manuscript and show it.
+        Open a project the indexer has already named.
 
-        **A stored profile is the indexer's decision and is used as it
-        stands.** Only a manuscript nobody has profiled falls back to
-        `propose_profile`, and when it does the notice says so in as many
-        words, because a guess presented as a decision is exactly the failure
-        this step exists to prevent.
+        Projects live in this application's store rather than as a file beside
+        the manuscripts, on step 4's reasoning: what goes back to the publisher
+        must differ from what arrived by the added fields and nothing else.
         """
-        backend = OoxmlBackend()
-        try:
-            backend.open(path)
-        except Exception as broken:                       # noqa: BLE001
-            QMessageBox.warning(self, "Cannot open", str(broken))
+        from ..profiles import known_projects
+
+        names = known_projects()
+        if not names:
+            QMessageBox.information(
+                self, "No projects yet",
+                "Open a document, add the rest of the book to it with "
+                "File > Add document, then name the project.")
+            return
+        name, chosen = QInputDialog.getItem(
+            self, "Open a project", "Project:", names, 0, False)
+        if chosen and name:
+            documents = load_project(name)
+            if documents:
+                self.open_project(Project(name=name, documents=documents))
+
+    def choose_addition(self) -> None:
+        """Add documents to the open project, at the end of the order."""
+        if self.session is None:
+            return
+        paths, _ = QFileDialog.getOpenFileNames(
+            self, "Add to this project", "", "Word documents (*.docx)")
+        if not paths:
             return
 
-        self._backend = backend
-        self._path = path
-        self._plain = read_paragraphs(backend, BODY_PART)
+        wanted = list(self.session.project.documents)
+        for raw in paths:
+            path = Path(raw)
+            if path not in wanted:
+                wanted.append(path)
+        self.open_project(self.session.project.with_documents(wanted),
+                          keep_profile=True)
 
-        stored = load_profile(path)
-        self._profile_is_proposed = stored is None
-        self._profile = stored or propose_profile(
-            {p.style for p in self._plain}, name=path.stem)
+    def name_project(self) -> None:
+        """
+        Give the project a name, which is what makes it storable.
 
-        # **The entries the book already has.** Reading them is what makes
-        # every later step measurable against twenty real books rather than
-        # against a document somebody typed for a test. Read once, here,
-        # because they do not change when a style profile does.
-        self._references = all_references(backend)
-        self.index_panel.show_references(*heading_rows(self._references),
-                                         self._references)
+        **An unnamed project is not refused, it is just not remembered.** An
+        indexer who opens one document and marks a dozen entries should not
+        have to name anything first.
+        """
+        if self.session is None:
+            return
+        name, chosen = QInputDialog.getText(
+            self, "Name this project", "Project name:",
+            text=self.session.project.name)
+        if not (chosen and name.strip()):
+            return
+        project = Project(name=name.strip(),
+                          documents=self.session.project.documents)
+        save_project(project.name, project.documents)
+        save_profile(project.key, self.session.profile)
+        self.open_project(project, keep_profile=True)
+        self.statusBar().showMessage(f"Project {project.name!r} saved.")
 
-        # **Where each entry sits in the visible text.** An ordinal says
-        # "fourth field in this part" and cannot be drawn on a page; this is
-        # the number that can.
-        self._positions = backend.entry_positions(BODY_PART)
+    def open_document(self, path: Path) -> None:
+        """One document, which is a project of one."""
+        self.open_project(Project.of(path))
 
+    def open_project(self, project: Project, *, keep_profile=False) -> None:
+        """
+        Open every document of a project and show the first.
+
+        **A document that will not open does not stop the project.** An
+        indexer with eleven chapters and one corrupt file needs the ten, and
+        needs to be told which one by name, which is what the file list's
+        "(not found)" marking and the warning below are for.
+        """
+        carried = self.session.profile if (keep_profile and self.session) else None
+
+        session = OpenProject(project)
+        failed = session.open()
+        if not session.documents:
+            QMessageBox.warning(
+                self, "Cannot open",
+                "\n".join(f"{p.name}: {why}" for p, why in failed)
+                or "Nothing to open.")
+            return
+
+        self.session = session
+        stored = carried or load_profile(project.key)
+        session.profile_is_proposed = stored is None
+        session.profile = stored or session.propose()
+
+        self.file_list.show_documents(project.documents,
+                                      missing=[p for p, _why in failed])
+        self.add_action.setEnabled(True)
+        self.name_action.setEnabled(True)
         self.styles_action.setEnabled(True)
         self.mark_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
-        self.setWindowTitle(f"Word Index Editor: {path.name}")
+
+        self._reread_index()
+        self.show_document(session.documents[0])
+
+        if failed:
+            QMessageBox.warning(
+                self, "Some documents did not open",
+                "\n".join(f"{p.name}: {why}" for p, why in failed))
+
+    def show_document(self, path) -> None:
+        """
+        Put one document of the project on screen.
+
+        **The index does not change.** It is one index across the project, so
+        switching files re-reads the manuscript and redraws the markers for
+        that file, and leaves the entry table exactly as it was.
+        """
+        if self.session is None:
+            return
+        path = Path(path)
+        if path not in self.session.backends:
+            return
+
+        self._path = path
+        self._plain = self.session.plain(path)
+        self.file_list.select(path)
+        self.setWindowTitle(
+            f"Word Index Editor: {path.name}" if self.session.project.is_single
+            else f"Word Index Editor: {self.session.project.name} "
+                 f"[{path.name}]")
         self._apply_profile()
+
+    def _reorder(self, documents) -> None:
+        """
+        The indexer moved a document. **Order is document order.**
+
+        Re-opened rather than shuffled in place, because the reference list is
+        built in project order and a list sorted one way with an index built
+        the other is exactly the kind of disagreement nobody notices.
+        """
+        if self.session is None:
+            return
+        self.session.project = self.session.project.with_documents(documents)
+        if not self.session.project.is_single:
+            save_project(self.session.project.name, documents)
+        self.session.reread()
+        self._reread_index()
+        self.statusBar().showMessage("Reading order changed.")
+
+    def _remove_document(self, path) -> None:
+        if self.session is None:
+            return
+        remaining = [p for p in self.session.project.documents
+                     if Path(p) != Path(path)]
+        if not remaining:
+            return
+        if QMessageBox.question(
+                self, "Take it out?",
+                f"Take {Path(path).name} out of this project?\n\n"
+                f"The file itself is not touched.") \
+                != QMessageBox.StandardButton.Yes:
+            return
+        self.open_project(self.session.project.with_documents(remaining),
+                          keep_profile=True)
 
     def edit_profile(self) -> None:
         """
-        The indexer's answer to what this manuscript's styles mean.
+        The indexer's answer to what the project's styles mean.
 
-        Opens on whatever is current, proposal or decision, and **stores only
-        on accept**. Accepting also settles the proposed flag: once the
-        indexer has looked at the table, what is on screen is theirs whether
-        or not they changed a row.
+        **Across the project, not the open document.** A proposal made from
+        one chapter would be missing whatever styles appear only in another,
+        and the indexer would meet the gap halfway through the book. So the
+        editor is given every document's paragraphs, and a style is decided
+        once with the weight it carries across all of them.
         """
-        if not self._backend or self._profile is None:
+        if self.session is None:
             return
 
-        dialog = ProfileEditor(self._plain, self._profile, self)
+        dialog = ProfileEditor(self.session.all_plain(),
+                               self.session.profile, self)
         if dialog.exec() != ProfileEditor.DialogCode.Accepted:
             return
 
-        self._profile = dialog.profile()
-        self._profile_is_proposed = False
-        save_profile(self._path, self._profile)
+        self.session.profile = dialog.profile()
+        self.session.profile_is_proposed = False
+        save_profile(self.session.project.key, self.session.profile)
         self._apply_profile()
 
     def _apply_profile(self) -> None:
         """
-        Re-read the manuscript through the current profile and redraw.
+        Re-read the open document through the current profile and redraw.
 
-        The backend is not touched: a profile decides what a paragraph
-        *means*, never what it says, so this re-runs the classification over
-        a document already in memory.
+        No backend is touched: a profile decides what a paragraph *means*,
+        never what it says, so this re-runs the classification over documents
+        already in memory.
         """
-        profile = self._profile
-        styles = {p.style for p in self._plain}
-        self._paragraphs = read_paragraphs(self._backend, BODY_PART, profile)
+        if self.session is None or self._path is None:
+            return
+        profile = self.session.profile
+        styles = self.session.styles()
+        self._paragraphs = self.session.paragraphs(self._path)
+        self._positions = self.session.positions(self._path)
 
         self.view.show_paragraphs(self._paragraphs)
         self._build_outline()
@@ -239,16 +396,32 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(
             f"{len(self._paragraphs):,} paragraphs, "
             f"{sum(len(p.text) for p in self._paragraphs):,} characters, "
-            f"{len(self._references):,} index entries")
-        self._say(len(styles), len(profile.kinds), missing, unknown)
+            f"{len(self._references):,} index entries in the project")
+        # **Of this project's styles, not of the profile.** A profile can
+        # name styles no open document uses -- one authored for the whole
+        # book and then applied to eight chapters of it does exactly that --
+        # and counting its entries made the notice read "13 of 10 styles
+        # recognised". Found by looking at the window.
+        self._say(len(styles), len(styles) - len(missing), missing, unknown)
+
+    def _reread_index(self) -> None:
+        """
+        The index, across every document, back into the panel.
+
+        **One index across the project**, which is scope §5's whole point: an
+        indexer works chapter by chapter and indexes a book.
+        """
+        self.session.reread()
+        self._references = self.session.references
+        self.index_panel.show_references(*heading_rows(self._references),
+                                         self._references)
 
     def _draw_markers(self) -> None:
         """
-        The entry layer over the manuscript.
+        The entry layer over the open document.
 
-        Redrawn after every `show_paragraphs`, because rebuilding the document
-        drops its `ExtraSelection`s: re-reading through a new style profile
-        would otherwise leave a book with its markers silently gone.
+        Only this document's entries: `_positions` is per document, and an
+        offset from another file would land somewhere arbitrary in this one.
         """
         self.view.show_entries(
             (r.entry_id, self._positions[r.entry_id], r.heading_raw)
@@ -256,16 +429,26 @@ class MainWindow(QMainWindow):
             if r.entry_id in self._positions)
 
     def _go_to_entry(self, entry_id) -> None:
+        """
+        Show an entry in the manuscript, **switching documents if it is in
+        another one**.
+
+        The index is one list across the project, so an indexer scanning it
+        will click an entry from a chapter they are not looking at. Answering
+        that with nothing would make the table look broken.
+        """
+        if self.session is None:
+            return
+        document = self.session.document_of(entry_id)
+        if document is not None and document != self._path:
+            self.show_document(document)
         self.view.select_entry(entry_id)
 
     def _show_in_entry_window(self, entry_id) -> None:
         self.entry_window.show_entry(self._reference(entry_id))
 
     def _reference(self, entry_id):
-        for reference in self._references:
-            if reference.entry_id == entry_id:
-                return reference
-        return None
+        return self.session.reference(entry_id) if self.session else None
 
     # -- changing the index -----------------------------------------------
 
@@ -273,7 +456,7 @@ class MainWindow(QMainWindow):
         reference = self._reference(entry_id)
         if reference is None:
             return
-        self._run(SourceEdit(
+        self._run(entry_id, SourceEdit(
             entry_id=entry_id,
             locator=reference.locator,
             before=(reference.locator.hint or {}).get("instruction", ""),
@@ -293,7 +476,8 @@ class MainWindow(QMainWindow):
         # **An empty `after` is what removes an entry.** Not a separate
         # method: rewrite, insertion and deletion are all edits, so a command
         # holding a mixture of the three inverts without special cases.
-        self._run(SourceEdit(entry_id=entry_id, locator=reference.locator,
+        self._run(entry_id,
+                  SourceEdit(entry_id=entry_id, locator=reference.locator,
                              before=(reference.locator.hint or {}).get(
                                  "instruction", ""),
                              after=""),
@@ -308,7 +492,7 @@ class MainWindow(QMainWindow):
         entry can be created now; what step 7 adds is selecting a passage and
         getting an entry from it without visiting the window.
         """
-        if self._backend is None:
+        if self.session is None or self._path is None:
             return
         offset = self.view.offset_at_cursor()
         if offset < 0:
@@ -328,7 +512,8 @@ class MainWindow(QMainWindow):
                 f"text. Nothing was created.")
             return
 
-        result = self._backend.place_at(BODY_PART, offset, instruction)
+        result = self.session.backends[self._path].place_at(
+            BODY_PART, offset, instruction)
         if not result.ok:
             QMessageBox.warning(self, "Could not create", str(result.reason))
             return
@@ -351,7 +536,7 @@ class MainWindow(QMainWindow):
         indexer already is. Staging it behind a confirmation would put a
         dialog between them and the next paragraph.
         """
-        if self._backend is None:
+        if self.session is None or self._path is None:
             return
 
         heading = self.view.chosen_text()
@@ -372,7 +557,8 @@ class MainWindow(QMainWindow):
             return
 
         instruction = XE_DIALECT.new_instruction(XE_DIALECT.escape(heading))
-        result = self._backend.place_at(BODY_PART, start, instruction)
+        result = self.session.backends[self._path].place_at(
+            BODY_PART, start, instruction)
         if not result.ok:
             QMessageBox.warning(self, "Could not create", str(result.reason))
             return
@@ -385,8 +571,20 @@ class MainWindow(QMainWindow):
             self.index_panel.select_entry(new_id)
             self._show_in_entry_window(new_id)
 
-    def _run(self, edit, said: str) -> None:
-        result = self._backend.apply(edit)
+    def _run(self, entry_id, edit, said: str) -> None:
+        """
+        Apply an edit to **the backend that owns the entry**.
+
+        Which document that is cannot come from the locator: every document's
+        body is `word/document.xml`, so the container is the same for all of
+        them. The anchor answers it, which is what `OpenProject` is for.
+        """
+        backend = self.session.backend_of(entry_id) if self.session else None
+        if backend is None:
+            QMessageBox.warning(self, "Could not change",
+                                "That entry is not in an open document.")
+            return
+        result = backend.apply(edit)
         if not result.ok:
             QMessageBox.warning(self, "Could not change", str(result.reason))
             return
@@ -394,34 +592,42 @@ class MainWindow(QMainWindow):
 
     def _after_change(self, said: str) -> None:
         """
-        Re-read the index from the document and redraw everything on it.
+        Re-read the index from the documents and redraw everything on it.
 
-        **Read back rather than patched.** The backend rescans a part after
+        **Read back rather than patched.** Each backend rescans a part after
         every mutation, which is what keeps ordinals honest, so the cheapest
-        correct thing this window can do is ask it again. Anything else is a
+        correct thing this window can do is ask them again. Anything else is a
         second copy of the truth.
         """
-        self._references = all_references(self._backend)
-        self._positions = self._backend.entry_positions(BODY_PART)
-        self.index_panel.show_references(*heading_rows(self._references),
-                                         self._references)
+        self._reread_index()
+        self._positions = self.session.positions(self._path)
         self._draw_markers()
         self._dirty = True
         self.save_action.setEnabled(True)
         self.statusBar().showMessage(f"{said}. {len(self._references):,} "
-                                     f"entries, not yet saved.")
+                                     f"entries in the project, not yet saved.")
 
     def save(self) -> None:
-        """Write the document back. Nothing reaches disk before this."""
-        if self._backend is None or not self._dirty:
+        """
+        Write every changed document back. Nothing reaches disk before this.
+
+        Each is written independently: **one document that will not save must
+        not take the others with it**, and the indexer has to be told which
+        one by name rather than that "saving failed".
+        """
+        if self.session is None or not self._dirty:
             return
-        if self._backend.save():
-            self._dirty = False
-            self.save_action.setEnabled(False)
-            self.statusBar().showMessage(f"Saved {self._path.name}.")
-        else:
-            QMessageBox.warning(self, "Could not save",
-                                "The document was not written.")
+        failures = self.session.save()
+        if failures:
+            QMessageBox.warning(
+                self, "Some documents were not written",
+                "\n".join(p.name for p in failures))
+            return
+        self._dirty = False
+        self.save_action.setEnabled(False)
+        self.statusBar().showMessage(
+            f"Saved {len(self.session.documents)} document"
+            f"{'' if self.session.project.is_single else 's'}.")
 
     def _say(self, styles: int, placed: int, missing, unknown: int) -> None:
         """
@@ -431,7 +637,8 @@ class MainWindow(QMainWindow):
         unrecognised has to be told which part, or they cannot tell a
         decision from a defect.
         """
-        whose = ("Proposed, not yet confirmed: " if self._profile_is_proposed
+        whose = ("Proposed, not yet confirmed: "
+                 if (self.session and self.session.profile_is_proposed)
                  else "")
         parts = [f"{whose}{placed} of {styles} styles recognised"]
         if unknown:

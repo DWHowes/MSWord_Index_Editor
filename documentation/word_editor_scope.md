@@ -276,6 +276,13 @@ cannot be judged.
 6. **The entry window**: create, edit, delete, with per-level sort keys.
 7. **Placement**: selection to entry, through `place_at`.
 8. **Multi-file projects.**
+
+   *Built 24 August 2026 against a real 17-chapter Palgrave book.* Two things
+   the scope did not anticipate: the indexer had already worked around the
+   gap by renaming eighteen files `01_`..`18_` by hand, so **the filenames
+   staying the publisher's is part of the deliverable**; and Palgrave has no
+   house style vocabulary at all, which contradicts step 1's headline for
+   that publisher and makes the profile editor carry the whole job there.
 9. **Check Index, search, preferences, help**: assembly of what already
    exists.
 10. Packaging, and the User Guide.

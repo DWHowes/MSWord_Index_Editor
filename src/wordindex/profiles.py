@@ -1,13 +1,17 @@
 r"""
-Where a style profile lives between sessions -- step 4 of the editor scope.
+Where a style profile and a project live between sessions. Steps 4 and 8.
 
 A profile is the indexer's answer to "what do this manuscript's styles mean",
-and it has to survive closing the window. **Nothing here is clever.** It is a
-JSON file keyed by document, and it is deliberately not the core's
-:class:`~bookindexcore.persistence.index_repository.IndexRepository`: that is
-a *project* database, projects arrive at step 7, and standing one up per
-document now would be pulling the whole of step 7 forward to store nine
-key-value pairs.
+and a project is the answer to "which documents, in what order". Both have to
+survive closing the window, and **nothing here is clever**: one JSON file.
+
+It is deliberately not the core's
+:class:`~bookindexcore.persistence.index_repository.IndexRepository`. That is
+a per-project SQLite database with versioned migrations, built for an
+application that stores its whole index; this stores an ordered list of paths
+and a dictionary of styles. *Step 4 declined it because standing a database up
+per document would have pulled step 8 forward to hold nine key-value pairs,
+and step 8 arriving did not change the size of what there is to keep.*
 
 #### Not beside the manuscript
 
@@ -18,15 +22,23 @@ indexer's own tooling already leaves hundreds of archive copies in there. A
 profile is this application's working note, so it lives in this application's
 own store.
 
-#### Keyed by document, for now
+#### Keyed by whatever the profile belongs to
 
-Step 4 keys a profile by the document it was authored for. **Reusing one
-manuscript's profile on the next book is step 7's**, when projects arrive: the
-style vocabularies measured here repeat across a publisher's whole list, so
-offering a profile the indexer already authored is obviously worth doing, and
-just as obviously it must *propose* rather than apply. Doing it now would
-quietly turn a per-project decision back into a per-publisher one, which is
-the thing the indexer ruled out on 24 August 2026.
+Step 4 keyed a profile by the document it was authored for. Step 8 keys it by
+the **project**, since a project's documents share a publisher's template and
+authoring the same 43 styles once per chapter would be the tool wasting an
+afternoon.
+
+**A project of one is still keyed by its document path**, which is what
+`Project.key` says, so a profile authored before projects existed is found
+unchanged. That is not a compatibility shim so much as the observation that a
+lone document *is* a project of one.
+
+Reusing one project's profile on the *next* project is still not offered. The
+vocabularies measured here repeat across a publisher's whole list, so it is
+obviously worth doing and just as obviously it must **propose** rather than
+apply: doing it silently would turn a per-project decision back into a
+per-publisher one, which the indexer ruled out on 24 August 2026.
 """
 
 from __future__ import annotations
@@ -82,14 +94,29 @@ def _key(document) -> str:
     UNC name is one entry rather than two. A path that cannot be resolved
     (a document that has been deleted since) is used as given rather than
     raising: failing to find a profile is not worth an exception.
+
+    **A key that is not a path is left exactly as it is.** ``Project.key``
+    hands over ``project:Some Book`` for anything larger than one document,
+    and resolving that against the working directory would file every
+    project under whatever folder the application happened to start in.
     """
+    text = str(document)
+    if text.startswith("project:"):
+        return text
     try:
         return str(Path(document).resolve())
     except OSError:
-        return str(document)
+        return text
 
 
-def _read() -> dict:
+def _read_raw() -> dict:
+    """
+    The whole store, or an empty one.
+
+    Whole rather than one section, because profiles and projects live in the
+    same file and a writer that read only its own half would drop the other
+    every time it saved.
+    """
     path = store_path()
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -103,14 +130,19 @@ def _read() -> dict:
     # reading half of one they cannot see would be a wrong answer.
     if int(raw.get("version") or 0) > STORE_VERSION:
         return {}
-    entries = raw.get("profiles")
+    return raw
+
+
+def _read() -> dict:
+    entries = _read_raw().get("profiles")
     return entries if isinstance(entries, dict) else {}
 
 
-def _write(entries: dict) -> None:
+def _write_raw(raw: dict) -> None:
     path = store_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"version": STORE_VERSION, "profiles": entries}
+    payload = dict(raw)
+    payload["version"] = STORE_VERSION
 
     # Written beside the target and moved into place, so an interrupted write
     # cannot leave the indexer with a store that parses as nothing and
@@ -119,6 +151,12 @@ def _write(entries: dict) -> None:
     temporary.write_text(json.dumps(payload, indent=2, sort_keys=True),
                          encoding="utf-8")
     os.replace(temporary, path)
+
+
+def _write(entries: dict) -> None:
+    raw = _read_raw()
+    raw["profiles"] = entries
+    _write_raw(raw)
 
 
 def to_dict(profile: StyleProfile) -> dict:
@@ -184,3 +222,56 @@ def forget_profile(document) -> None:
 def known_documents() -> tuple:
     """Every document the store holds a profile for, for step 7 to build on."""
     return tuple(sorted(_read()))
+
+
+# ---------------------------------------------------------------------------
+# Projects
+# ---------------------------------------------------------------------------
+#
+# Kept in this store rather than in a file beside the manuscripts, on step 4's
+# reasoning: **the manuscript's folder is the publisher's**, and what goes back
+# to them must differ from what arrived by the added fields and nothing else.
+# A project file dropped in there would be one more thing for editorial staff
+# to wonder about.
+
+
+def _projects() -> dict:
+    raw = _read_raw().get("projects")
+    return raw if isinstance(raw, dict) else {}
+
+
+def save_project(name: str, documents) -> None:
+    """Store a project's documents, in the order given. Order is the point."""
+    raw = _read_raw()
+    projects = dict(_projects())
+    projects[str(name)] = [str(Path(d)) for d in documents]
+    raw["projects"] = projects
+    _write_raw(raw)
+
+
+def load_project(name: str):
+    """
+    A project's documents in their stored order, or None if there is no such
+    project.
+
+    **Documents that have since been moved or deleted are still returned.**
+    Dropping them here would leave the indexer with a project that quietly
+    shrank; the caller opens what it can and reports what it could not, which
+    is the only version of this that can be acted on.
+    """
+    stored = _projects().get(str(name))
+    if not isinstance(stored, list):
+        return None
+    return tuple(Path(p) for p in stored if isinstance(p, str))
+
+
+def forget_project(name: str) -> None:
+    raw = _read_raw()
+    projects = dict(_projects())
+    if projects.pop(str(name), None) is not None:
+        raw["projects"] = projects
+        _write_raw(raw)
+
+
+def known_projects() -> tuple:
+    return tuple(sorted(_projects()))

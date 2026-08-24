@@ -5,6 +5,51 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Multi-file projects: step 8
+
+Scope §5, measured against a real 17-chapter book from Palgrave opened from
+the publisher's own filenames.
+
+**The indexer had already worked around the missing feature.** The eighteen
+files in that project folder are named `01_`..`18_` by hand, because their
+existing tool could only order by filename. The publisher's own names carry no
+number, and sorted they run *Alison Lindqvist* (chapter 12), *Ingrid Halvorsen*
+(chapter 14), *Ellery and Voss* (chapter 1): alphabetical by the
+author's first name. So the order lives in the project and **the filenames
+stay the publisher's**, which matters beyond convenience, since what goes back
+should differ from what arrived by the added fields and nothing else.
+
+**The backend did not have to change.** `containers()` already returns every
+part, so a project is a set of files each with their own parts. What is new is
+`OpenProject`: one backend per document, and the map from an entry to the
+document holding it. That map is not optional, because **every document's body
+is `word/document.xml`** and across 17 files there is exactly one distinct
+container name.
+
+**An anchor is minted on open and is not stable across opens**, found by
+writing an assertion that compared ids from two opens of one file. Nothing
+persisted keys on an entry id, so it costs nothing today and would have cost a
+great deal to find later.
+
+**Palgrave is a third kind of manuscript and it breaks step 1's headline.**
+Step 1 concluded that structure in a `.docx` is declared rather than inferred,
+across fifteen CUP books with two house vocabularies. Palgrave has no house
+vocabulary at all: **1,154 of 1,308 paragraphs carry no style**, the other 13
+styles are Word's built-ins plus artefacts like `Pa18` and
+`xxelementtoproof`, and chapter titles arrive as `Standard` with sub-headings
+typed `[SUBTITLE]` in the text.
+
+*That vindicates the two decisions that looked most cautious.* Step 1 refused
+to call an unstyled paragraph body text, because on CUP those were the
+series-editor list and the blurb; on Palgrave they are 88% of the book. Step
+4's profile editor is what lets one application be right about both: here the
+single decision "(no style) is body text" covers 1,154 paragraphs.
+
+**A defect the screenshot found.** The notice read "13 of 10 styles
+recognised", counting the profile's entries rather than how many of this
+project's styles it places. *The third time looking at the window has found
+what a test did not.* See `documentation/step8_measurements.md`.
+
 ### Selection to entry: step 7
 
 Scope §3 item 6, and **the step is one method of about forty lines**. It is
