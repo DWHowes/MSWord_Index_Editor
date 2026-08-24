@@ -5,6 +5,44 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The style-profile editor, moved from step 9 to step 4
+
+Approved 24 August 2026, on step 3's sweep: `propose_profile` places 93% of
+styles on the hyphen-numbered CUP vocabulary and **43% on the numbered one**,
+so eleven of sixteen manuscripts opened with under half their styles placed.
+
+**Better name matching was the obvious alternative and it is the wrong one.**
+Teaching the matcher that `TB` means table body is shipping the publisher's
+coding through the back door, which the indexer ruled out. That makes the
+editor the only sanctioned fix, so it is load-bearing rather than a finishing
+touch. Placement is the real dependency: it has to refuse a heading and an
+excluded region, and **a refusal rule cannot be tested against a
+classification that mostly says "not decided"**.
+
+`profiles.py` stores a profile as JSON keyed by document, overridable by
+`WORDINDEX_PROFILE_STORE`. Not the core's `IndexRepository`, which is a
+*project* database and would pull the whole of step 8 forward to hold nine
+key-value pairs; and not a sidecar beside the `.docx`, because **the
+manuscript's folder is the publisher's**.
+
+`ui/profile_editor.py` shows every style with **a sample of its own text**,
+heaviest first. `0607TB` is unreadable as an identifier and unmistakable as
+soon as you see it holds `CR 9`, `1351-52`, `8 m.`; that is how these were
+identified in the first place, and asking an indexer to place 43 styles by
+name alone would be asking them to guess.
+
+**Undecided is stored as absent, never as a decision.** Writing `unknown` in
+would make a style look decided to every caller that asks the profile rather
+than the reader, and `unprofiled()` would stop reporting it. A kind arriving
+from a later store version is dropped for the same reason, never renamed to
+something adjacent.
+
+Measured on *Flemish Textile Workers*, the worst book on the shelf: styles
+placed 20/53 to 39/53, paragraphs with no kind **4,354 to 73**, indexable
+paragraphs **433 to 4,040**. What remains is thirteen styles an indexer can
+decide at a glance from the text beside them. See
+`documentation/step4_measurements.md`.
+
 ### The index a book already has: step 3
 
 `wordindex.entries` turns every `XE` field into the shared `IndexReference`,

@@ -367,3 +367,76 @@ def unprofiled(styles, profile: StyleProfile) -> tuple:
     has to be told which half, or they cannot tell a decision from a defect.
     """
     return tuple(sorted({s for s in styles if s and s not in profile.kinds}))
+
+
+# ---------------------------------------------------------------------------
+# What the indexer needs to see to confirm a profile
+# ---------------------------------------------------------------------------
+
+#: What each kind is called on screen. The keys are the constants above, so a
+#: kind that gained a label but no constant, or the reverse, is a test failure
+#: rather than a missing row in a combo box.
+KIND_LABELS = {
+    HEADING: "Heading",
+    BODY: "Body text",
+    LIST: "List",
+    QUOTATION: "Quotation or extract",
+    CAPTION: "Caption",
+    FRONT_MATTER: "Front matter",
+    REFERENCE_ENTRY: "Bibliography entry",
+    EXCLUDED: "Excluded",
+    UNKNOWN: "Not decided",
+}
+
+
+@dataclass(frozen=True)
+class StyleUse:
+    """
+    One style, how much of the manuscript it holds, and what it looks like.
+
+    **The samples are the point.** A style called `0607TB` is unreadable as a
+    name and obvious as soon as you see that it holds `CR 9`, `1351-52` and
+    `8 m.`; that is a table. An indexer asked to place 43 styles by their
+    identifiers alone is being asked to guess, and this application's whole
+    position is that it asks rather than guesses.
+    """
+
+    style: str
+    count: int
+    #: A few of this style's non-empty texts, shortened, in document order.
+    samples: tuple = ()
+
+    @property
+    def label(self) -> str:
+        return self.style or "(no style)"
+
+
+def style_uses(paragraphs, *, samples: int = 3, width: int = 90) -> tuple:
+    """
+    Every style in a manuscript, **heaviest first**.
+
+    Order is by paragraph count rather than alphabetically, and deliberately:
+    confirming a profile is work, and the style holding 2,071 paragraphs is
+    worth more of the indexer's attention than the one holding none. A
+    measured book had both.
+
+    Paragraphs with no style at all are folded into one entry under the empty
+    string, because they are a real group an indexer has to make a decision
+    about: one measured manuscript had 1,462 of them, and *step 1 refuses to
+    call them body text on purpose*.
+    """
+    counts: dict = {}
+    texts: dict = {}
+    for paragraph in paragraphs:
+        style = paragraph.style or ""
+        counts[style] = counts.get(style, 0) + 1
+        held = texts.setdefault(style, [])
+        stripped = paragraph.text.strip()
+        if stripped and len(held) < samples:
+            held.append(stripped[:width])
+
+    return tuple(
+        StyleUse(style=style, count=count, samples=tuple(texts.get(style, ())))
+        for style, count in sorted(counts.items(),
+                                   key=lambda kv: (-kv[1], kv[0]))
+    )

@@ -86,6 +86,23 @@ tests/
                                 write them reliably, and the reader does not
                                 inherit that limit.
 
+  test_profiles.py          step 4: a style profile that survives closing the
+                            window. Mostly about the quiet failures -- a
+                            partial write losing every profile the indexer
+                            has authored, a store from a later version being
+                            half-read, and a kind from that later version
+                            being renamed to something adjacent rather than
+                            dropped. None of the three would raise.
+
+  ui/test_profile_editor.py
+                            step 4's dialog. What the indexer is shown and
+                            what is decided without asking: the heaviest
+                            style comes first because confirming 43 of them
+                            is work; the sample text is there because
+                            0607TB is unreadable and "CR 9" is not; and an
+                            undecided style is stored as absent, never as a
+                            decision, or unprofiled() would stop reporting it
+
   ui/test_index_panel.py    step 3's borrowed widget, and the file exists to
                             prove it really is borrowed. configure(XE_DIALECT)
                             is a module-level side effect, so a wrong one

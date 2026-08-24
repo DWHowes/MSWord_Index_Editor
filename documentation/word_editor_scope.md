@@ -248,13 +248,36 @@ cannot be judged.
 3. **The index tree and entry table**, from the core, populated from
    `iter_entries`. Reading an existing indexed book is now possible, which
    makes every later step measurable against the twenty CUP books.
-4. **Entry markers in the tab**, and selection both ways.
-5. **The entry window**: create, edit, delete, with per-level sort keys.
-6. **Placement**: selection to entry, through `place_at`.
-7. **Multi-file projects.**
-8. **Check Index, search, preferences, help**: assembly of what already
+4. **The style-profile editor**: author, confirm and persist a profile for
+   the document in hand.
+
+   *Moved here from step 9, approved 24 August 2026.* The sweep in
+   `step3_measurements.md` §3 found `propose_profile` placing 93% of styles on
+   the hyphen-numbered vocabulary and **43% on the numbered one**, so eleven
+   of sixteen manuscripts open with under half their styles placed. Three
+   reasons it cannot wait:
+
+   - **Step 3's stated purpose is only half-delivered without it.** It makes
+     later steps measurable against the twenty CUP books, but against a
+     classification that mostly says "not decided".
+   - **Step 6 is the real dependency.** Placement has to refuse a heading
+     (answer 4) and an excluded region (§5), and that rule reads
+     `Paragraph.kind`. A refusal rule cannot be tested against a
+     classification that does not know.
+   - **Not shipping the vocabulary makes this the only sanctioned fix.**
+     Teaching the matcher that `TB` means table body is shipping CUP's
+     coding through the back door.
+
+   It brings a slice of step 7 forward with it: a profile needs somewhere to
+   live. That is a store keyed by document, **not** a project database;
+   reusing a profile across books stays with step 7, because doing it now
+   would quietly turn a per-project decision back into a per-publisher one.
+5. **Entry markers in the tab**, and selection both ways.
+6. **The entry window**: create, edit, delete, with per-level sort keys.
+7. **Placement**: selection to entry, through `place_at`.
+8. **Multi-file projects.**
+9. **Check Index, search, preferences, help**: assembly of what already
    exists.
-9. **The style-profile editor.**
 10. Packaging, and the User Guide.
 
 ## 8. What this does not do

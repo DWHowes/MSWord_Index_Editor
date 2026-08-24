@@ -28,10 +28,12 @@ from PySide6.QtWidgets import (
 
 from ..entries import all_references, heading_rows
 from ..ooxml_backend import OoxmlBackend
+from ..profiles import load_profile, save_profile
 from ..reader import (
     HEADING, UNKNOWN, outline, propose_profile, read_paragraphs, unprofiled)
 from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
+from .profile_editor import ProfileEditor
 
 BODY_PART = "word/document.xml"
 
@@ -48,8 +50,16 @@ class MainWindow(QMainWindow):
             AppStyleConfiguration.get_unified_menu_stylesheet())
 
         self._backend = None
+        self._path = None
+        self._plain: list = []
         self._paragraphs: list = []
         self._references: list = []
+        self._profile = None
+        #: True when the profile on screen is this application's guess rather
+        #: than the indexer's decision. The notice says which, because a
+        #: proposal presented as a decision is the whole failure mode step 4
+        #: exists to prevent.
+        self._profile_is_proposed = False
 
         self.outline_tree = QTreeWidget()
         self.outline_tree.setHeaderLabels(["Outline"])
@@ -85,6 +95,11 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction("E&xit", self.close)
 
+        manuscript_menu = self.menuBar().addMenu("&Manuscript")
+        self.styles_action = manuscript_menu.addAction(
+            "&Styles…", self.edit_profile)
+        self.styles_action.setEnabled(False)
+
         self.statusBar().showMessage("Open a Word manuscript to begin.")
 
     # -- opening ----------------------------------------------------------
@@ -99,12 +114,11 @@ class MainWindow(QMainWindow):
         """
         Read a manuscript and show it.
 
-        **The profile is proposed and applied here, and that is a step-2
-        convenience rather than the design.** Step 9 gives the indexer a
-        profile editor, and until it exists a manuscript with no profile at
-        all would be a screen of undifferentiated grey. What is *not* done is
-        hide the proposal: the notice below the text says how many styles were
-        placed and names every one that was not.
+        **A stored profile is the indexer's decision and is used as it
+        stands.** Only a manuscript nobody has profiled falls back to
+        `propose_profile`, and when it does the notice says so in as many
+        words, because a guess presented as a decision is exactly the failure
+        this step exists to prevent.
         """
         backend = OoxmlBackend()
         try:
@@ -114,24 +128,64 @@ class MainWindow(QMainWindow):
             return
 
         self._backend = backend
-        plain = read_paragraphs(backend, BODY_PART)
-        styles = {p.style for p in plain}
-        profile = propose_profile(styles, name=path.stem)
-        self._paragraphs = read_paragraphs(backend, BODY_PART, profile)
+        self._path = path
+        self._plain = read_paragraphs(backend, BODY_PART)
 
-        self.view.show_paragraphs(self._paragraphs)
-        self._build_outline()
+        stored = load_profile(path)
+        self._profile_is_proposed = stored is None
+        self._profile = stored or propose_profile(
+            {p.style for p in self._plain}, name=path.stem)
 
         # **The entries the book already has.** Reading them is what makes
         # every later step measurable against twenty real books rather than
-        # against a document somebody typed for a test.
+        # against a document somebody typed for a test. Read once, here,
+        # because they do not change when a style profile does.
         self._references = all_references(backend)
         self.index_panel.show_references(*heading_rows(self._references),
                                          self._references)
 
+        self.styles_action.setEnabled(True)
+        self.setWindowTitle(f"Word Index Editor: {path.name}")
+        self._apply_profile()
+
+    def edit_profile(self) -> None:
+        """
+        The indexer's answer to what this manuscript's styles mean.
+
+        Opens on whatever is current, proposal or decision, and **stores only
+        on accept**. Accepting also settles the proposed flag: once the
+        indexer has looked at the table, what is on screen is theirs whether
+        or not they changed a row.
+        """
+        if not self._backend or self._profile is None:
+            return
+
+        dialog = ProfileEditor(self._plain, self._profile, self)
+        if dialog.exec() != ProfileEditor.DialogCode.Accepted:
+            return
+
+        self._profile = dialog.profile()
+        self._profile_is_proposed = False
+        save_profile(self._path, self._profile)
+        self._apply_profile()
+
+    def _apply_profile(self) -> None:
+        """
+        Re-read the manuscript through the current profile and redraw.
+
+        The backend is not touched: a profile decides what a paragraph
+        *means*, never what it says, so this re-runs the classification over
+        a document already in memory.
+        """
+        profile = self._profile
+        styles = {p.style for p in self._plain}
+        self._paragraphs = read_paragraphs(self._backend, BODY_PART, profile)
+
+        self.view.show_paragraphs(self._paragraphs)
+        self._build_outline()
+
         missing = unprofiled(styles, profile)
         unknown = sum(1 for p in self._paragraphs if p.kind == UNKNOWN)
-        self.setWindowTitle(f"Word Index Editor: {path.name}")
         self.statusBar().showMessage(
             f"{len(self._paragraphs):,} paragraphs, "
             f"{sum(len(p.text) for p in self._paragraphs):,} characters, "
@@ -146,7 +200,9 @@ class MainWindow(QMainWindow):
         unrecognised has to be told which part, or they cannot tell a
         decision from a defect.
         """
-        parts = [f"{placed} of {styles} styles recognised"]
+        whose = ("Proposed, not yet confirmed: " if self._profile_is_proposed
+                 else "")
+        parts = [f"{whose}{placed} of {styles} styles recognised"]
         if unknown:
             parts.append(f"{unknown:,} paragraphs have no kind and are shown "
                          f"in grey italic")

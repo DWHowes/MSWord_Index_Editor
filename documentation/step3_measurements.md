@@ -180,11 +180,13 @@ true of every book that publisher sends. The indexer authors CUP's numbered
 profile once and it is correct forever, which is also why no vocabulary is
 shipped, on the indexer's own decision of 24 August 2026.
 
-What the measurement changes is priority. **Step 9's style-profile editor is
-carrying more weight than its position in the scope suggests**: until it
-exists, eleven of the sixteen manuscripts on this shelf open with less than
-half their styles placed. It is worth considering moving it ahead of the later
-steps.
+What the measurement changes is priority. **The style-profile editor was
+carrying more weight than its position in the scope suggested**: until it
+existed, eleven of the sixteen manuscripts on this shelf opened with less than
+half their styles placed.
+
+*Approved 24 August 2026: it moved from step 9 to step 4*, ahead of entry
+markers and placement. See `step4_measurements.md`.
 
 ---
 
