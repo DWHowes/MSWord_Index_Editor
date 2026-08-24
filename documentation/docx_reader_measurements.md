@@ -106,6 +106,48 @@ is the case the indexer has to answer for themselves.
 - No tables and no text boxes in the measured book, so neither is urgent; both
   will arrive with a different publisher.
 
+## 5a. An `XE` field in a footnote **does** index, measured
+
+**The folklore is wrong, and it was worth ten minutes to find out.** It is
+generally held that an `XE` field in a footnote does not reach a generated
+index, because Word treats a footnote as floating text whose position is not
+fixed until the page is composed. The indexer had not verified it; their tool,
+Klarso Index Manager, adds footnote entries that *sometimes* appear and
+sometimes do not, and nobody knew whether it writes to `footnotes.xml` at all.
+
+A document was built with four entries — body and footnote, on two pages — and
+Word was asked to generate the index. It produced:
+
+    BodyOne, 1
+    BodyTwo, 2
+    NoteOne, 1
+    NoteTwo, 2
+
+**Both footnote entries appear, and both carry the right page**: the note on
+page 1 indexed to 1, the note on page 2 to 2. Word's own composition resolves
+the floating text before it numbers it.
+
+And **Word puts them in `word/footnotes.xml`**, which is what
+`OoxmlBackend` already reads and writes:
+
+    word/document.xml    XE "BodyOne"   XE "BodyTwo"   INDEX
+    word/footnotes.xml   XE "NoteOne"   XE "NoteTwo"
+
+Read back through our own backend, all four are found in the right containers.
+
+**So the unreliability is Index Manager's, not Word's**, and writing directly
+to `footnotes.xml` is not a workaround — it is what Word does. *The measurement
+was nearly lost to a wrong constant: `42` is `wdFieldNextIf`, not
+`wdFieldIndexEntry`, and the first run wrote `NEXTIF XE "BodyOne"` and reported
+"No index entries found" — a clean, decisive-looking negative that would have
+confirmed the folklore.* Reading the field codes in the saved file is what
+caught it.
+
+**For the reader this settles §6's open question**: footnotes are indexable,
+so each must be tied to the point in the body that calls it.
+
+---
+
 ## 6. What this proposes
 
 **A structure-aware reader, and a style profile per publisher.** In outline,
