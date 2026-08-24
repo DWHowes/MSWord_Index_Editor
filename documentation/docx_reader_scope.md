@@ -1,6 +1,13 @@
 # A Word manuscript an indexer can read: a scope
 
-**Status, 24 August 2026: PROPOSED, awaiting approval. Nothing built.**
+**Status, 24 August 2026: SUPERSEDED by `word_editor_scope.md`.** Its §11
+questions were answered the same day: the reader is built **as part of the
+whole application**, `reference_entry` is **excluded**, the CUP vocabulary is
+**not shipped**, and headings are **navigation only**. What §2 to §7 say the
+reader must produce still stands and is referenced rather than repeated there.
+
+*Kept rather than folded in, because the fifteen-manuscript measurement it
+rests on is the evidence for the answers.*
 Measurements: `docx_reader_measurements.md`, fifteen real CUP manuscripts.
 
 **95%+ of this indexer's embedded work arrives as a Word manuscript**, and it
