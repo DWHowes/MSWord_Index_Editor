@@ -11,8 +11,29 @@ What you see:
   yet.
 - **The outline**, on the left, built from the headings. It is for finding
   your place and nothing else.
-- **The index**, on the right: every entry the document already has.
+- **The index**, on the right: the **terms** at the top and the **entries**
+  beneath them. Drag the divider between them to give one more room.
 - **The entry window**, along the bottom, showing whichever entry is current.
+
+## The index panel
+
+The upper half is the index as a reader would meet it: every term, with its
+sub-entries nested underneath. It is one list for the **whole project**, so a
+book in eighteen files shows as one index rather than eighteen.
+
+Beside each term, under **References**, are its entries: `[1] [2] [3]`, one
+for each place in the book where that term is marked. **Click one to go to
+it**, and the manuscript jumps there, opening another file first if the entry
+is in one.
+
+The numbers count that term's own entries in document order. They are not page
+numbers and there are none: a Word index has no pages until the publisher
+composes the book. A term showing `[1] [2] [3] [4] [5] [6] [7] [8]` is one you
+have marked eight times, which is worth a second look on its own.
+
+The lower half is the entry table, one row per entry across the project, with
+its heading, its sort key and its page style. The line above both says how
+many terms and how many entries the project holds.
 
 ## Regions you cannot index
 

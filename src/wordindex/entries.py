@@ -32,6 +32,7 @@ document**, which is a different thing wearing a similar name.
 from __future__ import annotations
 
 from bookindexcore.model.records import IndexReference
+from bookindexcore.ui.tree.reference import rows_from_references
 
 from .xe_dialect import XE_DIALECT
 
@@ -89,51 +90,30 @@ def all_references(backend) -> list:
     return out
 
 # ---------------------------------------------------------------------------
-# The shared tree speaks dicts, and that is a finding rather than a nuisance
+# The shared tree speaks dicts, and that was a finding rather than a nuisance
 # ---------------------------------------------------------------------------
 
 def heading_rows(references) -> tuple:
     """
     ``(headings, rows)`` in the shape `populate_hierarchy_tree` reads.
 
-    **The shared tree takes dictionaries where the shared record layer takes
-    `IndexReference`.** `IndexTreeView` reaches for `head.get("heading_text")`
-    and `ref.get("heading_id")`; the entry table beside it was extracted with
-    a `to_record` adapter for exactly this mismatch and says so in its own
-    docstring -- *"an application whose pipeline still passes rows supplies
-    its own adapter"* -- while the tree has none.
+    **This was written here on purpose and has now moved into the core.**
+    The shared tree takes dictionaries where the shared record layer takes
+    `IndexReference`; the entry table beside it was extracted with a
+    `to_record` adapter for exactly that mismatch and says so in its own
+    docstring -- *"an application whose pipeline still passes rows supplies its
+    own adapter"* -- while the tree had none. Writing the adapter in this host
+    first meant that promoting it was a decision taken with two applications'
+    evidence rather than one, which is what step 9b did:
+    `bookindexcore.ui.tree.reference.rows_from_references`.
 
-    So this is that adapter, and it is written here rather than in the core
-    on purpose: **the Word editor is the second caller, and a second caller's
-    job is to find where a seam was shaped for the first.** Promoting it is a
-    decision for whoever lands 6a, with two applications' evidence instead of
-    one.
+    What is left here is the call, and it stays a named function of this
+    module because eight call sites and four tests use the name.
 
-    Identity is the **raw heading**, which is what `IndexReference.heading_raw`
-    documents itself as: *"what heading identity is compared on"*. Two `XE`
-    fields spelling the same levels are one heading with two references, which
-    is the whole reason a book of 2,074 entries has far fewer index terms.
+    **No label and no location.** An entry id is not a thing to show a reader
+    when it is a `wim_<uuid>` bookmark anchor, so the tree numbers the
+    references within each term instead; and there is no location to snapshot,
+    because `MainWindow._go_to_entry` resolves an entry's document from the
+    session at click time.
     """
-    ids: dict = {}
-    headings: list = []
-    rows: list = []
-
-    for reference in references:
-        raw = reference.heading_raw
-        if raw not in ids:
-            ids[raw] = len(ids) + 1
-            headings.append({"id": ids[raw], "heading_text": raw})
-        rows.append({
-            "id": reference.entry_id,
-            "heading_id": ids[raw],
-            "heading_text": raw,
-            "page_style": reference.page_style,
-            # **Never a range closer.** Word spells a range as one entry
-            # naming a bookmark, so there is no closing record to hide -- the
-            # tree's `is_range_closer` guard is LaTeX's paired form, and for
-            # this host the answer is always False.
-            "is_range_closer": False,
-            "locator": reference.locator,
-            "xref": reference.xref,
-        })
-    return headings, rows
+    return rows_from_references(references)

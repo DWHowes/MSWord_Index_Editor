@@ -15,36 +15,37 @@ supplies its own adapter"*, and its default `split_heading` says the general
 shape is *"true of Word and InDesign"*. It fits this host with a
 `configure()` call and nothing else.
 
-**`bookindexcore.ui.tree` is not shared yet, and that is step 3's real
-finding.** It is not a matter of an adapter. `populate_hierarchy_tree` reads
-dictionaries rather than records, which `entries.heading_rows` could supply;
-but underneath that it builds each reference row as
+**`bookindexcore.ui.tree` did not fit either, and step 9b fixed it.** It was
+not a matter of an adapter. Every reference row it built was
 
     file_path   line_number   column_offset   absolute_position   macro_command
 
-and renders its second column as `[unique_id_number]`, coercing every id with
-`int()`. Word's entry id is a `wim_<uuid>` bookmark anchor -- a string, which
-the shared record explicitly permits: `EntryId = Union[int, str]`.
+it rendered its second column as `[unique_id_number]`, and it emitted eight
+positional arguments shaped as a LaTeX source coordinate. All of that answered
+*where in the source*, a question with no meaning for a host whose entries have
+no line and whose pages do not exist until the publisher composes the book.
 
-**So the tree is the LaTeX editor's tree with a dialect injected**, and its
-second column answers *where in the source* -- a question with no meaning for
-a host whose entries have no line and whose pages do not exist until the
-publisher composes the book.
+It now carries a `TreeReference` with an **opaque `location`**, and this host
+puts nothing in it at all: an entry id is enough, because `MainWindow._go_to_entry`
+already resolves which document an entry lives in. The References column draws
+`[1] [2] [3]`, the reference's position within its own term, because a
+`wim_<uuid>` bookmark anchor is not a thing to show a reader. Every token is
+still clickable, so this is functionally the other application's tree.
 
-*This is exactly what building the second caller was for*, and why the scope
-chose to build against the extraction branch rather than wait for 6a: an
-interface with one caller has not been asked a second question. The tree is
-left out of this step rather than fed a shape that would flatter it, and what
-to do about it is recorded in `documentation/step3_measurements.md` for
-whoever lands 6a.
+*This is what building the second caller was for*, and why the scope chose to
+build against the extraction branch rather than wait for 6a: an interface with
+one caller has not been asked a second question. See
+`documentation/step9b_tree_scope.md`.
 """
 
 from __future__ import annotations
 
+from bookindexcore.model.tree_engine import IndexTreeEngine
 from bookindexcore.ui import entry_table
 from bookindexcore.ui.entry_table.entry_table import EntryModifierList
+from bookindexcore.ui.tree.tree_view import IndexTreeView
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QSplitter, QVBoxLayout, QWidget
 
 from ..xe_dialect import XE_DIALECT
 
@@ -66,28 +67,57 @@ class IndexPanel(QWidget):
         self.table = EntryModifierList()
         self.table.entry_row_selected.connect(self.entry_selected)
 
+        #: The terms, above the entries. The engine takes no repository: this
+        #: application persists nothing through the core's `IndexRepository`
+        #: (its project database is the profile store), and the tree engine's
+        #: repository is only ever read when headings are staged for a write.
+        self.tree = IndexTreeView(IndexTreeEngine(None, XE_DIALECT),
+                                  dialect=XE_DIALECT)
+        self.tree.reference_activated.connect(self._reference_clicked)
+
         self.heading_count = QLabel("")
         self.heading_count.setStyleSheet("color: palette(mid);")
+
+        split = QSplitter(Qt.Orientation.Vertical)
+        split.addWidget(self.tree)
+        split.addWidget(self.table)
+        split.setStretchFactor(0, 3)
+        split.setStretchFactor(1, 2)
 
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
         box.addWidget(self.heading_count)
-        box.addWidget(self.table, 1)
+        box.addWidget(split, 1)
+
+    def _reference_clicked(self, reference) -> None:
+        """
+        A `[n]` in the tree's References column, as an entry selection.
+
+        **The entry id is the whole payload this host needs.** Its
+        `TreeReference.location` is None by choice: `MainWindow._go_to_entry`
+        resolves which document an entry lives in from the session, so a
+        snapshot of where it was when the tree was drawn would be a second,
+        stale answer to a question already answered properly.
+        """
+        if reference is not None:
+            self.entry_selected.emit(reference.entry_id)
 
     def show_references(self, headings, rows, references) -> None:
         """
-        The book's own index.
+        The book's own index: the terms in the tree, the entries in the table.
 
-        `headings` is taken for the count only while the tree is out: an
-        indexer wants to know a book of 2,074 entries holds 1,127 terms, and
-        that number is worth showing even without the tree that would group
-        them.
+        The count line stays now that the tree is here, because it says
+        something the tree does not: how many terms and how many entries the
+        **whole project** holds, where the tree shows one book's worth of
+        structure and makes a reader count it.
         """
+        self.tree.populate_hierarchy_tree(headings, rows)
         self.table.populate_entry_modifier_display(references)
         self.heading_count.setText(
             f"{len(headings):,} index terms in {len(references):,} entries")
 
     def clear(self) -> None:
+        self.tree.populate_hierarchy_tree([], [])
         self.table.populate_entry_modifier_display([])
         self.heading_count.setText("")
 

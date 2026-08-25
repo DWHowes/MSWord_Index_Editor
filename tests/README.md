@@ -181,12 +181,17 @@ tests/
                             undecided style is stored as absent, never as a
                             decision, or unprofiled() would stop reporting it
 
-  ui/test_index_panel.py    step 3's borrowed widget, and the file exists to
-                            prove it really is borrowed. configure(XE_DIALECT)
+  ui/test_index_panel.py    step 3's borrowed widgets, and the file exists to
+                            prove they really are borrowed. configure(XE_DIALECT)
                             is a module-level side effect, so a wrong one
                             would be wrong everywhere and visible nowhere:
                             the test that splits a nested heading on Word's
                             colon is what says the dialect arrived. The
-                            shared tree is absent by decision, not omission
-                            -- see documentation/step3_measurements.md
+                            shared tree arrived at step 9b, and what is
+                            asserted about it is what only a real book can
+                            show: all 2,074 references carried, a term's
+                            references numbered [1] [2] [3] rather than by
+                            ids nobody should see, and no reference carrying
+                            a location at all -- see
+                            documentation/step9b_tree_measurements.md
 ```

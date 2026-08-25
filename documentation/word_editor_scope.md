@@ -248,6 +248,12 @@ cannot be judged.
 3. **The index tree and entry table**, from the core, populated from
    `iter_entries`. Reading an existing indexed book is now possible, which
    makes every later step measurable against the twenty CUP books.
+
+   *The table fitted; the tree did not, and was left out rather than fed a
+   shape that would flatter it.* Every reference row it built was a LaTeX
+   source coordinate and its second column drew a database id. **Delivered at
+   step 9b, 25 August 2026**, by fixing the core and adapting every host:
+   `step9b_tree_scope.md` and `step9b_tree_measurements.md`.
 4. **The style-profile editor**: author, confirm and persist a profile for
    the document in hand.
 
@@ -285,6 +291,14 @@ cannot be judged.
    that publisher and makes the profile editor carry the whole job there.
 9. **Check Index, search, preferences, help**: assembly of what already
    exists.
+
+9a. **The shared search made host-neutral**, 24 August 2026. Not a scope step:
+    the second caller's own work, and a correction to step 9, which had
+    recorded the misfit and deferred it.
+
+9b. **The shared index tree made host-neutral**, 25 August 2026, and with it
+    the tree this application had been missing since step 3. The last of the
+    four things the second caller found.
 10a. **The User Guide**, the document. The in-app help subsystem landed at
     step 9; this is the guide that goes out with the application.
 10b. **Packaging**: PyInstaller and Inno Setup.

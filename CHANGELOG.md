@@ -5,6 +5,42 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The index tree, which step 3 left out
+
+Step 3 found that `bookindexcore.ui.tree` did not fit this host and left it
+out **rather than feed it a shape that would flatter it**, recording what to
+do about it. Step 9b did it, the same way the search was done at 9a: fixed in
+the core, every host adapted, the shared widget's tests moved into the core.
+
+The panel is a splitter now. The **terms** are above, with each term's
+entries beside it under *References*; the **entry table** is below; the count
+line, which says how many terms and how many entries the whole project holds,
+is over both.
+
+**A term's references are numbered `[1] [2] [3]`**, one per place in the book
+where that term is marked, in document order. Click one and the manuscript
+goes there, opening another file first if the entry is in one. They are not
+page numbers and there are none: a Word index has no pages until the publisher
+composes the book. The core draws ids where a host supplies them and ordinals
+where it does not, and this host supplies none, because a `wim_<uuid>`
+bookmark anchor is not a thing to show a reader.
+
+**No reference carries a location, deliberately.** `TreeReference.location` is
+opaque and this host puts nothing in it: `MainWindow._go_to_entry` already
+resolves which document an entry lives in from the session when the click
+happens, so a snapshot of where it was when the tree was drawn would be a
+second and worse answer to a question already answered properly.
+
+`entries.heading_rows` is now a call to
+`bookindexcore.ui.tree.reference.rows_from_references`. It was written here on
+purpose so that promoting it would be a decision taken with two applications'
+evidence rather than one.
+
+On the CUP monograph: **1,127 terms, 1,167 nodes, all 2,074 references
+carried.** 721 terms have one entry, and the largest has 17.
+
+In-app help topic 2 gains a section describing the panel.
+
 ### The project search, and a correction to step 9
 
 Step 9 recorded that `bookindexcore.ui.search` did not fit this host and left
