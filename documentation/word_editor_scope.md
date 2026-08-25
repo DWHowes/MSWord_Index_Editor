@@ -285,7 +285,14 @@ cannot be judged.
    that publisher and makes the profile editor carry the whole job there.
 9. **Check Index, search, preferences, help**: assembly of what already
    exists.
-10. Packaging, and the User Guide.
+10a. **The User Guide**, the document. The in-app help subsystem landed at
+    step 9; this is the guide that goes out with the application.
+10b. **Packaging**: PyInstaller and Inno Setup.
+
+    *Split on the indexer's instruction, 24 August 2026.* They are different
+    kinds of work with different blockers: the guide needs screenshots of a
+    finished application, and packaging needs an installer that Norton's
+    no-family heuristic does not flag.
 
 ## 8. What this does not do
 
