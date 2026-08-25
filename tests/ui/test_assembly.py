@@ -106,48 +106,59 @@ class TestTheVersionIsStatedOnce:
         assert __version__
 
 
-class TestWhatDidNotAssemble:
+class TestWhatDidNotFitUntilItWasMadeTo:
     """
-    **`bookindexcore.ui.search` does not fit this host**, and the reason is
-    the same one that kept the shared tree out at step 3.
+    **`bookindexcore.ui.search` did not fit this host, and now does.**
 
-    `AdvancedSearchWindow` takes a `db_file_paths_provider` returning paths to
-    text files, greps them, and emits
-    `navigate_to_target(path, line, column, ...)`. All three of those are
-    LaTeX's shape: a Word manuscript is a zip of XML with no lines, and its
-    text is already in memory behind the reader.
+    At step 9 it took a provider of file paths, opened them off disk, read
+    them line by line, and emitted
+    `navigate_to_target(path, line, column, ...)`. It could not even be
+    imported without `rapidfuzz`. All of that was one host's shape, for a host
+    whose text is a zip of XML with no lines in it.
 
-    Recorded rather than adapted. Feeding it a shape that would flatter it is
-    what step 3 declined to do for the tree, and the decision belongs with 6a
-    for the same reason: an interface with one caller has not been asked a
-    second question.
+    The first answer was to record that and defer it. *That was the wrong
+    answer*: the point of a second caller is to find and fix a shared
+    component's host assumptions, not to catalogue them. The search now takes
+    segments and hands back a hit whose `location` it never looks inside,
+    which is Phase 3's law for a `Locator` applied to the one subsystem that
+    had not kept it.
     """
 
-    def test_it_still_speaks_file_paths_and_lines(self):
-        """
-        Read rather than imported, and that is not squeamishness: the module
-        cannot be imported here at all, because it needs `rapidfuzz`. **This
-        application would be taking on a dependency for a component that does
-        not fit**, which is worth knowing before anybody adapts it.
-        """
-        import bookindexcore.ui.search as search_package
+    def test_it_takes_a_source_and_no_longer_names_files(self):
+        import inspect
 
-        source = (Path(search_package.__file__).parent
-                  / "window.py").read_text(encoding="utf-8")
-        assert "navigate_to_target = Signal(str, int, int, str, bool)" in source
-        assert "db_file_paths_provider" in source
+        from bookindexcore.ui.search.window import AdvancedSearchWindow
 
-    def test_and_it_cannot_even_be_imported_without_that_dependency(self):
+        signature = inspect.signature(AdvancedSearchWindow.__init__)
+        assert "source_provider" in signature.parameters
+        assert "db_file_paths_provider" not in signature.parameters
+
+    def test_it_imports_without_rapidfuzz(self):
+        """
+        Exact search needs no scorer, and the import used to sit at module
+        scope: an application without `rapidfuzz` could not import the module
+        **even to search exactly**.
+        """
         import importlib
 
-        with pytest.raises(ModuleNotFoundError):
-            importlib.import_module("bookindexcore.ui.search.worker")
+        assert importlib.import_module("bookindexcore.ui.search.worker")
 
-    def test_the_in_tab_find_does_fit_and_needs_no_adapter(self, qt_app):
+    def test_fuzzy_search_says_what_is_missing_rather_than_raising(self):
+        from bookindexcore.ui.search.worker import FUZZY_UNAVAILABLE
+
+        assert "rapidfuzz" in FUZZY_UNAVAILABLE
+        assert "Exact search works" in FUZZY_UNAVAILABLE
+
+    def test_this_host_supplies_a_source(self, qt_app):
+        from wordindex.search_source import project_search_source
+
+        assert project_search_source(None) is None
+
+    def test_the_in_tab_find_fits_too_and_needed_no_adapter(self, qt_app):
         """
-        The counter-example, and the second shared widget to fit unchanged
-        after the entry table: `TabFindDialog` emits text and three flags and
-        knows nothing about what is being searched.
+        The one that fitted unchanged, and the second such after the entry
+        table: `TabFindDialog` emits text and three flags and knows nothing
+        about what is being searched.
         """
         from bookindexcore.ui.tab_find_dialog import TabFindDialog
 

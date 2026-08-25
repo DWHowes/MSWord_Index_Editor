@@ -40,24 +40,23 @@ the same way an edit is routed to its backend.
 Run on two CUP books opened as one project: **3,132 entries, 426 findings**
 across four groups, every key in order.
 
-## What did not assemble
+## What did not assemble, and what was done about it
 
-**`bookindexcore.ui.search`.** `AdvancedSearchWindow` takes a
-`db_file_paths_provider` returning paths to text files, greps them, and emits
-`navigate_to_target(path, line, column, …)`. All three are LaTeX's shape: a
-Word manuscript is a zip of XML with no lines, and its text is already in
-memory behind the reader.
+**`bookindexcore.ui.search`.** `AdvancedSearchWindow` took a
+`db_file_paths_provider` returning paths to text files, grepped them, and
+emitted `navigate_to_target(path, line, column, ...)`. All three are LaTeX's
+shape: a Word manuscript is a zip of XML with no lines, and its text is
+already in memory behind the reader. It also could not be imported without
+`rapidfuzz`.
 
-It also cannot be imported here at all without `rapidfuzz`, so adopting it
-would mean **taking on a dependency for a component that does not fit**.
+**This was first recorded and deferred to 6a. That was the wrong call**, and
+the indexer said so: the point of building a second caller is to find *and
+fix* a shared component's host assumptions, not to catalogue them. The stated
+reason for deferring, that it would touch the LaTeX editor's contract, does
+not survive scrutiny either, since `entry_row_selected` had been changed the
+same session with that editor left green.
 
-Recorded rather than adapted, on step 3's reasoning about the tree: feeding an
-interface a shape that would flatter it is how an interface stays wrong. This
-is the second shared component to fail the second-caller test, and it belongs
-with 6a.
-
-*What the indexer gets instead*: the in-tab find for the open manuscript, and
-the entry table's filter, which covers every entry in every document at once.
+So it was made neutral. See `documentation/step9a_search_measurements.md`.
 
 ---
 

@@ -210,6 +210,30 @@ class ManuscriptView(QTextEdit):
             return -1
         return paragraph.offset + cursor.positionInBlock()
 
+    def go_to_offset(self, offset: int) -> None:
+        """
+        Put the caret at a character offset in `read_text` and show it.
+
+        The inverse of :meth:`offset_at_cursor`, and the same arithmetic: the
+        paragraph holding the offset, plus the remainder inside it. A search
+        hit and an entry position are both in this space, which is why neither
+        needs a coordinate of its own.
+        """
+        index = bisect.bisect_right(self._starts, offset) - 1
+        if not (0 <= index < len(self._paragraphs)):
+            return
+        paragraph = self._paragraphs[index]
+        block = self.document().findBlockByNumber(index)
+        if not block.isValid():
+            return
+
+        cursor = QTextCursor(block)
+        cursor.setPosition(block.position()
+                           + min(max(0, offset - paragraph.offset),
+                                 len(paragraph.text)))
+        self.setTextCursor(cursor)
+        self.ensureCursorVisible()
+
     def go_to_paragraph(self, index: int) -> None:
         """Scroll to a paragraph and put the caret at its start."""
         document = self.document()

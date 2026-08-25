@@ -86,6 +86,14 @@ tests/
                                 write them reliably, and the reader does not
                                 inherit that limit.
 
+  test_search_source.py     the project offered to the shared search. This
+                            file is why bookindexcore.ui.search was rewritten:
+                            it assumed its content was text files read line by
+                            line, and a Word manuscript is a zip of XML whose
+                            positions are character offsets. A hit's location
+                            is (document, offset), the same space place_at
+                            takes, and two tests check that against real books
+
   test_checking.py          step 9: Check Index over a project. The rules are
                             the core's; what is asserted is the one thing it
                             cannot know, document order across files, and the

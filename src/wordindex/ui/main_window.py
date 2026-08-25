@@ -38,6 +38,7 @@ from bookindexcore.backend.locator import Locator, SourceEdit
 from bookindexcore.ui.findings_dialog import FindingsDialog
 from bookindexcore.ui.help.controller import HelpController
 from bookindexcore.ui.identity import AppIdentity
+from bookindexcore.ui.search.window import AdvancedSearchWindow
 from bookindexcore.ui.style import AppStyleConfiguration
 from bookindexcore.ui.tab_find_dialog import TabFindDialog
 from PySide6.QtCore import Qt
@@ -54,6 +55,7 @@ from ..entries import all_references, heading_rows
 from ..profiles import (
     load_profile, load_project, save_profile, save_project)
 from ..project import OpenProject, Project
+from ..search_source import project_search_source
 from ..xe_dialect import XE_DIALECT
 from ..reader import (
     HEADING, UNKNOWN, outline, unprofiled)
@@ -200,6 +202,10 @@ class MainWindow(QMainWindow):
             "&Find in manuscript…", self.find_in_manuscript)
         self.find_action.setShortcut(QKeySequence.StandardKey.Find)
         self.find_action.setEnabled(False)
+        self.search_action = index_menu.addAction(
+            "Search the whole &project…", self.search_project)
+        self.search_action.setShortcut(QKeySequence("Ctrl+Shift+F"))
+        self.search_action.setEnabled(False)
         index_menu.addSeparator()
         index_menu.addAction("&Entry window",
                              lambda: self.entry_dock.setVisible(True))
@@ -220,6 +226,7 @@ class MainWindow(QMainWindow):
 
         self._findings_dialog = None
         self._find_dialog = None
+        self._search_window = None
 
         self.statusBar().showMessage("Open a Word manuscript to begin.")
 
@@ -331,6 +338,7 @@ class MainWindow(QMainWindow):
         self.mark_action.setEnabled(True)
         self.check_action.setEnabled(True)
         self.find_action.setEnabled(True)
+        self.search_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -695,6 +703,39 @@ class MainWindow(QMainWindow):
         if not self.view.find(text, flags):
             self.statusBar().showMessage(
                 f"{text!r} is not in {self._path.name}.")
+
+    def search_project(self) -> None:
+        """
+        The shared Advanced Search, across every document in the project.
+
+        **This is the window that did not fit until it was made to.** It took
+        a provider of file paths, opened them off disk, and reported a hit as
+        `(path, line, column)`; a Word manuscript has none of those. It now
+        takes segments and hands back a hit whose location it never looks
+        inside, and this host puts `(document, character offset)` in one.
+        """
+        if self.session is None:
+            return
+        if self._search_window is None:
+            self._search_window = AdvancedSearchWindow(
+                source_provider=lambda: project_search_source(self.session))
+            self._search_window.navigate_to_target.connect(self._go_to_hit)
+        self._search_window.show()
+        self._search_window.raise_()
+
+    def _go_to_hit(self, hit) -> None:
+        """
+        A search hit back into this application's coordinates.
+
+        The location is `(document, character offset)`, which is the same
+        space `place_at` takes and the marker layer draws in, so a hit is
+        already somewhere an entry could be created. Switching documents is
+        ordinary here: the search covers the whole project.
+        """
+        document, offset = hit.location
+        if Path(document) != self._path:
+            self.show_document(document)
+        self.view.go_to_offset(offset + hit.offset)
 
     def edit_preferences(self) -> None:
         """

@@ -5,6 +5,39 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The project search, and a correction to step 9
+
+Step 9 recorded that `bookindexcore.ui.search` did not fit this host and left
+it there. **That was the wrong call**, and the reason is the scope's own: the
+point of building a second caller is to find and fix a shared component's host
+assumptions, not to catalogue them. The stated reason for deferring, that it
+would touch the LaTeX editor's contract, does not hold either: this session
+had already changed a shared signal and left that editor green.
+
+So the search was made host-neutral in the core, and this application now
+uses it. `search_source.py` offers the project's paragraphs as segments; a
+hit's location is `(document, character offset)`, **the same space `place_at`
+takes and the marker layer draws in**, so a hit is already somewhere an entry
+could be created.
+
+`where` is the heading a paragraph sits under, not a line number. A Word
+manuscript has no lines and no pages until the publisher composes it, so a
+line number would be an invented figure, while *under '3.1.2. Context of the
+terms'* is where the indexer actually is.
+
+**Excluded regions are searchable.** Finding a phrase in the bibliography is
+how an indexer learns it is there, and the marking gesture already refuses to
+put an entry in one; hiding it from search would be a second, unasked-for
+decision.
+
+Measured across two real books: 5,432 paragraphs, 90 matches, 1.04 s, and
+activating a result switches documents and lands on the right character.
+
+*A figure worth correcting before it was reported*: the first measurement said
+30 s. That was the probe calling `QThread.wait()` from the main thread, which
+stops the queued `finished` from ever being delivered, so the thread never
+quits and the wait runs to its timeout. The search itself is 0.36 s.
+
 ### Check Index, find, preferences and help: step 9
 
 The scope calls this "assembly of what already exists". **Three of the four
