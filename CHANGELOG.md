@@ -5,6 +5,52 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Check Index, find, preferences and help: step 9
+
+The scope calls this "assembly of what already exists". **Three of the four
+assembled; one did not.**
+
+**Preferences** gave five shared pages for a subclass that supplies a title.
+This application adds **no pages of its own**, stated rather than left as an
+absence: the three things that make Word's grammar unusual are decisions per
+entry, not settings. **The in-tab find** needed no adapter at all, which makes
+`TabFindDialog` the second shared widget to fit a second host unchanged after
+the entry table. **The help viewer** took a menu; thirteen topics written.
+
+**Check Index** needed one thing the core cannot know: document order across
+files. A backend answers `order_key` for its own part, which is enough for one
+document and wrong for a project, because two entries from two chapters both
+come back as "third field in `word/document.xml`". The project's key is
+`(where the document sits in the reading order, where the field sits in the
+document)`. Run on two CUP books as one project: 3,132 entries, 426 findings.
+
+**`bookindexcore.ui.search` did not fit.** `AdvancedSearchWindow` takes a
+provider of file paths, greps them, and emits
+`navigate_to_target(path, line, column, ...)`: all three LaTeX's shape, for a
+host whose text is a zip of XML with no lines. It also cannot be imported
+without `rapidfuzz`, so adopting it would mean taking a dependency for a
+component that does not fit. **Recorded rather than adapted**, on step 3's
+reasoning about the tree. That is the second shared component to fail the
+second-caller test.
+
+**A defect a real report exposed.** Check Index over the CUP monograph
+gave 239 findings and **110 of them were one rule objecting that `SpaceX` has
+a capital letter inside it** -- correct every time, and enough noise to bury
+the 44 serious findings. The rule is right; its docstring says *"somebody has
+to say"*, and nothing was saying. The shared preferences page has had a
+Mixed-case exceptions field all along and the runner has always read it; what
+was missing was the join. `check_prefs.py` is that join, and it **ships no
+vocabulary of its own**, because a Word manuscript is as likely to be about
+medieval Flanders as about spaceflight.
+
+Two packaging hazards closed a step early: the help root resolves **inside the
+package** and is frozen-aware from its first commit, because the LaTeX editor
+would have shipped an installer with its whole Help system silently absent;
+and the version is read from the installed distribution rather than written in
+`__init__.py`. `markdown-it-py` is declared as a dependency rather than left
+to fail at the moment a user presses F1. See
+`documentation/step9_measurements.md`.
+
 ### Multi-file projects: step 8
 
 Scope §5, measured against a real 17-chapter book from Palgrave opened from

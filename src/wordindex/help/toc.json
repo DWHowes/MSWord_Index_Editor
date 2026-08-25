@@ -1,0 +1,54 @@
+[
+  {
+    "title": "Word Index Editor Help",
+    "file": "index.md"
+  },
+  {
+    "title": "1. What this tool does, and what it does not",
+    "file": "01-what-this-tool-does.md"
+  },
+  {
+    "title": "2. Opening a manuscript",
+    "file": "02-opening-a-manuscript.md"
+  },
+  {
+    "title": "3. Telling it what the styles mean",
+    "file": "03-styles.md"
+  },
+  {
+    "title": "4. Marking an entry",
+    "file": "04-marking-an-entry.md"
+  },
+  {
+    "title": "5. The entry window",
+    "file": "05-the-entry-window.md"
+  },
+  {
+    "title": "6. A book in several files",
+    "file": "06-a-book-in-several-files.md"
+  },
+  {
+    "title": "7. Checking the index",
+    "file": "07-checking-the-index.md"
+  },
+  {
+    "title": "8. Finding things",
+    "file": "08-finding-things.md"
+  },
+  {
+    "title": "9. Saving, and what the publisher gets back",
+    "file": "09-saving-and-handing-back.md"
+  },
+  {
+    "title": "10. Preferences",
+    "file": "10-preferences.md"
+  },
+  {
+    "title": "11. What Word does that surprises people",
+    "file": "11-what-word-does-that-surprises-people.md"
+  },
+  {
+    "title": "12. When something looks wrong",
+    "file": "12-when-something-looks-wrong.md"
+  }
+]

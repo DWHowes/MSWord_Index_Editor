@@ -35,13 +35,21 @@ from __future__ import annotations
 from pathlib import Path
 
 from bookindexcore.backend.locator import Locator, SourceEdit
+from bookindexcore.ui.findings_dialog import FindingsDialog
+from bookindexcore.ui.help.controller import HelpController
+from bookindexcore.ui.identity import AppIdentity
 from bookindexcore.ui.style import AppStyleConfiguration
+from bookindexcore.ui.tab_find_dialog import TabFindDialog
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence
+from PySide6.QtGui import QKeySequence, QTextCursor, QTextDocument
 from PySide6.QtWidgets import (
     QDockWidget, QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
     QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
+from .. import __version__
+from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path
+from ..check_prefs import CheckIndexPrefs
+from ..checking import check_project
 from ..entries import all_references, heading_rows
 from ..profiles import (
     load_profile, load_project, save_profile, save_project)
@@ -53,9 +61,24 @@ from .entry_window import EntryWindow
 from .file_list import FileList
 from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
+from .preferences import WordPreferencesDialog
 from .profile_editor import ProfileEditor
 
 BODY_PART = "word/document.xml"
+
+#: The facts an indexer needs when reporting a problem. The two wordmarks are
+#: separate bitmaps rather than one recoloured at runtime: tinting has to
+#: composite over the antialiased edges of very fine serifs, which is exactly
+#: where a tint goes wrong.
+IDENTITY = AppIdentity(
+    name="Word Index Editor",
+    version=__version__,
+    tagline="Build an embedded index in a Microsoft Word manuscript.",
+    copyright="\u00a9 2026 Donald Howes",
+    licence="MIT License",
+    logo_dark_ink=get_icon_path("wdx_wordmark_dark_ink.png"),
+    logo_light_ink=get_icon_path("wdx_wordmark_light_ink.png"),
+)
 
 
 class MainWindow(QMainWindow):
@@ -170,8 +193,33 @@ class MainWindow(QMainWindow):
         self.save_action = index_menu.addAction("&Save entries", self.save)
         self.save_action.setEnabled(False)
         index_menu.addSeparator()
+        self.check_action = index_menu.addAction(
+            "&Check index…", self.check_index)
+        self.check_action.setEnabled(False)
+        self.find_action = index_menu.addAction(
+            "&Find in manuscript…", self.find_in_manuscript)
+        self.find_action.setShortcut(QKeySequence.StandardKey.Find)
+        self.find_action.setEnabled(False)
+        index_menu.addSeparator()
         index_menu.addAction("&Entry window",
                              lambda: self.entry_dock.setVisible(True))
+        index_menu.addSeparator()
+        index_menu.addAction("&Preferences…", self.edit_preferences)
+
+        # **Frozen-aware from the first commit**, not retrofitted at packaging
+        # time. The LaTeX editor located its help root by `__file__`
+        # arithmetic that did not survive freezing and would have shipped an
+        # installer with the whole Help system silently absent.
+        self._help = HelpController(self, get_app_root(), IDENTITY,
+                                    help_subdir=HELP_SUBDIR)
+        help_menu = self.menuBar().addMenu("&Help")
+        contents = help_menu.addAction("&Contents…", self._help.show_help)
+        contents.setShortcut(QKeySequence.StandardKey.HelpContents)
+        help_menu.addSeparator()
+        help_menu.addAction("&About…", self._help.show_about)
+
+        self._findings_dialog = None
+        self._find_dialog = None
 
         self.statusBar().showMessage("Open a Word manuscript to begin.")
 
@@ -281,6 +329,8 @@ class MainWindow(QMainWindow):
         self.name_action.setEnabled(True)
         self.styles_action.setEnabled(True)
         self.mark_action.setEnabled(True)
+        self.check_action.setEnabled(True)
+        self.find_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -570,6 +620,92 @@ class MainWindow(QMainWindow):
         if new_id is not None:
             self.index_panel.select_entry(new_id)
             self._show_in_entry_window(new_id)
+
+    # -- assembly: step 9 -------------------------------------------------
+
+    def check_index(self) -> None:
+        """
+        Run the shared checking rules over every entry in the project.
+
+        **A report, not a repair.** Non-modal, because a modal one would have
+        to be dismissed before anything could be corrected, which turns forty
+        findings into forty round trips. Double-clicking a finding goes to the
+        entry, switching documents if it is in another one.
+        """
+        if self.session is None:
+            return
+
+        findings = check_project(self.session)
+        if self._findings_dialog is not None:
+            self._findings_dialog.close()
+
+        self._findings_dialog = FindingsDialog(
+            findings, title=f"Check index: {self.session.project.name}",
+            parent=self)
+        self._findings_dialog.entries_activated.connect(self._go_to_findings)
+        self._findings_dialog.show()
+
+    def _go_to_findings(self, entry_ids) -> None:
+        """
+        A finding points at entries. Take the first that is still there.
+
+        *Still there* matters: a report stays open while the indexer works
+        through it, so an entry it names may have been deleted since.
+        """
+        for entry_id in entry_ids or ():
+            if self._reference(entry_id) is not None:
+                self._go_to_entry(entry_id)
+                self._show_in_entry_window(entry_id)
+                self.index_panel.select_entry(entry_id)
+                return
+
+    def find_in_manuscript(self) -> None:
+        """
+        Find within the document on screen, from the shared dialog.
+
+        `TabFindDialog` needed no adapter at all: it emits
+        `find_requested(text, forward, case_sensitive, whole_word)` and knows
+        nothing about what is being searched. **The second shared widget to
+        fit a second host unchanged**, after the entry table.
+        """
+        if self._find_dialog is None:
+            self._find_dialog = TabFindDialog(self)
+            self._find_dialog.find_requested.connect(self._find)
+        self._find_dialog.show()
+        self._find_dialog.raise_()
+
+    def _find(self, text, forward, case_sensitive, whole_word) -> None:
+        flags = QTextDocument.FindFlag(0)
+        if not forward:
+            flags |= QTextDocument.FindFlag.FindBackward
+        if case_sensitive:
+            flags |= QTextDocument.FindFlag.FindCaseSensitively
+        if whole_word:
+            flags |= QTextDocument.FindFlag.FindWholeWords
+
+        if self.view.find(text, flags):
+            return
+        # Wrap once, from the far end, then say so rather than failing
+        # silently: an indexer who cannot tell "not found" from "not searched"
+        # will search again.
+        cursor = self.view.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End if not forward
+                            else QTextCursor.MoveOperation.Start)
+        self.view.setTextCursor(cursor)
+        if not self.view.find(text, flags):
+            self.statusBar().showMessage(
+                f"{text!r} is not in {self._path.name}.")
+
+    def edit_preferences(self) -> None:
+        """
+        The shared preferences window. This application adds no pages of its
+        own; what it does add is somewhere for the Check Index page's answers
+        to land, which is `CheckIndexPrefs`.
+        """
+        dialog = WordPreferencesDialog(self)
+        dialog.sig_config_accepted.connect(
+            lambda payload, _dark, _light: CheckIndexPrefs().save(payload))
+        dialog.exec()
 
     def _run(self, entry_id, edit, said: str) -> None:
         """

@@ -29,8 +29,12 @@ authors = [{ name = "D. W. Howes" }]
 dependencies = ["lxml>=5.0"]
 
 [project.optional-dependencies]
-# The UI is not built yet -- phase 4 of the extraction is the two seams only.
-qt  = ["PySide6-Essentials>=6.11", "shiboken6>=6.11"]
+# The UI needs Qt; the in-app Help needs a Markdown parser, because the topics
+# ship as Markdown and `bookindexcore.ui.help.content_model` renders them.
+# Declared here rather than left to the core's own `help` extra: an
+# application that shows Help is an application that depends on it, and an
+# ImportError at the moment a user presses F1 is the worst place to find out.
+qt  = ["PySide6-Essentials>=6.11", "shiboken6>=6.11", "markdown-it-py>=3.0"]
 dev = ["pytest>=8.0"]
 
 [project.scripts]

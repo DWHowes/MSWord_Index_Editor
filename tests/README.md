@@ -86,6 +86,21 @@ tests/
                                 write them reliably, and the reader does not
                                 inherit that limit.
 
+  test_checking.py          step 9: Check Index over a project. The rules are
+                            the core's; what is asserted is the one thing it
+                            cannot know, document order across files, and the
+                            join that was missing -- a real report gave 239
+                            findings of which 110 were one rule objecting to
+                            "SpaceX", because nothing had told it otherwise
+
+  ui/test_assembly.py       step 9: what assembled and what did not.
+                            Preferences and the in-tab find needed no adapter;
+                            bookindexcore.ui.search does not fit and cannot
+                            even be imported without a dependency this
+                            application does not take. Also checks the help
+                            manifest BOTH ways: every topic named exists, and
+                            every topic on disk is named
+
   test_project.py           step 8: several documents, in an order the
                             indexer chose. The order is the point: a real
                             17-chapter book sorted by name puts chapter 12
