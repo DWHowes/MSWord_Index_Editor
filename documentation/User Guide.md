@@ -554,23 +554,34 @@ setting does nothing whatever.
 
 ### 12.2 Writing the index document *[not yet built]*
 
-A checkbox to enable it and a name for the file, which is written into the
-root of the project directory.
+A checkbox to enable it and a name for the file, which is written into the root
+of the project directory.
 
-The document contains the `INDEX` field with the settings above, and pointers
-to the manuscript files so that Word knows where the entries are. **It does
-not contain the index**: Word builds that when the document is opened and
-composed, which is the same division of labour as everywhere else here.
+The document contains a pointer to each manuscript file, in your reading order,
+followed by the `INDEX` field with the settings above. **It does not contain
+the index**: Word builds that when you open the document and update the field,
+which is the same division of labour as everywhere else here. Once built, the
+index is saved in that document and can go to the publisher with the
+manuscript.
 
-> **To be confirmed.** Whether the page numbers in such a document come out
-> right across a project of several files has **not yet been measured**. Word
-> takes each referenced document's own page numbering, so a project would need
-> each chapter told which page it starts on, or the index restarts at 1 for
-> every chapter. An index that restarts at 1 per chapter is worse than no index
-> document at all, because it looks right. This is measured before the feature
-> is built.
+This is a technique that already works by hand, and the application is
+automating it rather than inventing it. The pointers are Word `RD` fields with
+relative paths, so the index document travels with the book.
 
----
+#### Page numbers across several files
+
+**Set each chapter's starting page number before you build the index.** Word
+takes each referenced file's own numbering, so if every chapter starts at page
+1 the index will say so, and it will look perfectly correct while being useless.
+
+With the starting numbers set, the whole book indexes as one sequence. An
+18-chapter collection built this way ran from page 1 to page 238, with entries
+from the first and last chapters interleaved in one alphabetical run.
+
+#### Naming it
+
+The default name puts the index document first in the folder, ahead of the
+chapter files, so it is where you will look for it.
 
 ## 13. Saving, and what the publisher gets back
 
