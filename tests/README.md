@@ -94,6 +94,30 @@ tests/
                             is (document, offset), the same space place_at
                             takes, and two tests check that against real books
 
+  test_generated_index.py   step 9c: the settings behind Word's INDEX field,
+                            and the field they compose. The \h table is copied
+                            from what Word actually drew, because the rule is
+                            one nobody would guess and its failure is silent:
+                            a pattern Word refuses draws blank lines rather
+                            than an error, so "Section A" is a test case and
+                            not a footnote
+
+  test_index_document.py    step 9c: the RD + INDEX document the publisher
+                            composes the index in. Two corpus tests read, and
+                            then rewrite, a COPY of the indexer's own finished
+                            index; the one that matters asserts its 400 index
+                            paragraphs are all still there afterwards, because
+                            a refresh that rewrote the file would delete a
+                            composed index to update a list of filenames
+
+  ui/test_generated_index_tab.py
+                            step 9c's page. The assertions are about controls
+                            that are NOT independent: \e is two of them under
+                            different labels, the pattern box belongs to one
+                            radio button, and the field preview is all of them
+                            at once. Also that this page's payload keys cannot
+                            collide with a shared page's
+
   test_checking.py          step 9: Check Index over a project. The rules are
                             the core's; what is asserted is the one thing it
                             cannot know, document order across files, and the

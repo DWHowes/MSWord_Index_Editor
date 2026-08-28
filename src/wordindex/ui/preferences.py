@@ -6,16 +6,22 @@ page that is not specific to one index format: General, Sorting, Check Index,
 Presentation, Authorities, Theme. What an application supplies is its own
 pages, their order, and how its settings are stored.
 
-**This application supplies no pages of its own**, which is worth stating
-rather than leaving as an absence. The three things that make Word's index
-grammar unusual all live in the entry window rather than in preferences:
+This application supplies **one**: *Generated index*, which is step 9c's.
 
-* a **sort key per level** is authored per entry, not configured;
-* `\f` filters on a single character, which is a fact about Word rather than
-  a preference;
-* `\r` needs a bookmark in the manuscript, which is a decision per entry.
+*It said "none" until 28 August 2026, and the argument it gave was sound and
+about something else.* What makes Word's index **grammar** unusual is per entry
+rather than per project: a sort key per level is authored on the entry, `\f`
+filters on one character whatever anyone prefers, and `\r` needs a bookmark in
+the manuscript. All still true, and none of it is about the `INDEX` field that
+*collects* those entries. That field has a dozen switches, three of them
+decisions only an indexer can make, and nowhere to make them.
 
-So the subclass exists for the title, the storage, and to say so.
+#### Where the settings go
+
+`QSettings` under this application's own organisation and name, which is what
+`GeneralPreferencesTab` and the sorting and check pages already read and
+write. The style-profile store beside this keeps *project* data; preferences
+are the indexer's, and follow them from book to book.
 
 #### Where the settings go
 
@@ -27,10 +33,14 @@ are the indexer's, and follow them from book to book.
 
 from __future__ import annotations
 
+from typing import Sequence
+
 from bookindexcore.ui.preferences import PreferencesDialog
 from PySide6.QtCore import QSettings
 
+from ..generated_index import GeneratedIndexPrefs
 from ..xe_dialect import XE_DIALECT
+from .generated_index_tab import GeneratedIndexTab
 
 ORGANISATION = "DH Indexing"
 APPLICATION = "Word Index Editor"
@@ -59,16 +69,30 @@ class WordPreferencesDialog(PreferencesDialog):
 
     window_title = "Word Index Editor Preferences"
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None, *, instructions: Sequence[str] = (),
+                 project_name: str = "") -> None:
+        # Read before `super().__init__`, which calls `build_host_tabs` from
+        # inside its own constructor: an attribute set afterwards would not
+        # exist yet when the page asks for it.
+        self._instructions = list(instructions)
+        self._project_name = project_name
         super().__init__(XE_DIALECT, parent)
+        self.generated_index_tab.populate(GeneratedIndexPrefs().load())
 
-    def build_host_tabs(self) -> list:
+    def build_host_tabs(self) -> None:
         """
-        None. See the module docstring: what makes Word's grammar unusual is
-        per entry, not per project, so there is nothing here to configure that
-        the shared pages do not already cover.
+        One: what the `INDEX` field will say when the book is composed.
+
+        The entries this application writes are collected by a field it does
+        not write, in a document it does not own, and until this page there was
+        nowhere to decide what that field says.
         """
-        return []
+        self.generated_index_tab = GeneratedIndexTab(
+            self, instructions=self._instructions,
+            project_name=self._project_name)
+
+    def host_tab_order(self) -> list:
+        return [("Generated index", self.generated_index_tab)]
 
     def collect_host_payload(self) -> dict:
-        return {}
+        return self.generated_index_tab.collect()

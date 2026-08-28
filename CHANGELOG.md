@@ -5,6 +5,73 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 9c: the Generated index page, and the index document
+
+The `XE` fields this application writes are collected by a field it does not
+write, in a document it does not own. **There was nowhere to say what that
+field should be.** So this application, which had argued at length that it
+needed no preferences page of its own, has one: *Generated index*.
+
+The argument it made was sound and about something else. What is unusual about
+Word's index **grammar** is per entry: a sort key on each level, an index type
+of one character, the bookmark a page range needs. None of that is about the
+`INDEX` field that collects the entries.
+
+**Every control on the page is a measurement**, from
+`documentation/index_field_measurements.md`. Three of them shape it:
+
+- **`\c` inserts two continuous section breaks into whatever document it is
+  written into, even `\c "1"`.** A column control restructures its document,
+  which is legal here only because the document is one this application
+  creates. The manuscript is never restructured.
+- **`\z` is the only switch in the field that changes the sort**, so the filing
+  language is an indexing decision wearing the dialog's boilerplate. It is a
+  named list, never a bare LCID.
+- **`\h` substitutes the group letter for every `A` in the pattern, but only
+  when the pattern's first letter is an `A`.** `Section A` is exactly what an
+  indexer would type, and Word answers it with blank lines, silently. So the
+  control is four choices plus a pattern validated as it is typed, with the
+  reason and a preview of the first three groups.
+
+**And one thing the page can say that Word's own dialog cannot.** An `INDEX`
+field with no `\f` **excludes every entry that carries one**, which Word
+reports as an index with entries missing rather than as an error. This
+application holds the entries and writes the field, so it says how many carry
+a type and which.
+
+**Index > Write index document** writes the document the publisher composes the
+index in: one `RD` field per manuscript file in the indexer's reading order,
+then the `INDEX` field. With the checkbox on the page, saving entries rewrites
+it as well. It does not contain the index; Word builds that when the document
+is opened and the field updated.
+
+**Rewriting one that already exists never replaces it.** By then it may hold a
+composed index: the verified example holds 400 index paragraphs. Only the `RD`
+fields and the `INDEX` instruction are replaced, in place, and a file of that
+name which is not an index document is refused by name and left as it was.
+
+The technique is the indexer's, not this application's invention:
+`00_Collection_Index.docx` is an 18-chapter Palgrave collection indexed exactly
+this way, pages 1 to 238 continuous, built before anything here could write
+one. *Second time on this project that a measurement was answered by a file the
+indexer had already made.*
+
+**Probe 7 struck a control rather than adding one.** A tab leader was to be
+offered if Word honoured a `styles.xml` this application wrote. It does, and
+the control is still wrong: Word writes its own right-aligned dot-leader tab
+stop into every generated index paragraph, so ours lands beside Word's and the
+leader an entry draws depends on how long the entry is. Turning right
+alignment on is what puts Word's leader to work, and that is the whole
+control. *The measurement document's earlier inference, that the leader in the
+indexer's finished index was a style edit, is corrected there: Word had done
+it.*
+
+**And the page was fixed by looking at it**, the fifth time on this project
+that has found what a test did not. Five groups come to about 900 pixels, the
+shared preferences window opens at 560, and without a scroll area the index
+document section and the field preview were simply absent, with nothing on
+screen to say they existed.
+
 ### The index tree, which step 3 left out
 
 Step 3 found that `bookindexcore.ui.tree` did not fit this host and left it

@@ -52,6 +52,10 @@ from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path
 from ..check_prefs import CheckIndexPrefs
 from ..checking import check_project
 from ..entries import all_references, heading_rows
+from ..generated_index import GeneratedIndexPrefs, index_instruction
+# The module rather than its names: this window has a `write_index_document`
+# method of its own, and two of those in one file would be one too many.
+from .. import index_document
 from ..profiles import (
     load_profile, load_project, save_profile, save_project)
 from ..project import OpenProject, Project
@@ -194,6 +198,13 @@ class MainWindow(QMainWindow):
         index_menu.addSeparator()
         self.save_action = index_menu.addAction("&Save entries", self.save)
         self.save_action.setEnabled(False)
+        # Separate from Save, because the two are needed at different moments:
+        # saving is the manuscript, and this is the document the publisher
+        # composes the index in. Enabling it on Save alone would leave an
+        # indexer who only changed a preference with no way to rewrite it.
+        self.index_document_action = index_menu.addAction(
+            "Write index &document", self.write_index_document)
+        self.index_document_action.setEnabled(False)
         index_menu.addSeparator()
         self.check_action = index_menu.addAction(
             "&Check index…", self.check_index)
@@ -339,6 +350,7 @@ class MainWindow(QMainWindow):
         self.check_action.setEnabled(True)
         self.find_action.setEnabled(True)
         self.search_action.setEnabled(True)
+        self.index_document_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -739,14 +751,32 @@ class MainWindow(QMainWindow):
 
     def edit_preferences(self) -> None:
         """
-        The shared preferences window. This application adds no pages of its
-        own; what it does add is somewhere for the Check Index page's answers
-        to land, which is `CheckIndexPrefs`.
+        The shared preferences window, plus this application's own page.
+
+        The open project goes in with it: the Generated index page reports
+        which index types the book's entries carry, and an `INDEX` field with
+        no `\\f` excludes every one of them. That report is the whole reason
+        the page can say something Word's own dialog cannot.
         """
-        dialog = WordPreferencesDialog(self)
-        dialog.sig_config_accepted.connect(
-            lambda payload, _dark, _light: CheckIndexPrefs().save(payload))
+        dialog = WordPreferencesDialog(
+            self,
+            instructions=self.session.instructions() if self.session else (),
+            project_name=self.session.project.name if self.session else "")
+        dialog.sig_config_accepted.connect(self._save_preferences)
         dialog.exec()
+
+    def _save_preferences(self, payload, _dark, _light) -> None:
+        """
+        Both stores read the one payload, each taking only its own keys.
+
+        Neither writes a key it did not declare, so a page's settings cannot
+        land in another page's store. `tests/ui/test_generated_index_tab.py`
+        asserts the two key sets do not overlap, because a shared page that
+        later grew a `columns` setting would otherwise take this page's value
+        and neither would read it back.
+        """
+        CheckIndexPrefs().save(payload)
+        GeneratedIndexPrefs().save(payload)
 
     def _run(self, entry_id, edit, said: str) -> None:
         """
@@ -805,6 +835,43 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(
             f"Saved {len(self.session.documents)} document"
             f"{'' if self.session.project.is_single else 's'}.")
+
+        if GeneratedIndexPrefs().load()["write_index_document"]:
+            self.write_index_document(quietly=True)
+
+    def write_index_document(self, quietly: bool = False) -> None:
+        """
+        Write, or refresh, the document the publisher composes the index in.
+
+        **This does not generate the index**, and neither does anything else
+        here: the document holds a pointer to each manuscript file and the
+        `INDEX` field, and Word builds the index when that document is opened
+        and the field updated.
+
+        `quietly` is the checkbox path, called after a successful save. It
+        reports through the status bar rather than a dialog, because an indexer
+        who asked for this once should not confirm it after every save; a
+        *failure* still opens a box, since a deliverable that was not written
+        is not something to leave in a status line.
+        """
+        if self.session is None:
+            return
+        values = GeneratedIndexPrefs().load()
+        try:
+            root = index_document.common_root(self.session.documents)
+            name = (values["index_document_name"]
+                    or index_document.default_document_name(
+                        self.session.project.name))
+            result = index_document.write_index_document(
+                root / name, self.session.documents,
+                index_instruction(values), root=root)
+        except index_document.IndexDocumentError as refused:
+            QMessageBox.warning(self, "The index document was not written",
+                                str(refused))
+            return
+        self.statusBar().showMessage(result.message)
+        if not quietly:
+            QMessageBox.information(self, "Index document", result.message)
 
     def _say(self, styles: int, placed: int, missing, unknown: int) -> None:
         """

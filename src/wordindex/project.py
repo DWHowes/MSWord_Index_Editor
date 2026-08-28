@@ -196,6 +196,24 @@ class OpenProject:
         """Every entry in the project, in document order across files."""
         return list(self._references)
 
+    def instructions(self) -> list:
+        """
+        Every entry's raw `XE` instruction, across the project.
+
+        Step 9c wants these rather than the records, because `\\f` is not a
+        field on :class:`~bookindexcore.model.records.IndexReference`: the
+        index type an entry carries stays in the instruction, and the dialect
+        is what reads it back out. The Generated index page needs them to say
+        whether the `INDEX` field being written would exclude any entries.
+        """
+        found = []
+        for path in self.documents:
+            backend = self.backends[path]
+            for container in backend.containers():
+                found.extend(field.instruction
+                             for field in backend.iter_entries(container))
+        return found
+
     def positions(self, document) -> dict:
         """`anchor -> character offset` for one document's body."""
         backend = self.backends.get(Path(document))

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QTabWidget
 
 from wordindex.app_paths import (
     HELP_SUBDIR, get_app_root, get_help_root, get_icon_path)
+from wordindex.generated_index import GENERATED_INDEX_DEFAULTS
 from wordindex.ui.preferences import WordPreferencesDialog
 
 
@@ -33,15 +34,21 @@ class TestPreferencesAreEntirelyBorrowed:
         titles = {tabs.tabText(i) for i in range(tabs.count())}
         assert {"General", "Check Index", "Sorting"} <= titles
 
-    def test_this_application_adds_no_pages_of_its_own(self, qt_app):
+    def test_this_application_adds_one_page_of_its_own(self, qt_app):
         """
-        Stated rather than left as an absence. The three things that make
-        Word's grammar unusual are per entry, not per project: a sort key on
-        each level, a single-character index type, and the bookmark a page
-        range needs. All three live in the entry window.
+        *This test read "adds no pages of its own" until step 9c*, and the
+        argument it made was sound and about something else. What makes Word's
+        **grammar** unusual is per entry: a sort key on each level, a
+        single-character index type, the bookmark a page range needs. None of
+        that is about the `INDEX` field that *collects* those entries, which
+        has a dozen switches and had nowhere to set them.
         """
-        assert WordPreferencesDialog().build_host_tabs() == []
-        assert WordPreferencesDialog().collect_host_payload() == {}
+        dialog = WordPreferencesDialog()
+        tabs = dialog.findChild(QTabWidget)
+        titles = [tabs.tabText(i) for i in range(tabs.count())]
+        assert titles[-1] == "Generated index", "the host page comes last"
+        assert set(dialog.collect_host_payload()) == set(
+            GENERATED_INDEX_DEFAULTS)
 
     def test_the_title_says_which_application(self, qt_app):
         assert "Word Index Editor" in WordPreferencesDialog().windowTitle()
