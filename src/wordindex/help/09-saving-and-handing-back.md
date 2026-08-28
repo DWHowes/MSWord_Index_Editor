@@ -31,6 +31,27 @@ can be rewritten every time you save. See [Preferences](10-preferences.md).
 Your manuscript is untouched by it. The index is built by Word, in that
 document, when the publisher opens it.
 
+## If a manuscript changes while you have it open
+
+A file you are indexing can be edited somewhere else at the same time: in Word,
+by a colleague on a shared drive, or by a sync client putting a newer copy in
+place. This application notices, and **it will not save that document**.
+
+The reason is the promise above. Your entries are held against the text as it
+was when the file was opened here, so writing them into a file somebody else
+has since changed would put them in the wrong places and overwrite their work
+as well.
+
+You are told which file, and how many changes you have made in it that are not
+yet written. Nothing is lost at that moment: your entries are still here, and
+the other documents in the project still save normally.
+
+**Index > Reopen changed documents** reads the file as it now is. That is the
+decision the application cannot take for you: reopening discards the entries
+you made against the older version of that one document, and every other
+document keeps everything. You are asked once per file, and told what each one
+costs before you answer.
+
 ## Before you send it
 
 The file the publisher gets should differ from the one they sent by the added

@@ -242,15 +242,47 @@ class OpenProject:
 
     # -- saving -------------------------------------------------------------
 
-    def save(self) -> tuple:
+    def save(self, skip=()) -> tuple:
         """
         Write every document that has changed. Returns the ones that failed.
 
         Each document is written independently: one that will not save must
         not take the others with it, and the indexer has to be told which.
+
+        ``skip`` names documents that must not be written at all. Step 11e
+        passes the ones that have been changed on disk since they were opened:
+        **writing our entries over somebody else's edit would hand the
+        publisher back a file that differs from the one they sent by more than
+        the added fields**, which is the one thing scope §2 forbids.
         """
+        held_back = {Path(path) for path in skip}
         failures = []
         for path in self.documents:
+            if path in held_back:
+                continue
             if not self.backends[path].save():
                 failures.append(path)
         return tuple(failures)
+
+    def reopen(self, document) -> bool:
+        """
+        Read one document again from disk, discarding what was staged in it.
+
+        For the case the file watcher reports: the manuscript was edited in
+        Word while it was open here, so the anchors this application holds
+        point into a version that no longer exists. **Only that document's
+        staged entries are lost**, because each document has its own backend
+        and the others are untouched.
+        """
+        path = Path(document)
+        if path not in self.backends:
+            return False
+        backend = OoxmlBackend()
+        try:
+            backend.open(path)
+        except Exception:                                 # noqa: BLE001
+            return False
+        self.backends[path] = backend
+        self._plain[path] = read_paragraphs(backend, BODY)
+        self.reread()
+        return True

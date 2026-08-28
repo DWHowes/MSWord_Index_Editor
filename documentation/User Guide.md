@@ -444,6 +444,16 @@ If **Write an index document when I save entries** is ticked on the Generated in
 
 You can also write it at any time with **Index > Write index document**, whether or not anything has been saved. If the document already exists and Word has built the index into it, that index is kept: only the pointers to your manuscript files and the index field are replaced.
 
+### If a manuscript changes while you have it open
+
+A file you are indexing can be edited elsewhere at the same time: in Word, by a colleague on a shared drive, or by a sync client putting a newer copy in place. This application notices, and **it will not save that document.**
+
+The reason is the promise this section is about. Your entries are held against the text as it stood when the file was opened here, so writing them into a file somebody else has since changed would put them in the wrong places and overwrite that person's work into the bargain.
+
+You are told which file it was, and how many changes you have made in it that are not yet written. **Nothing is lost at that moment**: your entries are still here, the file on disk is untouched, and every other document in the project saves normally.
+
+**Index > Reopen changed documents** reads the file as it now is. That is the one decision the application cannot take for you, so it asks once per file and says what each answer costs: reopening discards the entries you made against the older version of *that document*, and every other document keeps everything.
+
 ### Before you send it
 
 The file the publisher gets should differ from the one they sent by the added fields alone. Nothing here will have done otherwise, but it is worth knowing that is the promise being kept.

@@ -38,6 +38,7 @@ from bookindexcore.backend.locator import Locator, SourceEdit
 from bookindexcore.ui.findings_dialog import FindingsDialog
 from bookindexcore.ui.help.controller import HelpController
 from bookindexcore.ui.identity import AppIdentity
+from bookindexcore.qt.watcher import ExternalFileWatcherEngine
 from bookindexcore.ui import shortcuts
 from bookindexcore.ui.search.window import AdvancedSearchWindow
 from bookindexcore.ui.sidebar import SidebarPanels
@@ -77,6 +78,13 @@ from .preferences import Preferences, WordPreferencesDialog
 from .profile_editor import ProfileEditor
 
 BODY_PART = "word/document.xml"
+
+#: What to say when a backend refuses an edit and gives no reason of its own.
+#: **This path had never run**: the three call sites asked `EditResult` for a
+#: `reason` it has never had, so a genuinely refused edit raised an
+#: AttributeError in the handler meant to explain it. Found at step 11e, by a
+#: test that edited the same entry twice.
+_EDIT_REFUSED = "The document would not take that edit."
 
 #: The facts an indexer needs when reporting a problem. The two wordmarks are
 #: separate bitmaps rather than one recoloured at runtime: tinting has to
@@ -161,6 +169,19 @@ class MainWindow(QMainWindow):
         #: writes them all, but the tab strip says which ones have something
         #: to lose, so the record has to be per document.
         self._unsaved: set = set()
+        #: How many changes are staged in each, so a notice can say what is at
+        #: stake rather than asking the indexer to guess.
+        self._edits: dict = {}
+
+        #: **The one guard on scope §2's promise** (11e). A manuscript open
+        #: here can be edited in Word at the same time, and the anchors this
+        #: application holds point into the version it read. Writing over that
+        #: would hand the publisher back a file differing from theirs by more
+        #: than the added fields.
+        self._changed_on_disk: set = set()
+        self.watcher = ExternalFileWatcherEngine(self)
+        self.watcher.file_changed.connect(self._document_changed_on_disk)
+        self.watcher.file_missing.connect(self._document_missing)
         #: What `self.view` answers to before anything is open. Never mounted:
         #: it exists so that every caller can ask the window for "the
         #: manuscript" without first asking whether there is one.
@@ -218,6 +239,9 @@ class MainWindow(QMainWindow):
         self.index_document_action = index_menu.addAction(
             "Write index &document", self.write_index_document)
         self.index_document_action.setEnabled(False)
+        self.reopen_action = index_menu.addAction(
+            "&Reopen changed documents…", self.reopen_changed_documents)
+        self.reopen_action.setEnabled(False)
         index_menu.addSeparator()
         self.check_action = index_menu.addAction(
             "&Check index…", self.check_index)
@@ -308,6 +332,9 @@ class MainWindow(QMainWindow):
 
         self.tabs.close_all()
         self._unsaved.clear()
+        self._edits.clear()
+        self._changed_on_disk.clear()
+        self.watcher.unregister_all()
         self.index_panel.clear()
         self.file_list.show_documents([])
         self.outline_tree.clear()
@@ -317,7 +344,8 @@ class MainWindow(QMainWindow):
         for action in (self.add_action, self.name_action, self.styles_action,
                        self.mark_action, self.check_action, self.find_action,
                        self.search_action, self.save_action,
-                       self.index_document_action, self.close_project_action):
+                       self.index_document_action, self.close_project_action,
+                       self.reopen_action):
             action.setEnabled(False)
         self.setWindowTitle("Word Index Editor")
         self.statusBar().showMessage("Open a Word manuscript to begin.")
@@ -464,6 +492,140 @@ class MainWindow(QMainWindow):
         self.entry_window.setVisible(wanted)
         if wanted:
             self._apply_proportions()
+
+    # -- a manuscript changed underneath us (11e) -------------------------
+
+    def _document_changed_on_disk(self, path) -> None:
+        """
+        Somebody else wrote to a manuscript this application has open.
+
+        **Not a dialog.** An indexer marking entries does not want a modal box
+        arriving because Word autosaved in another window; what they want is to
+        be told, and to be stopped before the damage. So this says so where
+        they are looking, marks the tab, and the *refusal* happens at the
+        moment it matters, which is Save.
+
+        The entries staged against that document are still in memory and still
+        correct about a version of the file that no longer exists. That is why
+        reopening discards them: an anchor into the old text is not an anchor.
+        """
+        if self.session is None:
+            return
+        document = Path(path)
+        if document not in self.session.backends or document in self._changed_on_disk:
+            return
+
+        self._changed_on_disk.add(document)
+        index = self.tabs.indexOf(self.tabs.view_for(document))             if self.tabs.view_for(document) is not None else -1
+        if index >= 0:
+            self.tabs.setTabText(index, f"{document.name} (changed on disk)")
+            self.tabs.setTabToolTip(
+                index, f"{document} was changed by something else since it was "
+                       f"opened here.")
+        self.reopen_action.setEnabled(True)
+        self.statusBar().showMessage(self._changed_sentence(document))
+        self.notice.setText(self._changed_sentence(document))
+
+    def _document_missing(self, path) -> None:
+        """A watched manuscript is not there any more. Named, not swallowed."""
+        document = Path(path)
+        self.statusBar().showMessage(
+            f"{document.name} is no longer where it was. Nothing here has been "
+            f"lost; the entries are still in memory until you close the project.")
+
+    def _changed_sentence(self, document) -> str:
+        staged = self._edits.get(Path(document), 0)
+        if staged:
+            return (f"{Path(document).name} was changed by something else. It "
+                    f"will not be saved: {staged:,} change"
+                    f"{'' if staged == 1 else 's'} made here would be written "
+                    f"over somebody else's edit. Index > Reopen changed "
+                    f"documents.")
+        return (f"{Path(document).name} was changed by something else. Reopen "
+                f"it to work from what is now in the file: "
+                f"Index > Reopen changed documents.")
+
+    def _say_held_back(self, held_back) -> None:
+        """
+        What Save says when it refused a document, with what is at stake.
+
+        **The count is the point.** "Some documents were not saved" leaves an
+        indexer to guess whether they have lost an afternoon; the number of
+        staged changes and the name of the file is a decision they can take.
+        """
+        lines = []
+        for document in held_back:
+            staged = self._edits.get(document, 0)
+            lines.append(f"{document.name}: {staged:,} change"
+                         f"{'' if staged == 1 else 's'} held here")
+        written = len(self.session.documents) - len(held_back)
+        QMessageBox.warning(
+            self, "Changed by something else",
+            f"{written} document{'' if written == 1 else 's'} saved.\n\n"
+            f"These were changed on disk since they were opened here, so "
+            f"nothing was written to them:\n\n"
+            + "\n".join(lines)
+            + "\n\nReopening one reads it as it now is and discards the "
+              "changes made here against the older version. "
+              "Index > Reopen changed documents.")
+
+    def reopen_changed_documents(self) -> None:
+        """
+        Read the changed manuscripts again, discarding what was staged in them.
+
+        One question per document, each naming what it costs. **Only that
+        document's staged entries are lost**: every document has its own
+        backend, so the others are untouched, which is what makes this a
+        decision an indexer can take one chapter at a time.
+        """
+        if self.session is None or not self._changed_on_disk:
+            return
+
+        for document in sorted(self._changed_on_disk):
+            staged = self._edits.get(document, 0)
+            answer = QMessageBox.question(
+                self, "Reopen this document",
+                f"{document.name} was changed by something else.\n\n"
+                f"Reopening reads the file as it now is. "
+                + (f"The {staged:,} change{'' if staged == 1 else 's'} made "
+                   f"here since it was opened will be lost."
+                   if staged else "Nothing made here is lost: no changes have "
+                                  "been staged in it."),
+                QMessageBox.StandardButton.Cancel | QMessageBox.StandardButton.Open)
+            if answer != QMessageBox.StandardButton.Open:
+                continue
+            self._reopen(document)
+
+        self.reopen_action.setEnabled(bool(self._changed_on_disk))
+
+    def _reopen(self, document) -> None:
+        if not self.session.reopen(document):
+            QMessageBox.warning(
+                self, "Could not reopen",
+                f"{Path(document).name} could not be read. It has been left as "
+                f"it was, and the entries held here are untouched.")
+            return
+
+        self._changed_on_disk.discard(document)
+        self._unsaved.discard(document)
+        self._edits.pop(document, None)
+        self.watcher.register_file_path(str(document))
+
+        index = self.tabs.indexOf(self.tabs.view_for(document))             if self.tabs.view_for(document) is not None else -1
+        if index >= 0:
+            self.tabs.setTabText(index, Path(document).name)
+            self.tabs.setTabToolTip(index, str(document))
+            self.tabs.set_unsaved(document, False)
+            self.tabs.view_for(document).show_paragraphs(
+                self.session.paragraphs(document))
+
+        self._reread_index()
+        self._render_current()
+        self._dirty = bool(self._unsaved)
+        self.save_action.setEnabled(self._dirty)
+        self.notice.setText("")
+        self.statusBar().showMessage(
+            f"Reopened {Path(document).name} as it now is.")
 
     # -- the theme, which was collected and dropped until 11b -------------
 
@@ -620,6 +782,11 @@ class MainWindow(QMainWindow):
         self.session = session
         self.tabs.close_all()
         self._unsaved.clear()
+        self._edits.clear()
+        self._changed_on_disk.clear()
+        self.watcher.unregister_all()
+        for document in session.documents:
+            self.watcher.register_file_path(str(document))
         stored = carried or load_profile(project.key)
         session.profile_is_proposed = stored is None
         session.profile = stored or session.propose()
@@ -918,7 +1085,9 @@ class MainWindow(QMainWindow):
         result = self.session.backends[self._path].place_at(
             BODY_PART, offset, instruction)
         if not result.ok:
-            QMessageBox.warning(self, "Could not create", str(result.reason))
+            QMessageBox.warning(
+                self, "Could not create",
+                result.message or _EDIT_REFUSED)
             return
         self._after_change("Created an entry")
 
@@ -963,7 +1132,9 @@ class MainWindow(QMainWindow):
         result = self.session.backends[self._path].place_at(
             BODY_PART, start, instruction)
         if not result.ok:
-            QMessageBox.warning(self, "Could not create", str(result.reason))
+            QMessageBox.warning(
+                self, "Could not create",
+                result.message or _EDIT_REFUSED)
             return
 
         self._after_change(f"Marked {heading!r}")
@@ -1126,7 +1297,9 @@ class MainWindow(QMainWindow):
             return
         result = backend.apply(edit)
         if not result.ok:
-            QMessageBox.warning(self, "Could not change", str(result.reason))
+            QMessageBox.warning(
+                self, "Could not change",
+                result.message or _EDIT_REFUSED)
             return
         self._after_change(said, self.session.document_of(entry_id))
 
@@ -1150,6 +1323,7 @@ class MainWindow(QMainWindow):
         touched = Path(document) if document is not None else self._path
         if touched is not None:
             self._unsaved.add(touched)
+            self._edits[touched] = self._edits.get(touched, 0) + 1
             self.tabs.set_unsaved(touched, True)
         self.save_action.setEnabled(True)
         self.statusBar().showMessage(f"{said}. {len(self._references):,} "
@@ -1165,16 +1339,37 @@ class MainWindow(QMainWindow):
         """
         if self.session is None or not self._dirty:
             return
-        failures = self.session.save()
+
+        held_back = sorted(self._changed_on_disk & set(self.session.documents))
+        # **Our own writes are a rename-style save**, so the watcher has to be
+        # told that they are ours: without this, every document we write would
+        # report itself as changed by somebody else, and the next save would be
+        # refused for every chapter in the book.
+        self.watcher.pause_watching()
+        try:
+            failures = self.session.save(skip=held_back)
+        finally:
+            self.watcher.resume_watching()
+
         if failures:
             QMessageBox.warning(
                 self, "Some documents were not written",
                 "\n".join(p.name for p in failures))
             return
-        self._dirty = False
+
         for path in list(self._unsaved):
+            if path in held_back:
+                continue
             self.tabs.set_unsaved(path, False)
-        self._unsaved.clear()
+            self._unsaved.discard(path)
+            self._edits.pop(path, None)
+
+        if held_back:
+            self._dirty = True
+            self._say_held_back(held_back)
+            return
+
+        self._dirty = False
         self.save_action.setEnabled(False)
         self.statusBar().showMessage(
             f"Saved {len(self.session.documents)} document"
@@ -1290,10 +1485,17 @@ def run(argv=None) -> int:
 
     from PySide6.QtWidgets import QApplication
 
+    from ..session_log import start_logging
+
     argv = list(sys.argv[1:] if argv is None else argv)
+    # **Before the window**, so that anything the startup path prints is in
+    # the log rather than only in a console an installed copy does not have.
+    logger = start_logging()
     app = QApplication.instance() or QApplication(sys.argv)
     window = MainWindow()
     window.show()
+    if logger is not None:
+        print(f"Word Index Editor {__version__} started.")
     if argv:
         candidate = Path(argv[0])
         if candidate.is_file():

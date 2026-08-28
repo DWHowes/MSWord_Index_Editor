@@ -5,6 +5,51 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 11e: the session log, and a manuscript changed underneath us
+
+**The last phase of step 11.** Both halves are `bookindexcore`'s and neither
+had a caller here.
+
+**The session log.** Console output goes to a timestamped file, started before
+the window so that anything the startup path prints is in it. It is
+**application-scoped**, beside the style-profile store, and that is a departure
+from the rule the LaTeX editor follows: a LaTeX project folder is the indexer's
+own workspace, while **a Word project folder is the publisher's**, and what
+goes back to them should differ from what they sent by the added fields alone.
+`WORDINDEX_LOG_DIR` moves it. A log that cannot be written says so and the
+session goes on unlogged, because an indexer meeting a dead application with no
+window and no message has no way to find out why.
+
+**A manuscript changed on disk (D7).** A file being indexed here can be edited
+in Word at the same time, and this application's anchors point into the version
+it read. So:
+
+- every document of the open project is **watched**;
+- a change is **named**, in the status bar, the notice line and the tab, with
+  **how many changes you have staged in that file** rather than "some";
+- **Save refuses that document** and writes the others, saying which were held
+  back and what each holds. Writing our entries over somebody else's edit would
+  hand the publisher back a file differing from theirs by more than the added
+  fields, which is the one thing scope §2 forbids;
+- **Index > Reopen changed documents** reads the file as it now is, one
+  question per file, each saying what it costs. **Only that document's staged
+  entries are lost**: every document has its own backend, so this is a decision
+  an indexer can take a chapter at a time.
+
+**Our own saves are rename-style saves**, so saving pauses the watcher around
+the write. Without that, every document this application wrote would report
+itself as changed by somebody else and the next save would be refused for the
+whole book.
+
+*And two things the tests turned up on the way.* The three "could not change"
+handlers asked `EditResult` for a `reason` **it has never had**, so a genuinely
+refused edit raised an `AttributeError` in the code meant to explain it: that
+path had never run. And two documents can share an entry id if one was copied
+from the other after this application had written anchors into it, in which
+case `OpenProject` maps that id to one document and an edit aimed at the other
+is refused by the backend's own guard. It fails safe, with a confusing message;
+the fixture that produced it is noted in `tests/ui/test_external_changes.py`.
+
 ### Step 11d: the entry window gains the behaviours it never had
 
 The window that creates and edits an entry was three columns of line edits.
