@@ -438,6 +438,12 @@ Index fields, and a bookmark for each one so the entry keeps its identity throug
 
 The others still are, and you are told which failed, by name.
 
+### The index document, if you asked for one
+
+If **Write an index document when I save entries** is ticked on the Generated index page (section 12.2), saving also writes or refreshes that document. It is a separate `.docx` in your project's folder, and **nothing about it touches your manuscript**: the manuscript files are written first and independently, and the index document is built afterwards from their names and your reading order.
+
+You can also write it at any time with **Index > Write index document**, whether or not anything has been saved. If the document already exists and Word has built the index into it, that index is kept: only the pointers to your manuscript files and the index field are replaced.
+
 ### Before you send it
 
 The file the publisher gets should differ from the one they sent by the added fields alone. Nothing here will have done otherwise, but it is worth knowing that is the promise being kept.
