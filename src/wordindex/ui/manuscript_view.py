@@ -113,6 +113,29 @@ class ManuscriptView(QTextEdit):
 
     # -- building ---------------------------------------------------------
 
+    def apply_typography(self, family: str, size: int) -> None:
+        """
+        The reading font, from the toolbar. Step 11b.
+
+        **Re-renders rather than restyles.** Every paragraph's character
+        format is derived from the widget's font when the document is built:
+        a heading is the base size plus a step, a caption a step below it. So
+        setting the widget font alone would leave every derived size at the
+        old base, and the headings would quietly stop scaling with the body
+        text.
+
+        The markers are the caller's to redraw afterwards, exactly as they are
+        after a re-profile.
+        """
+        font = self.font()
+        if family:
+            font.setFamily(str(family))
+        if size:
+            font.setPointSize(int(size))
+        self.setFont(font)
+        if self._paragraphs:
+            self.show_paragraphs(self._paragraphs)
+
     def show_paragraphs(self, paragraphs) -> None:
         """
         Replace the whole document. **Built once, not appended to.**

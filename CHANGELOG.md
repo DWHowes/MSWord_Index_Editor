@@ -5,6 +5,54 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 11b: the frame is the LaTeX editor's frame
+
+The window had three columns, a bottom dock, no toolbar and a bare status bar;
+the LaTeX editor has two panes, a vertical strip of named panels, a toolbar and
+an entry window under the manuscript. **An indexer moving between the two
+should not have to learn where anything is twice**, so this one now has the
+other's frame, built from the shared furniture that landed in `bookindexcore`
+at 11a.
+
+- **Two panes**, 30/70: the sidebar, then the manuscript with the entry window
+  under it at 80/20.
+- **Three sidebar tabs**: *Files*, *Index References*, *Edit Entries*. The
+  index tree and the entry table used to sit in a column to the right of the
+  manuscript; they are two panels now, and `IndexPanel` is a `QObject` holding
+  them rather than a widget nobody mounts.
+- **The outline goes in the Files tab**, under the file list (D2). It is a
+  panel the LaTeX editor has no equivalent of, because a Word manuscript has
+  no page numbers and the outline is how an indexer navigates one; a fourth
+  tab would have made the two applications' strips differ.
+- **The entry window is a pane, not a dock**, hidden until an entry is chosen
+  or `Ctrl+\` asks for it.
+- **A toolbar and a status bar**, both the suite's.
+- **The gestures are the suite's**: `Ctrl+O`, `Ctrl+S`, `Ctrl+W`, `Ctrl+,`,
+  `Ctrl+B`, `Ctrl+Shift+I`, `Ctrl+E`, `Ctrl+\`, `Ctrl+Shift+D`, F1 and Find,
+  every one of them read from `bookindexcore.ui.shortcuts`. **`Alt+Shift+X`
+  stays**: it is Word's own, and the map declares it as this application's.
+- **Close project**, which this application did not have, with the unsaved
+  entry count in the confirmation rather than a bare "discard changes?".
+
+**The Theme preferences page now does something.** It has always collected two
+colour dictionaries on every OK and this window has always ignored them, so an
+indexer could choose colours, press OK and watch nothing happen. The core's
+theme controller is host-neutral and wanted only an object with a `.settings`,
+which `Preferences` already was.
+
+**The reading font and size are on the toolbar**, and changing either
+re-renders the manuscript rather than restyling it: every paragraph's format is
+derived from the widget font when the document is built, so a heading that was
+"base plus a step" would otherwise keep the old base and quietly stop scaling.
+
+**Everything stored stays this application's own** (D10): dark mode, the font
+and the size are written under this application's organisation and application
+name, and nothing shared opens a store of its own.
+
+*And one defect found by looking at the window rather than by a test*: the
+status bar drew its message twice, overlapping, because the shared bar set its
+label and then handed the same text to Qt. Fixed in `bookindexcore`.
+
 ### Step 9c: the Generated index page, and the index document
 
 The `XE` fields this application writes are collected by a field it does not

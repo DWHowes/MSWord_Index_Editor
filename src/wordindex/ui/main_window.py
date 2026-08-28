@@ -38,17 +38,22 @@ from bookindexcore.backend.locator import Locator, SourceEdit
 from bookindexcore.ui.findings_dialog import FindingsDialog
 from bookindexcore.ui.help.controller import HelpController
 from bookindexcore.ui.identity import AppIdentity
+from bookindexcore.ui import shortcuts
 from bookindexcore.ui.search.window import AdvancedSearchWindow
+from bookindexcore.ui.sidebar import SidebarPanels
 from bookindexcore.ui.style import AppStyleConfiguration
 from bookindexcore.ui.tab_find_dialog import TabFindDialog
+from bookindexcore.ui.theme.config_model import ThemeConfigModel
+from bookindexcore.ui.theme.controller import ThemeConfigController
+from bookindexcore.ui.window import MainStatusBar, MainToolBar, PanelButton
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QTextCursor, QTextDocument
+from PySide6.QtGui import QTextCursor, QTextDocument
 from PySide6.QtWidgets import (
-    QDockWidget, QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
-    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+    QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
+    QStyle, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from .. import __version__
-from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path
+from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
 from ..checking import check_project
 from ..entries import all_references, heading_rows
@@ -67,7 +72,7 @@ from .entry_window import EntryWindow
 from .file_list import FileList
 from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
-from .preferences import WordPreferencesDialog
+from .preferences import Preferences, WordPreferencesDialog
 from .profile_editor import ProfileEditor
 
 BODY_PART = "word/document.xml"
@@ -84,6 +89,25 @@ IDENTITY = AppIdentity(
     licence="MIT License",
     logo_dark_ink=get_icon_path("wdx_wordmark_dark_ink.png"),
     logo_light_ink=get_icon_path("wdx_wordmark_light_ink.png"),
+)
+
+
+#: The sidebar's panels, by index. The toolbar's buttons and the focus
+#: shortcuts both address a panel by number, so the numbers are named once
+#: here rather than written as 0, 1 and 2 in four places.
+PANEL_FILES = 0
+PANEL_INDEX = 1
+PANEL_ENTRIES = 2
+
+#: What the toolbar draws for each of them. The order is the order they are
+#: mounted in, which is what makes the index above true.
+SIDEBAR_PANELS = (
+    PanelButton("Show the manuscript files", shortcuts.FOCUS_FILES,
+                QStyle.StandardPixmap.SP_DirHomeIcon),
+    PanelButton("Show the index terms", shortcuts.FOCUS_INDEX,
+                QStyle.StandardPixmap.SP_FileDialogContentsView),
+    PanelButton("Show the entry table", shortcuts.FOCUS_ENTRIES,
+                QStyle.StandardPixmap.SP_FileDialogDetailedView),
 )
 
 
@@ -139,38 +163,11 @@ class MainWindow(QMainWindow):
         self.entry_window.entry_created.connect(self._create_entry)
         self.entry_window.entry_deleted.connect(self._delete_entry)
 
-        dock = QDockWidget("Index entry", self)
-        dock.setObjectName("entry_window")
-        dock.setWidget(self.entry_window)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
-        self.entry_dock = dock
-
-        sidebar = QSplitter(Qt.Orientation.Vertical)
-        sidebar.addWidget(self.file_list)
-        sidebar.addWidget(self.outline_tree)
-        sidebar.setStretchFactor(1, 3)
-        sidebar.setSizes([150, 560])
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(sidebar)
-        splitter.addWidget(self.view)
-        splitter.addWidget(self.index_panel)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([230, 640, 310])
-
-        self.notice = QLabel("")
-        self.notice.setWordWrap(True)
-        self.notice.setStyleSheet("color: palette(mid);")
-
-        holder = QWidget()
-        box = QVBoxLayout(holder)
-        box.setContentsMargins(6, 6, 6, 4)
-        box.addWidget(splitter, 1)
-        box.addWidget(self.notice)
-        self.setCentralWidget(holder)
+        self._build_frame()
 
         file_menu = self.menuBar().addMenu("&File")
-        file_menu.addAction("&Open document…", self.choose_file)
+        open_action = file_menu.addAction("&Open document…", self.choose_file)
+        open_action.setShortcut(shortcuts.sequence(shortcuts.OPEN_PROJECT))
         file_menu.addSeparator()
         file_menu.addAction("Open &project…", self.choose_project)
         self.add_action = file_menu.addAction(
@@ -180,7 +177,14 @@ class MainWindow(QMainWindow):
             "&Name this project…", self.name_project)
         self.name_action.setEnabled(False)
         file_menu.addSeparator()
-        file_menu.addAction("E&xit", self.close)
+        self.close_project_action = file_menu.addAction(
+            "&Close project", self.close_project)
+        self.close_project_action.setShortcut(
+            shortcuts.sequence(shortcuts.CLOSE_PROJECT))
+        self.close_project_action.setEnabled(False)
+        file_menu.addSeparator()
+        exit_action = file_menu.addAction("E&xit", self.close)
+        exit_action.setShortcut(shortcuts.sequence(shortcuts.EXIT))
 
         manuscript_menu = self.menuBar().addMenu("&Manuscript")
         self.styles_action = manuscript_menu.addAction(
@@ -193,10 +197,11 @@ class MainWindow(QMainWindow):
         # shortcut here too rather than something this application invented.
         self.mark_action = index_menu.addAction(
             "&Mark selection", self.mark_selection)
-        self.mark_action.setShortcut(QKeySequence("Alt+Shift+X"))
+        self.mark_action.setShortcut(shortcuts.sequence(shortcuts.MARK_SELECTION))
         self.mark_action.setEnabled(False)
         index_menu.addSeparator()
         self.save_action = index_menu.addAction("&Save entries", self.save)
+        self.save_action.setShortcut(shortcuts.sequence(shortcuts.SAVE))
         self.save_action.setEnabled(False)
         # Separate from Save, because the two are needed at different moments:
         # saving is the manuscript, and this is the document the publisher
@@ -211,17 +216,39 @@ class MainWindow(QMainWindow):
         self.check_action.setEnabled(False)
         self.find_action = index_menu.addAction(
             "&Find in manuscript…", self.find_in_manuscript)
-        self.find_action.setShortcut(QKeySequence.StandardKey.Find)
+        self.find_action.setShortcut(shortcuts.sequence(shortcuts.FIND))
         self.find_action.setEnabled(False)
         self.search_action = index_menu.addAction(
             "Search the whole &project…", self.search_project)
-        self.search_action.setShortcut(QKeySequence("Ctrl+Shift+F"))
+        self.search_action.setShortcut(
+            shortcuts.sequence(shortcuts.ADVANCED_SEARCH))
         self.search_action.setEnabled(False)
         index_menu.addSeparator()
-        index_menu.addAction("&Entry window",
-                             lambda: self.entry_dock.setVisible(True))
-        index_menu.addSeparator()
-        index_menu.addAction("&Preferences…", self.edit_preferences)
+        index_menu.addAction("&Preferences…", self.edit_preferences).setShortcut(
+            shortcuts.sequence(shortcuts.PREFERENCES))
+
+        # **The View menu, new at 11b.** Every one of these is a gesture the
+        # LaTeX editor already had and this application did not, which is what
+        # made an indexer moving between the two learn two sets of hands.
+        view_menu = self.menuBar().addMenu("&View")
+        for label, panel, gesture in (
+                ("Focus the &Files pane", PANEL_FILES, shortcuts.FOCUS_FILES),
+                ("Focus the &Index pane", PANEL_INDEX, shortcuts.FOCUS_INDEX),
+                ("Focus the Edit &Entries pane", PANEL_ENTRIES,
+                 shortcuts.FOCUS_ENTRIES)):
+            action = view_menu.addAction(
+                label, lambda checked=False, index=panel: self.show_panel(index))
+            action.setShortcut(shortcuts.sequence(gesture))
+        view_menu.addSeparator()
+        self.entry_window_action = view_menu.addAction(
+            "Toggle the index &entry window", self.toggle_entry_window)
+        self.entry_window_action.setShortcut(
+            shortcuts.sequence(shortcuts.TOGGLE_ENTRY_WINDOW))
+        view_menu.addSeparator()
+        self.dark_mode_action = view_menu.addAction(
+            "&Dark mode", self._toggle_dark_mode)
+        self.dark_mode_action.setCheckable(True)
+        self.dark_mode_action.setShortcut(shortcuts.sequence(shortcuts.DARK_MODE))
 
         # **Frozen-aware from the first commit**, not retrofitted at packaging
         # time. The LaTeX editor located its help root by `__file__`
@@ -231,7 +258,7 @@ class MainWindow(QMainWindow):
                                     help_subdir=HELP_SUBDIR)
         help_menu = self.menuBar().addMenu("&Help")
         contents = help_menu.addAction("&Contents…", self._help.show_help)
-        contents.setShortcut(QKeySequence.StandardKey.HelpContents)
+        contents.setShortcut(shortcuts.sequence(shortcuts.HELP_CONTENTS))
         help_menu.addSeparator()
         help_menu.addAction("&About…", self._help.show_about)
 
@@ -239,7 +266,199 @@ class MainWindow(QMainWindow):
         self._find_dialog = None
         self._search_window = None
 
+        self._start_theme()
         self.statusBar().showMessage("Open a Word manuscript to begin.")
+
+    def close_project(self) -> None:
+        """
+        Put the window back to how it opened. `Ctrl+W`, as in the LaTeX editor.
+
+        **Unsaved entries are the thing to be careful with**, so they are named
+        and confirmed rather than counted away: an indexer who has marked
+        thirty entries and not saved has done thirty pieces of work, and a
+        dialog that says "discard changes?" without saying how many is asking
+        them to guess.
+        """
+        if self.session is None:
+            return
+        if self._dirty:
+            answer = QMessageBox.question(
+                self, "Close the project",
+                f"{len(self._references):,} entries in this project have not "
+                f"been saved. Close it anyway?",
+                QMessageBox.StandardButton.Cancel | QMessageBox.StandardButton.Close)
+            if answer != QMessageBox.StandardButton.Close:
+                return
+
+        self.session = None
+        self._path = None
+        self._plain = []
+        self._paragraphs = []
+        self._references = []
+        self._positions = {}
+        self._dirty = False
+
+        self.view.show_paragraphs([])
+        self.index_panel.clear()
+        self.file_list.show_documents([])
+        self.outline_tree.clear()
+        self.entry_window.show_entry(None)
+        self.entry_window.hide()
+        self.notice.setText("")
+        for action in (self.add_action, self.name_action, self.styles_action,
+                       self.mark_action, self.check_action, self.find_action,
+                       self.search_action, self.save_action,
+                       self.index_document_action, self.close_project_action):
+            action.setEnabled(False)
+        self.setWindowTitle("Word Index Editor")
+        self.statusBar().showMessage("Open a Word manuscript to begin.")
+
+    # -- the frame --------------------------------------------------------
+
+    def _build_frame(self) -> None:
+        """
+        Two panes, three sidebar tabs, and the entry window under the
+        manuscript. Step 11b, and it is the LaTeX editor's frame.
+
+        **The layout is not a matter of taste.** An indexer moving between the
+        two applications should not have to learn where anything is twice, and
+        before this the two had almost nothing in common: this window had
+        three columns, a bottom dock, no toolbar and a bare status bar.
+
+        The sidebar's panel indices are fixed here, because the toolbar's
+        buttons and the focus shortcuts both address panels by number.
+        """
+        self.tool_bar = MainToolBar(self, SIDEBAR_PANELS,
+                                    icon_root=get_icons_root())
+        self.addToolBar(self.tool_bar)
+        self.setStatusBar(MainStatusBar(self))
+
+        self.sidebar = SidebarPanels(self)
+        files_page = QSplitter(Qt.Orientation.Vertical)
+        files_page.addWidget(self.file_list)
+        files_page.addWidget(self.outline_tree)
+        files_page.setStretchFactor(1, 3)
+        files_page.setSizes([150, 560])
+        # **D2: the outline goes in the Files tab.** This application has a
+        # panel the LaTeX editor has no equivalent of, because a Word
+        # manuscript has no page numbers and the outline is how an indexer
+        # navigates one. A fourth tab would have made the two applications'
+        # tab strips differ; under the file list it is where a reader of the
+        # LaTeX editor's Workspace Files tab would look for it anyway.
+        self.sidebar.add_panel(files_page, "Files")
+        self.sidebar.add_panel(self.index_panel.tree_page, "Index References")
+        self.sidebar.add_panel(self.index_panel.entries_page, "Edit Entries")
+        self.sidebar.panel_shown.connect(self.tool_bar.update_panel_state)
+        self.tool_bar.sidebar_panel_requested.connect(self.show_panel)
+
+        self.notice = QLabel("")
+        self.notice.setWordWrap(True)
+        self.notice.setStyleSheet("color: palette(mid);")
+
+        manuscript = QWidget()
+        manuscript_box = QVBoxLayout(manuscript)
+        manuscript_box.setContentsMargins(0, 0, 0, 0)
+        manuscript_box.addWidget(self.view, 1)
+        manuscript_box.addWidget(self.notice)
+
+        self.right_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.right_splitter.addWidget(manuscript)
+        self.right_splitter.addWidget(self.entry_window)
+        # Hidden until it is wanted, as the LaTeX editor's is: an entry window
+        # taking a fifth of the window before there is an entry to put in it
+        # is a fifth of the manuscript nobody can read.
+        self.entry_window.hide()
+
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.addWidget(self.sidebar)
+        self.main_splitter.addWidget(self.right_splitter)
+        self.setCentralWidget(self.main_splitter)
+        self._apply_proportions()
+
+        self.tool_bar.dark_mode_toggle_requested.connect(self._set_dark_mode)
+        self.tool_bar.font_family_changed.connect(self._set_font_family)
+        self.tool_bar.font_size_changed.connect(self._set_font_size)
+
+    def _apply_proportions(self) -> None:
+        """30/70 across, 80/20 down. The LaTeX editor's proportions."""
+        width = max(self.width(), 900)
+        self.main_splitter.setSizes([int(width * 0.30), int(width * 0.70)])
+        height = max(self.height(), 600)
+        self.right_splitter.setSizes([int(height * 0.80), int(height * 0.20)])
+
+    def show_panel(self, index: int) -> None:
+        """Bring one sidebar panel forward. The View menu and the toolbar."""
+        self.sidebar.show_panel(index)
+
+    def toggle_entry_window(self) -> None:
+        """
+        Show the entry window, or hide it. `Ctrl+\\`, as in the LaTeX editor.
+
+        Showing it re-applies the proportions, because a pane that was hidden
+        has no height of its own to come back to and Qt will otherwise give it
+        a sliver.
+        """
+        wanted = not self.entry_window.isVisible()
+        self.entry_window.setVisible(wanted)
+        if wanted:
+            self._apply_proportions()
+
+    # -- the theme, which was collected and dropped until 11b -------------
+
+    def _start_theme(self) -> None:
+        """
+        Apply the stored theme at startup, and keep the toolbar in step.
+
+        **Until this, the Theme preferences page did nothing at all.** The
+        shared dialog collected both colour dictionaries on every OK and this
+        window ignored them, so an indexer could choose colours, press OK, and
+        watch nothing happen. The controller that does the work is the core's,
+        is entirely host-neutral, and needed only an object with a
+        `.settings`, which `Preferences` already was.
+        """
+        self._theme = ThemeConfigController(ThemeConfigModel(), Preferences(),
+                                            parent_window=self)
+        self._theme.apply_startup_theme()
+        is_dark = bool(
+            AppStyleConfiguration.event_broker().get_property("is_dark_mode"))
+        self.dark_mode_action.setChecked(is_dark)
+        self.tool_bar.refresh_theme_presentation(is_dark)
+
+    def _toggle_dark_mode(self) -> None:
+        self._set_dark_mode(self.dark_mode_action.isChecked())
+
+    def _set_dark_mode(self, is_dark: bool) -> None:
+        """One route for both the menu item and the toolbar button."""
+        broker = AppStyleConfiguration.event_broker()
+        broker.set_property("is_dark_mode", bool(is_dark))
+        settings = Preferences().settings
+        settings.setValue("dark_mode", bool(is_dark))
+        settings.sync()
+        self._theme.apply_startup_theme()
+        self.dark_mode_action.setChecked(bool(is_dark))
+        self.tool_bar.refresh_theme_presentation(bool(is_dark))
+
+    def _set_font_family(self, family: str) -> None:
+        self._store_typography("font_family", family)
+
+    def _set_font_size(self, size: int) -> None:
+        self._store_typography("font_size", int(size))
+        self.view.setStyleSheet("")
+
+    def _store_typography(self, key: str, value) -> None:
+        """
+        The broker holds it for the widgets; this application's own settings
+        hold it for the next launch. **Per application, never shared**: the
+        LaTeX editor's font is not this one's, and both stores are opened
+        under their own application name.
+        """
+        AppStyleConfiguration.event_broker().set_property(key, value)
+        settings = Preferences().settings
+        settings.setValue(key, value)
+        settings.sync()
+        self.view.apply_typography(
+            str(AppStyleConfiguration.event_broker().get_property("font_family")),
+            int(AppStyleConfiguration.event_broker().get_property("font_size")))
 
     # -- opening ----------------------------------------------------------
 
@@ -351,6 +570,7 @@ class MainWindow(QMainWindow):
         self.find_action.setEnabled(True)
         self.search_action.setEnabled(True)
         self.index_document_action.setEnabled(True)
+        self.close_project_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -515,7 +735,17 @@ class MainWindow(QMainWindow):
         self.view.select_entry(entry_id)
 
     def _show_in_entry_window(self, entry_id) -> None:
+        """
+        Put an entry in the entry window, showing the window if it is hidden.
+
+        It starts hidden (11b), so an indexer who clicks an entry expecting to
+        edit it would otherwise be looking at a pane that is not there. Being
+        shown *by* the gesture that needs it is how the LaTeX editor's behaves.
+        """
         self.entry_window.show_entry(self._reference(entry_id))
+        if not self.entry_window.isVisible():
+            self.entry_window.show()
+            self._apply_proportions()
 
     def _reference(self, entry_id):
         return self.session.reference(entry_id) if self.session else None

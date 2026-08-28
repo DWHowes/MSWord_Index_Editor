@@ -44,8 +44,8 @@ from bookindexcore.model.tree_engine import IndexTreeEngine
 from bookindexcore.ui import entry_table
 from bookindexcore.ui.entry_table.entry_table import EntryModifierList
 from bookindexcore.ui.tree.tree_view import IndexTreeView
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QLabel, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from ..xe_dialect import XE_DIALECT
 
@@ -55,8 +55,20 @@ from ..xe_dialect import XE_DIALECT
 entry_table.entry_table.configure(XE_DIALECT)
 
 
-class IndexPanel(QWidget):
-    """The book's own entries, in the shared table."""
+class IndexPanel(QObject):
+    """
+    The book's own entries: the terms, the table, and the wiring between them.
+
+    **Two pages rather than one panel, since step 11b.** The tree and the
+    table used to sit in a splitter to the right of the manuscript; they are
+    now two of the three panels in the left sidebar, mounted separately, and
+    this class is what still holds them together. It owns the widgets and the
+    signals between them; *where* they are shown is the window's business.
+
+    So it is a `QObject` rather than a `QWidget`: a widget that is never
+    mounted, kept only to parent two others, is a layout that has outlived
+    its layout.
+    """
 
     #: The entry the indexer picked. Forwarded from the shared table rather
     #: than re-derived, so there is one answer to "which entry is current".
@@ -67,10 +79,10 @@ class IndexPanel(QWidget):
         self.table = EntryModifierList()
         self.table.entry_row_selected.connect(self.entry_selected)
 
-        #: The terms, above the entries. The engine takes no repository: this
-        #: application persists nothing through the core's `IndexRepository`
-        #: (its project database is the profile store), and the tree engine's
-        #: repository is only ever read when headings are staged for a write.
+        #: The terms. The engine takes no repository: this application
+        #: persists nothing through the core's `IndexRepository` (its project
+        #: database is the profile store), and the tree engine's repository is
+        #: only ever read when headings are staged for a write.
         self.tree = IndexTreeView(IndexTreeEngine(None, XE_DIALECT),
                                   dialect=XE_DIALECT)
         self.tree.reference_activated.connect(self._reference_clicked)
@@ -78,16 +90,11 @@ class IndexPanel(QWidget):
         self.heading_count = QLabel("")
         self.heading_count.setStyleSheet("color: palette(mid);")
 
-        split = QSplitter(Qt.Orientation.Vertical)
-        split.addWidget(self.tree)
-        split.addWidget(self.table)
-        split.setStretchFactor(0, 3)
-        split.setStretchFactor(1, 2)
-
-        box = QVBoxLayout(self)
-        box.setContentsMargins(0, 0, 0, 0)
-        box.addWidget(self.heading_count)
-        box.addWidget(split, 1)
+        #: The two mountable pages. The count line goes with the tree, because
+        #: it counts terms first and entries second, and the tree is where an
+        #: indexer looks for terms.
+        self.tree_page = _page(self.heading_count, self.tree)
+        self.entries_page = _page(self.table)
 
     def _reference_clicked(self, reference) -> None:
         """
@@ -143,3 +150,14 @@ class IndexPanel(QWidget):
                 finally:
                     view.blockSignals(blocked)
                 return
+
+
+def _page(*widgets) -> QWidget:
+    """One sidebar panel: the given widgets stacked, with no margin of its own."""
+    page = QWidget()
+    box = QVBoxLayout(page)
+    box.setContentsMargins(0, 0, 0, 0)
+    for widget in widgets[:-1]:
+        box.addWidget(widget)
+    box.addWidget(widgets[-1], 1)
+    return page
