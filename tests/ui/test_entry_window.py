@@ -40,6 +40,40 @@ def _reference(instruction, entry_id="wim_a"):
     )
 
 
+def _display(window, row):
+    """The display field of one level. `window.levels` is a reader now."""
+    return window.fields.display_fields[row]
+
+
+def _sort(window, row):
+    return window.fields.sort_fields[row]
+
+
+def _type_sort(window, row, text):
+    """
+    Type a sort key, rather than setting one.
+
+    The difference is the design: a sort field follows its display text until
+    the indexer's **first keystroke** claims it, so a value merely written into
+    the widget is still following and will be overwritten by the next edit.
+    `set_heading` claims the keys it is given for exactly this reason.
+    """
+    field = _sort(window, row)
+    field.setText(text)
+    field.textEdited.emit(text)
+
+
+def _type(window, row, text):
+    """
+    Put text in a level as an indexer would, revealing it first.
+
+    Sub-levels appear as they are needed since step 11d, so a test that sets
+    text on a hidden one is describing a window nobody can be looking at.
+    """
+    window.fields.reveal_level(row)
+    _display(window, row).setText(text)
+
+
 @pytest.fixture
 def window(qt_app):
     return EntryWindow()
@@ -48,22 +82,22 @@ def window(qt_app):
 class TestReadingAnEntryIn:
     def test_a_plain_heading(self, window):
         window.show_entry(_reference('XE "Space mining"'))
-        assert window.levels[0][0].text() == "Space mining"
-        assert window.levels[0][1].text() == ""
+        assert _display(window, 0).text() == "Space mining"
+        assert _sort(window, 0).text() == ""
 
     def test_sub_entries_fill_their_own_rows(self, window):
         window.show_entry(_reference('XE "Space mining:opposition"'))
-        assert window.levels[0][0].text() == "Space mining"
-        assert window.levels[1][0].text() == "opposition"
-        assert window.levels[2][0].text() == ""
+        assert _display(window, 0).text() == "Space mining"
+        assert _display(window, 1).text() == "opposition"
+        assert _display(window, 2).text() == ""
 
     def test_a_per_level_sort_key_lands_beside_its_level(self, window):
         window.show_entry(_reference(
             'XE "van Beethoven, Ludwig;Beethoven:symphonies"'))
-        assert window.levels[0][0].text() == "van Beethoven, Ludwig"
-        assert window.levels[0][1].text() == "Beethoven"
-        assert window.levels[1][0].text() == "symphonies"
-        assert window.levels[1][1].text() == ""
+        assert _display(window, 0).text() == "van Beethoven, Ludwig"
+        assert _sort(window, 0).text() == "Beethoven"
+        assert _display(window, 1).text() == "symphonies"
+        assert _sort(window, 1).text() == ""
 
     def test_the_page_style(self, window):
         window.show_entry(_reference(r'XE "Cats" \b \i'))
@@ -81,8 +115,8 @@ class TestReadingAnEntryIn:
     def test_clearing_for_a_new_entry(self, window):
         window.show_entry(_reference('XE "Cats:kinds"'))
         window.show_entry(None)
-        assert all(d.text() == "" and s.text() == ""
-                   for d, s in window.levels)
+        assert window.levels() == ["", "", ""]
+        assert window.sort_keys() == ["", "", ""]
         assert window.xref_target.text() == ""
         assert not window.apply_button.isEnabled()
 
@@ -125,7 +159,7 @@ class TestComposingBackOut:
     def test_a_range_survives_an_edit_through_the_window(self, window):
         """The rule that outranks the rest, driven through the controls."""
         window.show_entry(_reference(r'XE "Cats" \r "idxintern3"'))
-        window.levels[0][0].setText("Dogs")
+        _display(window, 0).setText("Dogs")
         assert D.range_bookmark(window.instruction()) == "idxintern3"
 
     def test_an_unmodelled_switch_survives(self, window):
@@ -134,9 +168,9 @@ class TestComposingBackOut:
 
     def test_a_sort_key_is_written_per_level(self, window):
         window.show_entry(None)
-        window.levels[0][0].setText("van Beethoven, Ludwig")
-        window.levels[0][1].setText("Beethoven")
-        window.levels[1][0].setText("symphonies")
+        _display(window, 0).setText("van Beethoven, Ludwig")
+        _type_sort(window, 0, "Beethoven")
+        _type(window, 1, "symphonies")
 
         levels = D.split_levels(D.entry_text_of(window.instruction()))
         assert D.split_sort_key(levels[0]) == ("Beethoven",
@@ -149,13 +183,13 @@ class TestComposingBackOut:
         one would silently promote it a level.
         """
         window.show_entry(None)
-        window.levels[0][0].setText("Cats")
-        window.levels[2][0].setText("orphan")
+        _display(window, 0).setText("Cats")
+        _type(window, 2, "orphan")
         assert D.entry_text_of(window.instruction()) == "Cats"
 
     def test_the_page_style_is_written(self, window):
         window.show_entry(None)
-        window.levels[0][0].setText("Cats")
+        _display(window, 0).setText("Cats")
         window.page_style.setCurrentIndex(window.page_style.findData(ITALIC))
         assert D.page_style_of_instruction(window.instruction()) == ITALIC
 
@@ -166,7 +200,7 @@ class TestComposingBackOut:
 
     def test_a_special_character_is_escaped(self, window):
         window.show_entry(None)
-        window.levels[0][0].setText("Cats; dogs")
+        _display(window, 0).setText("Cats; dogs")
         levels = D.split_levels(D.entry_text_of(window.instruction()))
         assert D.split_sort_key(levels[0])[1] == "Cats\\; dogs"
 
@@ -175,7 +209,7 @@ class TestWhatItRefusesToDo:
     def test_applying_with_no_main_entry_says_so(self, window):
         """**Not a silent no-op.** Clearing the box is a slip, not a delete."""
         window.show_entry(_reference('XE "Cats"'))
-        window.levels[0][0].setText("")
+        _display(window, 0).setText("")
         heard = []
         window.entry_edited.connect(lambda *a: heard.append(a))
         window._apply()
@@ -200,7 +234,7 @@ class TestWhatItRefusesToDo:
 class TestWhatItAsksFor:
     def test_an_edit_carries_the_id_and_the_instruction(self, window):
         window.show_entry(_reference('XE "Cats"', entry_id="wim_x"))
-        window.levels[0][0].setText("Dogs")
+        _display(window, 0).setText("Dogs")
         heard = []
         window.entry_edited.connect(lambda *a: heard.append(a))
         window._apply()
@@ -209,7 +243,7 @@ class TestWhatItAsksFor:
 
     def test_a_creation_carries_no_id_because_it_has_none(self, window):
         window.show_entry(None)
-        window.levels[0][0].setText("Dogs")
+        _display(window, 0).setText("Dogs")
         heard = []
         window.entry_created.connect(heard.append)
         window._create()

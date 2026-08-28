@@ -5,6 +5,35 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 11d: the entry window gains the behaviours it never had
+
+The window that creates and edits an entry was three columns of line edits.
+The LaTeX editor's equivalent had learned seven things over a year of use, and
+**this one had none of them**. They arrive together, from
+`bookindexcore.ui.entry_window`:
+
+- **Levels appear as they are needed.** Return in a level reveals the next;
+  backspace in an empty one takes it away and puts the caret back. Return on
+  the last level makes the entry, which is what an indexer expects of a form
+  they have just filled in.
+- **A sort key follows its display text** until the first keystroke claims it.
+- **A `display;sort` typed into the display box is moved into the two fields
+  it means**, with a notice and one click to put it back.
+- **Every field is checked as it is typed.** `XEDialect.check()` has existed
+  since step 2, the conformance battery has always exercised it, the core has
+  shipped `ui.advice` to render it, and **no window in this application ever
+  showed an indexer a single finding**. It does now, with a repair.
+- **Completion** from the headings the book already has.
+
+**The sort fields stay visible here**, declared rather than assumed: Word
+writes `display;sort` on every level and an indexer reaches for it constantly,
+where in LaTeX a sort key is the exception. The policy is one argument to the
+shared fields, and it is the measured difference between the two formats.
+
+What is still this application's is what T3c measured as genuinely Word's: the
+page style, the cross-reference, the single-character index type, and a range
+shown but never created.
+
 ### Step 11c: a tab per manuscript
 
 The window showed **one document at a time** and replaced it when another was

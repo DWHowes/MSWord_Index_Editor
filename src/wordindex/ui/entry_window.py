@@ -1,27 +1,36 @@
 r"""
-The index entry window: create, edit, delete. Step 6.
+The index entry window: create, edit, delete. Step 6, rebuilt on the shared
+window at step 11d.
 
-Scope §4. The LaTeX editor's equivalent is a dock with a command selector,
-main and two sub-entries, style toggles and page-reference options, and **three
-things make Word's genuinely different**. All three were measured in T3c and
-all three are visible in this file:
+Scope §4. **Three things make Word's entry genuinely different**, all measured
+in T3c, and all three are still here:
 
 **A sort key per level.** Word takes `display;sort` on *each* level, joined by
 colons, and one key for the whole entry renders as an extra index level with
-the sort key as printed text. The LaTeX form has one key for the entry. So
-there is a sort box beside every display box, and *this is the field the
-window is really about.*
+the sort key as printed text. The LaTeX form has one key for the entry. So the
+sort field is declared `SORT_ALWAYS` rather than shown when the text needs it:
+in this format a sort key is the ordinary case, not the exception.
 
 **`\f` filters on a single character only.** `\f "toacases"` is accepted,
-written, and silently not filtered, so a free-text box here would be offering
-a defect with a straight face. The control is one character wide, and says so.
+written, and silently not filtered, so a free-text box here would be offering a
+defect with a straight face. The control is one character wide, and says so.
 
 **`\r` needs a bookmark in the document**, not a value, so creating one is an
-edit to the manuscript's bookmark table: the single exception to §2 and one
+edit to the manuscript's bookmark table: the single exception to §2, and one
 that has to be justified entry by entry. **This window shows a range and does
-not create one.** 1,539 of the 2,074 entries in a measured book already carry
-one, so showing it is not optional; offering to mint one is a decision still
-open in scope §9.
+not create one.**
+
+#### What arrived at 11d, and what it replaced
+
+Everything about *typing a heading* now comes from
+`bookindexcore.ui.entry_window`: levels that appear as they are needed, a sort
+key that follows the display text until it is claimed, a `display;sort` typed
+into the wrong box moved into the right one with an undo, **advice on every
+field as it is typed**, and completion from the headings the book already has.
+
+This window had none of it. In particular `XEDialect.check()` existed, the
+conformance battery exercised it, the core shipped `ui.advice` to render it,
+and no window in this application ever showed an indexer a single finding.
 
 #### It composes, it does not rebuild
 
@@ -33,10 +42,11 @@ touch it.
 
 from __future__ import annotations
 
+from bookindexcore.ui.entry_window import SORT_ALWAYS, IndexEntryWindow
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QComboBox, QFormLayout, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget,
+    QComboBox, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QWidget,
 )
 
 from ..xe_dialect import BOLD, BOLD_ITALIC, ITALIC, XE_DIALECT
@@ -49,8 +59,12 @@ _STYLES = (("Standard", ""), ("Bold", BOLD), ("Italic", ITALIC),
 #: written. An empty kind means no cross-reference at all.
 _XREFS = (("None", ""), ("See", "see"), ("See also", "seealso"))
 
+#: What each level is called on screen. Word's own words, from the Insert
+#: Index Entry dialog an indexer will have met before this application.
+LEVEL_NAMES = ("Main entry", "Sub-entry 1", "Sub-entry 2")
 
-class EntryWindow(QWidget):
+
+class EntryWindow(IndexEntryWindow):
     """One index entry, as its parts."""
 
     #: ``(entry_id, instruction)`` for an edit to an entry that exists.
@@ -64,33 +78,21 @@ class EntryWindow(QWidget):
     #: ``entry_id``.
     entry_deleted = Signal(object)
 
-    def __init__(self, dialect=XE_DIALECT, parent=None) -> None:
-        super().__init__(parent)
-        self.dialect = dialect
+    def __init__(self, dialect=XE_DIALECT, parent=None, settings=None) -> None:
         self._raw = ""
         self._entry_id = None
+        super().__init__(dialect, level_names=LEVEL_NAMES,
+                         sort_fields=SORT_ALWAYS, settings=settings,
+                         parent=parent)
+        # Return on the deepest level means "make it", which is what an
+        # indexer expects of a form they have just filled in.
+        self.fields.committed.connect(self._commit)
+        self.show_entry(None)
 
-        self.levels: list = []
-        levels_box = QGroupBox("Heading")
-        grid = QGridLayout(levels_box)
-        grid.addWidget(self._muted("Displayed"), 0, 1)
-        grid.addWidget(self._muted("Filed under"), 0, 2)
-        for depth in range(dialect.effective_max_levels()):
-            label = QLabel("Main entry" if depth == 0 else f"Sub-entry {depth}")
-            display = QLineEdit()
-            sort = QLineEdit()
-            # The placeholder is the whole explanation of the field: a blank
-            # sort box means "file under what is displayed", which is what an
-            # indexer wants nine times in ten and is not the same as a key
-            # that happens to equal the display text.
-            sort.setPlaceholderText("as displayed")
-            grid.addWidget(label, depth + 1, 0)
-            grid.addWidget(display, depth + 1, 1)
-            grid.addWidget(sort, depth + 1, 2)
-            self.levels.append((display, sort))
-        grid.setColumnStretch(1, 3)
-        grid.setColumnStretch(2, 2)
+    # -- what this format adds to a heading ---------------------------------
 
+    def build_controls(self) -> QWidget:
+        """Everything a Word entry has that a heading does not."""
         self.page_style = QComboBox()
         for label, value in _STYLES:
             self.page_style.addItem(label, value)
@@ -101,12 +103,7 @@ class EntryWindow(QWidget):
         self.xref_target = QLineEdit()
         self.xref_kind.currentIndexChanged.connect(self._sync_xref)
 
-        xref_row = QHBoxLayout()
-        xref_row.setContentsMargins(0, 0, 0, 0)
-        xref_row.addWidget(self.xref_kind)
-        xref_row.addWidget(self.xref_target, 1)
-        xref_holder = QWidget()
-        xref_holder.setLayout(xref_row)
+        xref_holder = _row(self.xref_kind, (self.xref_target, 1))
 
         self.index_type = QLineEdit()
         self.index_type.setMaxLength(1)
@@ -115,24 +112,22 @@ class EntryWindow(QWidget):
             "One character. Word's index-type switch matches on a single "
             "character only: a longer name is accepted, written, and then "
             "silently not filtered.")
-
-        type_row = QHBoxLayout()
-        type_row.setContentsMargins(0, 0, 0, 0)
-        type_row.addWidget(self.index_type)
-        type_row.addWidget(self._muted("one character only"), 1)
-        type_holder = QWidget()
-        type_holder.setLayout(type_row)
+        type_holder = _row(self.index_type, (_muted("one character only"), 1))
 
         self.range_label = QLabel("None")
         self.range_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse)
 
-        form = QFormLayout()
+        holder = QWidget()
+        form = QFormLayout(holder)
+        form.setContentsMargins(0, 0, 0, 0)
         form.addRow("Page number", self.page_style)
         form.addRow("Cross-reference", xref_holder)
         form.addRow("Index type", type_holder)
         form.addRow("Page range", self.range_label)
+        return holder
 
+    def build_buttons(self, row: QHBoxLayout) -> None:
         self.apply_button = QPushButton("Apply")
         self.create_button = QPushButton("New entry here")
         self.delete_button = QPushButton("Delete")
@@ -140,23 +135,10 @@ class EntryWindow(QWidget):
         self.create_button.clicked.connect(self._create)
         self.delete_button.clicked.connect(self._delete)
 
-        buttons = QHBoxLayout()
-        buttons.addWidget(self.create_button)
-        buttons.addStretch(1)
-        buttons.addWidget(self.delete_button)
-        buttons.addWidget(self.apply_button)
-
-        self.notice = self._muted("")
-
-        box = QVBoxLayout(self)
-        box.addWidget(levels_box)
-        box.addLayout(form)
-        box.addWidget(self._rule())
-        box.addLayout(buttons)
-        box.addWidget(self.notice)
-        box.addStretch(1)
-
-        self.show_entry(None)
+        row.addWidget(self.create_button)
+        row.addStretch(1)
+        row.addWidget(self.delete_button)
+        row.addWidget(self.apply_button)
 
     # -- filling ------------------------------------------------------------
 
@@ -176,12 +158,12 @@ class EntryWindow(QWidget):
 
         levels = self.dialect.split_levels(self.dialect.entry_text_of(raw)) \
             if raw else []
-        for depth, (display, sort) in enumerate(self.levels):
-            key, shown = ("", "")
-            if depth < len(levels):
-                key, shown = self.dialect.split_sort_key(levels[depth])
-            display.setText(shown)
-            sort.setText(key)
+        shown, keys = [], []
+        for level in levels:
+            key, display = self.dialect.split_sort_key(level)
+            shown.append(display)
+            keys.append(key)
+        self.set_heading(shown, keys)
 
         self._select(self.page_style,
                      self.dialect.page_style_of_instruction(raw)
@@ -201,7 +183,7 @@ class EntryWindow(QWidget):
         self._sync_xref()
         self.apply_button.setEnabled(reference is not None)
         self.delete_button.setEnabled(reference is not None)
-        self.notice.setText("")
+        self.say("")
 
     def instruction(self) -> str:
         """
@@ -211,13 +193,11 @@ class EntryWindow(QWidget):
         anything else unmodelled comes through untouched.
         """
         stored = []
-        for display, sort in self.levels:
-            shown = display.text().strip()
+        for shown, key in zip(self.levels(), self.sort_keys()):
             if not shown:
                 break                       # a gap ends the heading
             stored.append(self.dialect.build_level(
-                self.dialect.escape(sort.text().strip()),
-                self.dialect.escape(shown)))
+                self.dialect.escape(key), self.dialect.escape(shown)))
 
         raw = self._raw or self.dialect.new_instruction("")
         raw = self.dialect.with_entry_text(raw, self.dialect.join_levels(stored))
@@ -237,7 +217,14 @@ class EntryWindow(QWidget):
         self.xref_target.setEnabled(bool(self.xref_kind.currentData()))
 
     def _first_level_missing(self) -> bool:
-        return not self.levels[0][0].text().strip()
+        return not self.levels()[0]
+
+    def _commit(self) -> None:
+        """Return on the last level: apply an edit, or make a new entry."""
+        if self._entry_id is None:
+            self._create()
+        else:
+            self._apply()
 
     def _apply(self) -> None:
         if self._entry_id is None:
@@ -246,13 +233,13 @@ class EntryWindow(QWidget):
             # **Not a silent no-op.** An entry with no main heading is not an
             # entry, and clearing the box is far more likely to be a slip than
             # a request to delete: say so rather than writing `XE ""`.
-            self.notice.setText("A main entry is needed. Nothing was changed.")
+            self.say("A main entry is needed. Nothing was changed.")
             return
         self.entry_edited.emit(self._entry_id, self.instruction())
 
     def _create(self) -> None:
         if self._first_level_missing():
-            self.notice.setText("A main entry is needed. Nothing was created.")
+            self.say("A main entry is needed. Nothing was created.")
             return
         self.entry_created.emit(self.instruction())
 
@@ -267,14 +254,19 @@ class EntryWindow(QWidget):
         index = combo.findData(value or "")
         combo.setCurrentIndex(index if index >= 0 else 0)
 
-    def _muted(self, text: str) -> QLabel:
-        label = QLabel(text)
-        label.setStyleSheet("color: palette(mid);")
-        return label
 
-    @staticmethod
-    def _rule() -> QFrame:
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setFrameShadow(QFrame.Shadow.Sunken)
-        return line
+def _muted(text: str) -> QLabel:
+    label = QLabel(text)
+    label.setStyleSheet("color: palette(mid);")
+    return label
+
+
+def _row(*widgets) -> QWidget:
+    """A horizontal strip with no margin. Each item is a widget or (widget, stretch)."""
+    holder = QWidget()
+    box = QHBoxLayout(holder)
+    box.setContentsMargins(0, 0, 0, 0)
+    for item in widgets:
+        widget, stretch = item if isinstance(item, tuple) else (item, 0)
+        box.addWidget(widget, stretch)
+    return holder
