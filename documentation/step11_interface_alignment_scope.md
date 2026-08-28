@@ -362,3 +362,51 @@ Then, and only then, 10a's screenshots.
 | **D7** | what happens when a manuscript changes on disk? | named notice, refuse to save that document, entry count in the message |
 | **D8** | who shares the shortcut map, and what is in it? | core map; LiX and WdX in full, ToA the subset; `Alt+Shift+X` declared Word-only |
 | **D9** | is the project store left alone? | yes for now, with the reason recorded in `profiles.py` |
+| **D10** | how is global persistence held? | **per application, always.** Added by the indexer on approval, 2026-08-28. See §12 |
+
+## 12. D10: global persistence is per application
+
+Given with the approval, and it is a rule rather than a preference: *anything
+persisted globally is held separately for each application.*
+
+### What the LaTeX editor persists globally, checked rather than assumed
+
+| what | where | per application already? |
+|---|---|---|
+| General preferences, recent projects, encap values, the session-log folder name | bare `QSettings()`, which inherits organisation `DH Indexing` and application `LaTeX Indexing Editor` from the `QApplication` | **yes** |
+| Theme colours, dark mode, font family and size | the same store, groups `ThemeColours/dark` and `ThemeColours/light` | **yes** |
+| The shared Check Index, Sorting and Presentation groups | the same store, through `QSettingsGlobalStore` | **yes** |
+| The LaTeX command registry | the same store | yes, and LaTeX-only anyway |
+| Session logs | the **open project's** folder, not a global one | not global |
+| The name database | `%LOCALAPPDATA%\DH Indexing\name_database\names.db`, whose `shared_root()` docstring reads *"the folder every application looks in. Never contains an app name"* | **no, and deliberately not** |
+| `workspace_index_data.db` | the user's home directory root | no, and it should not be there at all |
+
+So the store itself is already separate: this application opens
+`QSettings("DH Indexing", "Word Index Editor")` and the LaTeX editor's bare
+`QSettings()` resolves to `DH Indexing / LaTeX Indexing Editor`. What D10 adds
+is the rule that keeps it that way as shared components arrive.
+
+### How it is kept
+
+**No component in `bookindexcore` opens a settings store of its own.** The
+host passes one in, and the shared component reads and writes through it. The
+theme controller already works this way (it duck-types an object with a
+`.settings`), and every shared page in the preferences dialog already does.
+The shared toolbar and status bar landed at 11a holding **no persistence at
+all**: the toolbar reads the theme broker, which is in-memory, and the host
+saves it.
+
+**A core module with a default file location takes its root from the host**,
+the way `app_paths.get_app_root()` already answers that question in each
+application.
+
+### The one exception, which is the indexer's to settle
+
+**The name database is shared across applications on purpose**, and it holds
+real work: the indexer's own corrections to how names file. Splitting it would
+mean either two databases from now on, with corrections made in one invisible
+to the other, or a migration of the existing one.
+
+This application does no name filing yet, so nothing is blocked either way.
+**Flagged rather than changed**, because it is data rather than layout.
+
