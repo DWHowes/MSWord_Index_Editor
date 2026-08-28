@@ -1,11 +1,17 @@
 # Word Index Editor User Guide
 
-**Initial draft, 25 August 2026.** Figures are placeholders: each is marked
-*[FIGURE]* with its caption beneath, and the screenshots are taken once the
-application is packaged. Sections marked *[blocked]* wait on packaging.
+**Draft of 28 August 2026.** Sections marked *[blocked]* wait on packaging.
 
 *The two sections marked "not yet built" on 25 August, the Generated index page
 and the index document, were built on 28 August and the markers are gone.*
+
+**The figures are the application itself**, rendered from it rather than drawn:
+`documentation/render_screenshots.py` opens the sample book in
+`documentation/sample_book.py` and photographs each window. The book is
+invented, because every real manuscript this application has been measured
+against is a publisher's file under contract. Re-run the script whenever the
+interface moves; a guide illustrated with pictures of an older version is worse
+than one with none.
 
 ---
 
@@ -52,16 +58,28 @@ Waits on packaging. This section will cover the installer, where the application
 
 **File > Open document** opens one `.docx`.
 
-*[FIGURE]*
+![The window with a manuscript open](images/guide_01_window.png)
 
-**Figure 3.1** The window with a manuscript open: the outline on the left, the manuscript in the middle, the index on the right, and the entry window along the bottom.
+**Figure 3.1** The window with a manuscript open: the toolbar above, the sidebar's three tabs on the left, the manuscript in its own tab on the right.
 
 What you see:
 
-- **The manuscript**, in the middle. A window showing the mauscript as structured text rather than page: headings look like headings, quotations are indented, captions are small. It deliberately does **not** reproduce the publisher's formatting, which is a typesetter's coding for a page nobody has laid out yet.
-- **The manuscript outline**, on the left, built from the headings. It is for finding your place and nothing else. Headings are never insertion points.
-- **The index**, on the right: the terms above and the entries below.
-- **The entry window**, along the bottom, showing whichever entry is current.
+- **The manuscript**, on the right, one tab per open document. It shows the manuscript as structured text rather than as a page: headings look like headings, quotations are indented, captions are small. It deliberately does **not** reproduce the publisher's formatting, which is a typesetter's coding for a page nobody has laid out yet.
+- **The sidebar**, on the left, with three tabs down its edge: **Files** (the documents of the project, and the manuscript's own outline beneath them), **Index References** (the terms), and **Edit Entries** (the entry table). One is shown at a time; the toolbar's three buttons and `Ctrl+B`, `Ctrl+Shift+I` and `Ctrl+E` bring each forward.
+- **The outline**, under the file list, built from the headings. It is for finding your place and nothing else: headings are never insertion points.
+- **The entry window**, which appears under the manuscript as soon as an entry is chosen, and folds away again with `Ctrl+\`.
+
+This is the same frame as the LaTeX Indexing Editor's, deliberately, down to the keyboard shortcuts: an indexer who works in both should not have to learn where anything is twice.
+
+### The toolbar
+
+Left to right: **dark mode**, the three sidebar panes, and the **font and size** the manuscript is read in. The font is a reading preference and nothing to do with the manuscript: it changes what you see and never what the file says. Both settings are remembered, and they are this application's own, so they are not the LaTeX editor's.
+
+The **View** menu holds the same things with their shortcuts, plus `Ctrl+\` for the entry window and `Ctrl+Shift+D` for dark mode.
+
+### Closing
+
+**File > Close project**, or `Ctrl+W`, puts the window back to how it opened. If any entries are unsaved it says how many before it discards anything.
 
 ### Regions you cannot index
 
@@ -77,7 +95,7 @@ It says how many of the manuscript's styles the application recognises, and name
 
 **Manuscript > Styles** opens the list of every style in the book, with a sample of the text each one holds.
 
-*[FIGURE]*
+![The styles in the manuscript, and what each one means](images/guide_02_styles.png)
 
 **Figure 4.1** The styles list, heaviest style first, each row showing a sample of its own text.
 
@@ -128,13 +146,13 @@ Nothing reaches the file until step 7.
 
 ---
 
-## 6. The index panel: terms and entries
+## 6. The index: terms and entries
 
-The right-hand panel is the index as it stands. It has two halves, and the divider between them can be dragged.
+The index as it stands is in the sidebar, in two of its three tabs: **Index References** holds the terms, and **Edit Entries** holds the table of every entry. `Ctrl+Shift+I` and `Ctrl+E` bring each forward.
 
-*[FIGURE]*
+![The Index References tab, with the book's terms and their references](images/guide_03_index_terms.png)
 
-**Figure 6.1** The index panel: terms above with their references, entries below.
+**Figure 6.1** The Index References tab: every term in the project, with each term's own references beside it.
 
 ### The terms
 
@@ -176,9 +194,9 @@ Each refusal says which of these it was, in the status bar.
 
 ### The markers
 
-*[FIGURE]*
+![Entry markers over the manuscript](images/guide_04_markers.png)
 
-**Figure 7.1** Entry markers in the manuscript, with a tooltip naming the entries at one of them.
+**Figure 7.1** Entry markers in the manuscript: the underlined words are where entries sit. Hovering one names the entries at it, which a still picture cannot show.
 
 Every entry shows as an underlined word in the manuscript. Several entries at one place are one marker; hover it to see which entries are there and how many.
 
@@ -190,9 +208,9 @@ The marked word is the one nearest the entry's anchor and is **not necessarily t
 
 Shows whichever entry is current, and creates new ones.
 
-*[FIGURE]*
+![The entry window](images/guide_05_entry_window.png)
 
-**Figure 8.1** The entry window, with a sort key on the main level.
+**Figure 8.1** The entry window, with a sort key on the main level: *Lübeck* is displayed and *Lubeck* is what it files under.
 
 ### The heading
 
@@ -236,9 +254,9 @@ Open the first document, then **File > Add document to project** for the rest. T
 
 **File > Name this project** gives it a name and stores it, so **File > Open project** brings the whole book back.
 
-*[FIGURE]*
+![The Files tab, with the project's documents and the outline](images/guide_06_files.png)
 
-**Figure 9.1** The document list, in reading order rather than filename order.
+**Figure 9.1** The Files tab: the documents in reading order rather than filename order, with the open chapter's outline beneath them.
 
 ### The order is yours
 
@@ -272,9 +290,9 @@ It stays on the list, marked *not found*, and the rest of the project opens norm
 
 ### Across the project
 
-**Index > Search project** searches every document at once, exactly or fuzzily, and lists what it found.
+**Index > Search the whole project**, or `Ctrl+Shift+F`, searches every document at once, exactly or fuzzily, and lists what it found.
 
-*[FIGURE]*
+![Searching the whole project](images/guide_07_search.png)
 
 **Figure 10.1** The project search, with hits grouped by document and located by the heading each sits under.
 
@@ -292,7 +310,7 @@ The filter box above the entry table, which is section 6.
 
 It is a report, not a repair. Nothing is changed.
 
-*[FIGURE]*
+![The Check Index report](images/guide_08_check_index.png)
 
 **Figure 11.1** The Check Index report, grouped by what each finding is about.
 
@@ -324,9 +342,9 @@ Anything that needs page numbers. Nothing here can tell you whether a range is t
 
 **Index > Preferences**. These follow you from book to book; the style profile and the reading order belong to the project instead.
 
-*[FIGURE]*
+![The preferences window](images/guide_09_preferences.png)
 
-**Figure 12.1** The preferences window.
+**Figure 12.1** The preferences window, with its pages down the left-hand edge.
 
 - **General** covers recent projects and the shared name database.
 - **Check Index** turns individual checking rules on and off, and holds the vocabulary of section 11.
@@ -339,7 +357,7 @@ Anything that needs page numbers. Nothing here can tell you whether a range is t
 
 This page settles what Word's `INDEX` field will say when the publisher composes the book, and writes those settings into a separate document you can hand over with the manuscript. The field it will write is shown at the foot of the page, exactly as it will appear in that document.
 
-*[FIGURE]*
+![The Generated index preferences page](images/guide_10_generated_index.png)
 
 **Figure 12.2** The Generated index page, with the field it composes at the foot of it.
 

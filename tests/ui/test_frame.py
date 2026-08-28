@@ -220,6 +220,27 @@ class TestTypography:
         assert opened.view.font().pointSize() == 17
         assert store.value("font_size") in (17, "17")
 
+    def test_the_entry_markers_survive_a_font_change(self, opened, monkeypatch,
+                                                     tmp_path):
+        """
+        A re-rendered document carries no markers until something draws them
+        again, and nothing did: choosing a size on the toolbar emptied the
+        entry layer of every manuscript until the next click on the index.
+        **Found by taking the User Guide's figure of the markers**, in which
+        there were none.
+        """
+        from PySide6.QtCore import QSettings
+
+        store = QSettings(str(tmp_path / "wdx.ini"), QSettings.Format.IniFormat)
+        monkeypatch.setattr("wordindex.ui.preferences.settings", lambda: store)
+
+        before = len(opened.view.extraSelections())
+        assert before, "the fixture has to have markers to lose"
+
+        opened._set_font_size(16)
+
+        assert len(opened.view.extraSelections()) == before
+
     def test_a_heading_still_scales_with_the_body_text(self, opened, monkeypatch,
                                                       tmp_path):
         """

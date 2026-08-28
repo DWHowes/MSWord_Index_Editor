@@ -675,14 +675,28 @@ class MainWindow(QMainWindow):
         hold it for the next launch. **Per application, never shared**: the
         LaTeX editor's font is not this one's, and both stores are opened
         under their own application name.
+
+        **Every open tab, and the markers with them.** Changing the reading
+        font re-renders a document, and a re-rendered document carries no entry
+        markers until something draws them again. Nothing did: choosing a size
+        on the toolbar quietly emptied the entry layer of every manuscript
+        until the next click on the index. Found while taking the User Guide's
+        figure of the markers, in which there were none.
         """
         AppStyleConfiguration.event_broker().set_property(key, value)
         settings = Preferences().settings
         settings.setValue(key, value)
         settings.sync()
-        self.view.apply_typography(
-            str(AppStyleConfiguration.event_broker().get_property("font_family")),
-            int(AppStyleConfiguration.event_broker().get_property("font_size")))
+
+        broker = AppStyleConfiguration.event_broker()
+        family = str(broker.get_property("font_family"))
+        size = int(broker.get_property("font_size"))
+        open_views = [self.tabs.view_for(path)
+                      for path in self.tabs.documents()]
+        for view in open_views or [self.view]:
+            if view is not None:
+                view.apply_typography(family, size)
+        self._draw_markers()
 
     # -- opening ----------------------------------------------------------
 

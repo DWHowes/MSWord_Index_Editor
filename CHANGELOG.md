@@ -5,6 +5,54 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 10a: the User Guide's figures, and what taking them found
+
+Ten figures, **rendered from the application rather than drawn**:
+`documentation/render_screenshots.py` opens a book, drives each window into the
+state its caption describes, and photographs it. Re-run it whenever the
+interface moves.
+
+**The book is invented.** `documentation/sample_book.py` writes *Salt, Cloth
+and Credit in the Baltic Towns*, which does not exist: every real manuscript
+this application has been measured against is a publisher's file under
+contract, and a screenshot of one in a guide that ships with the software would
+put a chapter of somebody else's unpublished book on a page anybody can read.
+It carries a publisher's numbered style vocabulary, notes, an extract, a
+caption and real `XE` fields, including a per-level sort key and a deliberately
+broken cross-reference so that the styles editor, the entry window and Check
+Index each have something true to show.
+
+**Its fields sit before the phrases they index**, which is not a detail: step 5
+measured that four of the first five fields in a real book sat on the space
+*before* their phrase, which is why a marker takes the token after an anchor
+that lands on a space. A sample book that placed its fields after the words
+would have drawn every marker on the following word and taught the guide's
+reader something false.
+
+**Two defects the figures found, neither by a test.**
+
+*The entry markers vanished when the reading font changed.* Changing the size
+re-renders a document, a re-rendered document carries no markers until
+something draws them again, and nothing did: the entry layer of every open
+manuscript emptied until the next click on the index. Found by photographing
+the markers and seeing none.
+
+*The fuzzy search tab said the package was not installed.* `rapidfuzz` is
+imported lazily by the core so that exact search works without it, which is
+right for a library and wrong for an application that ships the control. It is
+a declared dependency now.
+
+**And the control sweep the figures forced.** The guide described the window as
+three columns with the index on the right and the entry window along the
+bottom, which stopped being true at step 11b; so did the in-app help. Both now
+describe the sidebar's three tabs, and the guide gains the toolbar, the View
+menu and **File > Close project**, none of which it had ever mentioned.
+`Index > Search project` was corrected to `Index > Search the whole project`,
+which is what the menu says.
+
+The six development screenshots from steps 5 to 9 are deleted: they show a
+window that no longer exists.
+
 ### Step 11e: the session log, and a manuscript changed underneath us
 
 **The last phase of step 11.** Both halves are `bookindexcore`'s and neither

@@ -4,22 +4,26 @@
 
 What you see:
 
-- **The manuscript**, in the middle, showing the text as structure rather than
-  as a page: headings look like headings, quotations are indented, captions
-  are small. It deliberately does **not** reproduce the publisher's
-  formatting, which is a typesetter's coding for a page nobody has laid out
-  yet.
-- **The outline**, on the left, built from the headings. It is for finding
-  your place and nothing else.
-- **The index**, on the right: the **terms** at the top and the **entries**
-  beneath them. Drag the divider between them to give one more room.
-- **The entry window**, along the bottom, showing whichever entry is current.
+- **The manuscript**, on the right, one tab per open document. It shows the
+  text as structure rather than as a page: headings look like headings,
+  quotations are indented, captions are small. It deliberately does **not**
+  reproduce the publisher's formatting, which is a typesetter's coding for a
+  page nobody has laid out yet.
+- **The sidebar**, on the left, with three tabs down its edge: **Files**,
+  **Index References** and **Edit Entries**. `Ctrl+B`, `Ctrl+Shift+I` and
+  `Ctrl+E` bring each forward, as do the three toolbar buttons.
+- **The outline**, in the Files tab under the list of documents, built from
+  the headings. It is for finding your place and nothing else.
+- **The entry window**, which appears under the manuscript as soon as an entry
+  is chosen, and folds away again with `Ctrl+\`.
 
-## The index panel
+This is the same frame as the LaTeX Indexing Editor's, down to the shortcuts.
 
-The upper half is the index as a reader would meet it: every term, with its
-sub-entries nested underneath. It is one list for the **whole project**, so a
-book in eighteen files shows as one index rather than eighteen.
+## The index: terms and entries
+
+**Index References** is the index as a reader would meet it: every term, with
+its sub-entries nested underneath. It is one list for the **whole project**, so
+a book in eighteen files shows as one index rather than eighteen.
 
 Beside each term, under **References**, are its entries: `[1] [2] [3]`, one
 for each place in the book where that term is marked. **Click one to go to
@@ -31,8 +35,8 @@ numbers and there are none: a Word index has no pages until the publisher
 composes the book. A term showing `[1] [2] [3] [4] [5] [6] [7] [8]` is one you
 have marked eight times, which is worth a second look on its own.
 
-The lower half is the entry table, one row per entry across the project, with
-its heading, its sort key and its page style. The line above both says how
+**Edit Entries** is the entry table, one row per entry across the project, with
+its heading, its sort key and its page style. The line above the terms says how
 many terms and how many entries the project holds.
 
 ## Regions you cannot index
