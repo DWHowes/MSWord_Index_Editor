@@ -69,6 +69,7 @@ from ..xe_dialect import XE_DIALECT
 from ..reader import (
     HEADING, UNKNOWN, outline, unprofiled)
 from .entry_window import EntryWindow
+from .editor_tabs import ManuscriptTabs
 from .file_list import FileList
 from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
@@ -145,18 +146,25 @@ class MainWindow(QMainWindow):
         self.outline_tree.itemActivated.connect(self._jump)
         self.outline_tree.itemClicked.connect(self._jump)
 
-        self.view = ManuscriptView()
-        self.view.position_changed.connect(self._show_position)
-
         self.index_panel = IndexPanel()
-
-        # **Both halves of scope §3 item 3.** A marker click selects the row;
-        # a row click moves the manuscript to the marker. Each side blocks the
-        # other's echo, so the two do not chase each other.
-        self.view.entry_clicked.connect(self.index_panel.select_entry)
-        self.view.entry_clicked.connect(self._show_in_entry_window)
         self.index_panel.entry_selected.connect(self._go_to_entry)
         self.index_panel.entry_selected.connect(self._show_in_entry_window)
+
+        #: One tab per open manuscript (11c). Before this the window showed
+        #: one document at a time and replaced it when another was chosen, so
+        #: an indexer checking a term against another chapter had to leave the
+        #: one they were reading.
+        self.tabs = ManuscriptTabs()
+        self.tabs.view_created.connect(self._wire_view)
+        self.tabs.document_activated.connect(self._document_activated)
+        #: Which documents hold entries that are not written yet. Saving
+        #: writes them all, but the tab strip says which ones have something
+        #: to lose, so the record has to be per document.
+        self._unsaved: set = set()
+        #: What `self.view` answers to before anything is open. Never mounted:
+        #: it exists so that every caller can ask the window for "the
+        #: manuscript" without first asking whether there is one.
+        self._blank_view = ManuscriptView()
 
         self.entry_window = EntryWindow()
         self.entry_window.entry_edited.connect(self._edit_entry)
@@ -298,7 +306,8 @@ class MainWindow(QMainWindow):
         self._positions = {}
         self._dirty = False
 
-        self.view.show_paragraphs([])
+        self.tabs.close_all()
+        self._unsaved.clear()
         self.index_panel.clear()
         self.file_list.show_documents([])
         self.outline_tree.clear()
@@ -312,6 +321,59 @@ class MainWindow(QMainWindow):
             action.setEnabled(False)
         self.setWindowTitle("Word Index Editor")
         self.statusBar().showMessage("Open a Word manuscript to begin.")
+
+    @property
+    def view(self) -> ManuscriptView:
+        """
+        The manuscript in front, or a blank one when nothing is open.
+
+        A property since 11c, when one view became many. Every caller that
+        used to hold `self.view` asked for *the* manuscript, and that question
+        still has one answer; what changed is that the answer moves when the
+        indexer changes tabs.
+        """
+        return self.tabs.current_view() or self._blank_view
+
+    def _wire_view(self, view) -> None:
+        """
+        Give a newly built tab the two connections every manuscript needs.
+
+        **Both halves of scope §3 item 3**: a marker click selects the row in
+        the entry table, and a row click moves the manuscript to the marker.
+        Each side blocks the other's echo, so the two do not chase each other.
+        """
+        view.position_changed.connect(self._show_position)
+        view.entry_clicked.connect(self.index_panel.select_entry)
+        view.entry_clicked.connect(self._show_in_entry_window)
+
+    def _document_activated(self, path) -> None:
+        """
+        The indexer changed tabs. Everything that is per document follows.
+
+        The index does not: it is one list across the project, and the entry
+        table stays exactly as it was, which is what step 8 settled.
+        """
+        if path is None or self.session is None:
+            return
+        self._path = Path(path)
+        self._plain = self.session.plain(self._path)
+        self._paragraphs = self.session.paragraphs(self._path)
+        self._positions = self.session.positions(self._path)
+        self.file_list.select(self._path)
+        self._name_window()
+        self._build_outline()
+        self._draw_markers()
+
+    def _name_window(self) -> None:
+        """The title bar: the project, and which chapter is in front."""
+        if self.session is None or self._path is None:
+            self.setWindowTitle("Word Index Editor")
+            return
+        self.setWindowTitle(
+            f"Word Index Editor: {self._path.name}"
+            if self.session.project.is_single
+            else f"Word Index Editor: {self.session.project.name} "
+                 f"[{self._path.name}]")
 
     # -- the frame --------------------------------------------------------
 
@@ -358,7 +420,7 @@ class MainWindow(QMainWindow):
         manuscript = QWidget()
         manuscript_box = QVBoxLayout(manuscript)
         manuscript_box.setContentsMargins(0, 0, 0, 0)
-        manuscript_box.addWidget(self.view, 1)
+        manuscript_box.addWidget(self.tabs, 1)
         manuscript_box.addWidget(self.notice)
 
         self.right_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -556,6 +618,8 @@ class MainWindow(QMainWindow):
             return
 
         self.session = session
+        self.tabs.close_all()
+        self._unsaved.clear()
         stored = carried or load_profile(project.key)
         session.profile_is_proposed = stored is None
         session.profile = stored or session.propose()
@@ -599,12 +663,16 @@ class MainWindow(QMainWindow):
 
         self._path = path
         self._plain = self.session.plain(path)
-        self.file_list.select(path)
-        self.setWindowTitle(
-            f"Word Index Editor: {path.name}" if self.session.project.is_single
-            else f"Word Index Editor: {self.session.project.name} "
-                 f"[{path.name}]")
-        self._apply_profile()
+        # **Opened once, then brought forward.** A tab that is already open
+        # keeps what it is showing, scroll position and markers included:
+        # re-rendering a chapter because it was clicked in the file list would
+        # throw away where the indexer had got to in it.
+        was_open = self.tabs.view_for(path) is not None
+        self.tabs.open_document(path, self.session.paragraphs(path))
+        self._document_activated(path)
+        self._report_profile()
+        if not was_open:
+            self._render_current()
 
     def _reorder(self, documents) -> None:
         """
@@ -674,13 +742,31 @@ class MainWindow(QMainWindow):
             return
         profile = self.session.profile
         styles = self.session.styles()
-        self._paragraphs = self.session.paragraphs(self._path)
-        self._positions = self.session.positions(self._path)
 
-        self.view.show_paragraphs(self._paragraphs)
-        self._build_outline()
-        self._draw_markers()
+        # **Every open tab, not only the one in front.** A profile decides
+        # what a paragraph means, and it means the same thing in chapter
+        # eleven as in chapter one; re-rendering only the front tab would
+        # leave the others showing a classification the indexer had changed
+        # and no longer holds anywhere.
+        for path in self.tabs.documents():
+            view = self.tabs.view_for(path)
+            if view is not None:
+                view.show_paragraphs(self.session.paragraphs(path))
+        self._render_current()
+        self._report_profile()
 
+    def _report_profile(self) -> None:
+        """
+        What the front document is made of, and what the profile did not place.
+
+        Separate from `_apply_profile` since 11c, because opening a second tab
+        has to say this again without re-rendering every document that is
+        already open.
+        """
+        if self.session is None or self._path is None:
+            return
+        profile = self.session.profile
+        styles = self.session.styles()
         missing = unprofiled(styles, profile)
         unknown = sum(1 for p in self._paragraphs if p.kind == UNKNOWN)
         self.statusBar().showMessage(
@@ -693,6 +779,23 @@ class MainWindow(QMainWindow):
         # and counting its entries made the notice read "13 of 10 styles
         # recognised". Found by looking at the window.
         self._say(len(styles), len(styles) - len(missing), missing, unknown)
+
+    def _render_current(self) -> None:
+        """
+        The front tab's outline and entry markers, refreshed.
+
+        **It does not re-render the text**, because whoever called it has
+        already decided whether the text needs rebuilding: opening a tab
+        renders it once, and a profile change renders every tab. Doing it here
+        as well would rebuild a document that was fine and lose the indexer's
+        place in it.
+        """
+        if self.session is None or self._path is None:
+            return
+        self._paragraphs = self.session.paragraphs(self._path)
+        self._positions = self.session.positions(self._path)
+        self._build_outline()
+        self._draw_markers()
 
     def _reread_index(self) -> None:
         """
@@ -1025,9 +1128,9 @@ class MainWindow(QMainWindow):
         if not result.ok:
             QMessageBox.warning(self, "Could not change", str(result.reason))
             return
-        self._after_change(said)
+        self._after_change(said, self.session.document_of(entry_id))
 
-    def _after_change(self, said: str) -> None:
+    def _after_change(self, said: str, document=None) -> None:
         """
         Re-read the index from the documents and redraw everything on it.
 
@@ -1035,11 +1138,19 @@ class MainWindow(QMainWindow):
         every mutation, which is what keeps ordinals honest, so the cheapest
         correct thing this window can do is ask them again. Anything else is a
         second copy of the truth.
+
+        ``document`` is which file the change landed in, so the tab strip can
+        say which chapters hold work that is not written yet. It defaults to
+        the one in front, which is where a marking gesture always lands.
         """
         self._reread_index()
         self._positions = self.session.positions(self._path)
         self._draw_markers()
         self._dirty = True
+        touched = Path(document) if document is not None else self._path
+        if touched is not None:
+            self._unsaved.add(touched)
+            self.tabs.set_unsaved(touched, True)
         self.save_action.setEnabled(True)
         self.statusBar().showMessage(f"{said}. {len(self._references):,} "
                                      f"entries in the project, not yet saved.")
@@ -1061,6 +1172,9 @@ class MainWindow(QMainWindow):
                 "\n".join(p.name for p in failures))
             return
         self._dirty = False
+        for path in list(self._unsaved):
+            self.tabs.set_unsaved(path, False)
+        self._unsaved.clear()
         self.save_action.setEnabled(False)
         self.statusBar().showMessage(
             f"Saved {len(self.session.documents)} document"

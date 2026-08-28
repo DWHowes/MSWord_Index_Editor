@@ -5,6 +5,36 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 11c: a tab per manuscript
+
+The window showed **one document at a time** and replaced it when another was
+chosen, so an indexer checking a term against another chapter had to leave the
+one they were reading. A project is eighteen chapters.
+
+- A tab is opened when a document is chosen and **stays until it is closed**.
+- **A tab that is already open keeps its place**, markers and scroll position
+  included: re-rendering a chapter because it was clicked in the file list
+  would throw away where the indexer had got to in it.
+- **Closing a tab closes the view, never the document.** The chapter stays in
+  the project and its entries stay in the index; a tab strip that removed
+  chapters from a book would be a file manager wearing a tab bar.
+- **The close glyph says whether that chapter holds unsaved entries**, which
+  is more than this application knew before: saving writes every document, and
+  the record of which ones an edit actually touched is new.
+- `MainWindow.view` is a property now. Every caller that held it asked for
+  *the* manuscript, and that question still has one answer; what changed is
+  that the answer moves with the front tab.
+- **Re-profiling re-renders every open tab**, because a profile decides what a
+  paragraph means and it means the same thing in chapter eleven as in chapter
+  one.
+
+**D5 said measure rather than assume, so `documentation/step11c_measurements.md`
+is the measurement**: on the real 18-chapter Palgrave book, opening all
+seventeen further tabs costs **1.72 s in total**, the worst single tab 0.25 s,
+switching to an open tab 0.087 s, and re-profiling all eighteen 0.45 s. Nothing
+there justifies a cap on open tabs, an eviction policy, or lazy rendering, all
+three of which were live options before the numbers existed.
+
 ### Step 11b: the frame is the LaTeX editor's frame
 
 The window had three columns, a bottom dock, no toolbar and a bare status bar;
