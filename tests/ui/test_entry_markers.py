@@ -19,9 +19,17 @@ wide.
 """
 
 import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeyEvent
 
 from wordindex.reader import BODY, UNKNOWN, Paragraph
 from wordindex.ui.manuscript_view import ManuscriptView
+
+
+def press(widget, key, modifiers=Qt.KeyboardModifier.NoModifier, text=""):
+    """A keystroke, straight at the widget's handler."""
+    widget.keyPressEvent(
+        QKeyEvent(QKeyEvent.Type.KeyPress, key, modifiers, text))
 
 
 def _para(text, offset, kind=BODY):
@@ -143,8 +151,16 @@ class TestClickingAndSelecting:
 
 class TestTheViewStaysReadOnly:
     def test_markers_do_not_make_it_editable(self, view):
+        """
+        Asserts the property rather than `isReadOnly()`, which is now False so
+        that the caret is drawn. See `test_manuscript_view` for the whole of
+        that change.
+        """
         view.show_entries([("wim_a", 3, "Bennu")])
-        assert view.isReadOnly()
+        before = view.toPlainText()
+        press(view, Qt.Key.Key_X, text="x")
+        press(view, Qt.Key.Key_Backspace)
+        assert view.toPlainText() == before
 
 
 def _tooltip(view, index=0):

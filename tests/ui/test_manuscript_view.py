@@ -127,8 +127,23 @@ class TestExcludedIsShownNotHidden:
 
 
 class TestItCannotBeEdited:
-    def test_read_only(self, view):
-        assert view.isReadOnly()
+    def test_it_is_deliberately_not_qt_read_only(self, view):
+        """
+        **This assertion is inverted from what it used to be, on purpose.**
+
+        It read `assert view.isReadOnly()`, which pinned the *mechanism*
+        rather than the property, and the mechanism was wrong: Qt draws no
+        caret in a read-only widget, so an indexer clicking into the
+        manuscript could not see where the insertion point had landed. Every
+        gesture that acts at the caret was guesswork.
+
+        The widget is editable to Qt now and closed to the user by
+        `bookindexcore.ui.text_view.ReadOnlyTextMixin`. What must stay true is
+        the property, which the tests below assert: nothing the indexer can do
+        changes the text.
+        """
+        assert view.isReadOnly() is False
+        assert view.cursorWidth() >= 1
 
     def test_undo_is_off(self, view):
         """

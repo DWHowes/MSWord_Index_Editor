@@ -51,6 +51,10 @@ from PySide6.QtWidgets import (
 
 from ..xe_dialect import BOLD, BOLD_ITALIC, ITALIC, XE_DIALECT
 
+#: What the strip across the top says. Named here rather than inline so the
+#: window and whatever reports it use one string.
+WINDOW_TITLE = "Word Index Entry"
+
 #: Canonical page styles, in the order an indexer meets them.
 _STYLES = (("Standard", ""), ("Bold", BOLD), ("Italic", ITALIC),
            ("Bold italic", BOLD_ITALIC))
@@ -81,9 +85,15 @@ class EntryWindow(IndexEntryWindow):
     def __init__(self, dialect=XE_DIALECT, parent=None, settings=None) -> None:
         self._raw = ""
         self._entry_id = None
+        # The strip across the top, which this window did not have: the LaTeX
+        # editor's entry window has always carried one and an indexer who had
+        # learned to dismiss that by clicking the cross found this one could
+        # only be closed from a menu two levels down. Shared since it moved
+        # into bookindexcore; the close gesture is resolved below, because
+        # this window is a pane in a splitter rather than a dock.
         super().__init__(dialect, level_names=LEVEL_NAMES,
                          sort_fields=SORT_ALWAYS, settings=settings,
-                         parent=parent)
+                         title=WINDOW_TITLE, parent=parent)
         # Return on the deepest level means "make it", which is what an
         # indexer expects of a form they have just filled in.
         self.fields.committed.connect(self._commit)

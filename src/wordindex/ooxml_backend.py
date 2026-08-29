@@ -280,7 +280,8 @@ class OoxmlBackend(DocumentBackend):
         looked correct under the battery while being unusable by a real
         insertion path. The entry window is that real caller: rewrite,
         placement and removal were driven through it on the CUP monograph, saved, and reopened from disk, with **the visible text
-        identical afterwards** and a `` bookmark preserved through an edit
+        identical afterwards** and a `
+` bookmark preserved through an edit
         that did not mention it. See `documentation/step6_measurements.md`.
 
         What is still untested is placement into a *footnote* container, and
@@ -395,6 +396,57 @@ class OoxmlBackend(DocumentBackend):
             for node, text in _visible_nodes(para):
                 if node is not None:
                     spans.append((offset, offset + len(text), node))
+                offset += len(text)
+        return spans
+
+    def bookmark_spans(self, container: str) -> dict:
+        r"""
+        ``name -> (start, end)`` for every bookmark in a part, in `read_text`
+        space.
+
+        **What a Word page range actually is.** ` "name"` on an ``XE`` field
+        names a bookmark, and the bookmark is the range: Word prints the page
+        the field sits on through to the page the bookmark ends on. Nothing in
+        this application could read that back, so the manuscript view drew a
+        range's *start* and nothing else, and an indexer could not see how far
+        one reached -- which makes an overlapping or an enclosed range
+        impossible to notice until the index is generated and wrong.
+
+        The arithmetic is :func:`_walk_para`'s, shared with
+        :meth:`entry_positions` and :meth:`text_positions` for the reason
+        given there: three copies of an offset calculation do not stay equal,
+        and a span drawn one character out is worse than no span.
+
+        **Start and end are matched on ``w:id``, not on the name**, because
+        that is what Word matches them on: ``bookmarkStart`` carries both a
+        name and an id and ``bookmarkEnd`` carries only the id. A bookmark
+        whose end is missing -- which a damaged document really does contain --
+        is left out rather than given an invented extent.
+        """
+        tree = self._trees.get(container)
+        if tree is None:
+            return {}
+
+        opened: dict = {}          # w:id -> (name, start offset)
+        spans: dict = {}
+        offset = 0
+        first = True
+        for para in tree.getroot().iter(_q("p")):
+            if not first:
+                offset += 1                       # the newline `read_text` joins with
+            first = False
+            for tag, node, text in _walk_para(para):
+                if tag == "bookmarkStart":
+                    marker = node.get(_q("id"))
+                    name = node.get(_q("name"))
+                    if marker is not None and name:
+                        opened[marker] = (name, offset)
+                elif tag == "bookmarkEnd":
+                    marker = node.get(_q("id"))
+                    found = opened.pop(marker, None)
+                    if found is not None:
+                        name, start = found
+                        spans[name] = (start, offset)
                 offset += len(text)
         return spans
 

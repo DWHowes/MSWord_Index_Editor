@@ -46,6 +46,8 @@ from PySide6.QtGui import (
     QTextDocument)
 from PySide6.QtWidgets import QTextEdit
 
+from bookindexcore.ui.text_view import ReadOnlyTextMixin
+
 from ..reader import (
     BODY, CAPTION, EXCLUDED, FRONT_MATTER, HEADING, LIST, QUOTATION,
     REFERENCE_ENTRY, UNKNOWN)
@@ -73,7 +75,7 @@ def _one_block(text: str) -> str:
     return text.replace("\n", "\u2028")
 
 
-class ManuscriptView(QTextEdit):
+class ManuscriptView(ReadOnlyTextMixin, QTextEdit):
     """
     Read-only, and read-only is a rule rather than a convenience.
 
@@ -99,7 +101,13 @@ class ManuscriptView(QTextEdit):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setReadOnly(True)
+        # **Not `setReadOnly(True)`**, which is what this was and which draws
+        # no caret at all: an indexer clicking into the manuscript could not
+        # see where the insertion point had landed, and every gesture that
+        # acts *at* the caret was guesswork unless they selected something.
+        # The mixin keeps the widget editable to Qt and closes every route
+        # that writes. See bookindexcore.ui.text_view.
+        self.install_read_only_caret()
         self.setUndoRedoEnabled(False)
         self.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
         self._paragraphs: list = []
@@ -108,7 +116,13 @@ class ManuscriptView(QTextEdit):
         self._starts: list = []
         self._marks: dict = {}
         self._mark_offsets: list = []
+        #: ``entry_id -> (start, end)`` in `read_text` space, for the entries
+        #: that carry a range. Drawn under the anchors by `_redraw_markers`.
+        self._ranges: dict = {}
         self._selected = None
+        #: Extra points between paragraphs, from the toolbar. Nought is what
+        #: the view did before there was a control for it.
+        self._line_spacing = 0
         self.cursorPositionChanged.connect(self._announce)
 
     # -- building ---------------------------------------------------------
@@ -133,6 +147,26 @@ class ManuscriptView(QTextEdit):
         if size:
             font.setPointSize(int(size))
         self.setFont(font)
+        if self._paragraphs:
+            self.show_paragraphs(self._paragraphs)
+
+    def apply_line_spacing(self, points: int) -> None:
+        """
+        Extra space between paragraphs, from the toolbar.
+
+        Re-renders for the same reason `apply_typography` does: the spacing
+        lives in each paragraph's own block format, which is built with the
+        document, so setting a widget property would change nothing already
+        on screen.
+
+        The markers survive: `show_paragraphs` rebuilds the document and the
+        caller redraws them, which is the arrangement a re-profile already
+        relies on.
+        """
+        points = max(0, int(points))
+        if points == self._line_spacing:
+            return
+        self._line_spacing = points
         if self._paragraphs:
             self.show_paragraphs(self._paragraphs)
 
@@ -176,9 +210,19 @@ class ManuscriptView(QTextEdit):
         self.moveCursor(QTextCursor.MoveOperation.Start)
 
     def _block_format(self, paragraph) -> QTextBlockFormat:
+        """
+        The space around a paragraph, and how far it is indented.
+
+        The two margins were 8 and 3 points and nothing else, which read as a
+        wall of text over two thousand paragraphs: an indexer could not keep
+        their place going down the page. `_line_spacing` is added to both, so
+        the setting opens the paragraphs up without flattening the extra air a
+        heading already gets.
+        """
         block = QTextBlockFormat()
-        block.setTopMargin(8 if paragraph.kind == HEADING else 3)
-        block.setBottomMargin(3)
+        extra = self._line_spacing
+        block.setTopMargin((8 if paragraph.kind == HEADING else 3) + extra)
+        block.setBottomMargin(3 + extra)
         indent = _INDENT.get(paragraph.kind, 0)
         if paragraph.kind == HEADING and paragraph.level:
             indent = max(0, (paragraph.level - 1) * 10)
@@ -368,6 +412,59 @@ class ManuscriptView(QTextEdit):
         self._selected = None
         self._redraw_markers()
 
+    def show_ranges(self, ranges) -> None:
+        """
+        How far each page range reaches. ``(entry_id, start, end)``.
+
+        **The half a Word range that was never drawn.** A range is one field
+        plus a bookmark spanning the passage, and the view marked the field
+        and stopped, so the extent existed only in the document. An indexer
+        could not see that two ranges overlapped, or that one sat inside
+        another, until the generated index came out wrong -- and by then the
+        entries look fine individually, which is the hardest kind of fault to
+        chase.
+
+        Offsets are in `read_text` space, from
+        :meth:`~.ooxml_backend.OoxmlBackend.bookmark_spans`, and a range whose
+        bookmark has no end is simply absent from what that returns rather
+        than being given an invented extent.
+        """
+        self._ranges = {
+            entry_id: (int(start), int(end))
+            for entry_id, start, end in ranges
+            if int(end) > int(start)
+        }
+        self._redraw_markers()
+
+    def _cursor_over(self, start: int, end: int):
+        """
+        A cursor covering a span of `read_text`, or None if it is not shown.
+
+        Shares :meth:`go_to_offset`'s arithmetic rather than repeating it:
+        the paragraph holding an offset, plus the remainder inside it. A span
+        may cross paragraphs, which is the ordinary shape for a real range.
+        """
+        document = self.document()
+
+        def position(offset: int):
+            index = bisect.bisect_right(self._starts, offset) - 1
+            if not (0 <= index < len(self._paragraphs)):
+                return None
+            paragraph = self._paragraphs[index]
+            block = document.findBlockByNumber(index)
+            if not block.isValid():
+                return None
+            return block.position() + min(max(0, offset - paragraph.offset),
+                                          len(paragraph.text))
+
+        head, tail = position(start), position(end)
+        if head is None or tail is None or tail <= head:
+            return None
+        cursor = QTextCursor(document)
+        cursor.setPosition(head)
+        cursor.setPosition(tail, QTextCursor.MoveMode.KeepAnchor)
+        return cursor
+
     def _span_for(self, offset: int):
         """
         ``(block number, start, end)`` for the word an entry is anchored to.
@@ -425,6 +522,20 @@ class ManuscriptView(QTextEdit):
     def _redraw_markers(self) -> None:
         document = self.document()
         selections = []
+
+        # **Ranges first, anchors second.** Qt paints later extra selections
+        # over earlier ones, so an anchor that sits inside its own range stays
+        # legible instead of being washed over by it.
+        for entry_id, (start, end) in self._ranges.items():
+            cursor = self._cursor_over(start, end)
+            if cursor is None:
+                continue
+            selection = QTextEdit.ExtraSelection()
+            selection.cursor = cursor
+            selection.format = self._marker_format(
+                selected=(entry_id == self._selected), covered=True)
+            selections.append(selection)
+
         for offset in self._mark_offsets:
             span, held = self._marks[offset]
             block_number, start, end = span
@@ -445,12 +556,21 @@ class ManuscriptView(QTextEdit):
             selections.append(selection)
         self.setExtraSelections(selections)
 
-    def _marker_format(self, held=(), *, selected: bool) -> QTextCharFormat:
+    def _marker_format(self, held=(), *, selected: bool,
+                       covered: bool = False) -> QTextCharFormat:
         """
-        Unobtrusive, and taken from the palette so it survives a theme.
+        A marked word, in a colour rather than an underline.
 
-        An underline rather than a block of colour: the manuscript is what the
-        indexer is reading, and a marker that shouts drowns it.
+        **It was an underline, and that was too quiet.** A single hairline
+        under one word in a page of prose is invisible at reading speed, and
+        the indexer's report was exactly that. So the anchor is drawn in a
+        contrasting ink with a tinted ground, both taken from the palette so
+        they follow the theme rather than being two hard-coded schemes.
+
+        `covered` is the *inside* of a range rather than its anchor, and it is
+        deliberately fainter: the point of drawing it at all is to show how
+        far a range reaches, and a run of forty words as loud as its own start
+        would drown the text it is supposed to be marking.
 
         **The tooltip is where "countable" lives.** A marker says an entry is
         here; the tooltip says which, and how many, without ever showing a
@@ -465,15 +585,28 @@ class ManuscriptView(QTextEdit):
             joined = "\n".join(names)
             fmt.setToolTip(joined if len(names) == 1
                            else f"{len(names)} entries here:\n{joined}")
+
         accent = self.palette().link().color()
-        fmt.setUnderlineColor(accent)
-        fmt.setUnderlineStyle(
-            QTextCharFormat.UnderlineStyle.WaveUnderline if selected
-            else QTextCharFormat.UnderlineStyle.SingleUnderline)
+        if covered:
+            # The span between a range's ends. Ground only, no ink change:
+            # this is context for the anchor, not a mark of its own.
+            wash = QColor(accent)
+            wash.setAlpha(38 if not selected else 70)
+            fmt.setBackground(wash)
+            return fmt
+
+        fmt.setForeground(accent)
+        fmt.setFontWeight(QFont.Weight.DemiBold)
+        tint = QColor(accent)
+        tint.setAlpha(90 if selected else 45)
+        fmt.setBackground(tint)
         if selected:
-            tint = QColor(accent)
-            tint.setAlpha(60)
-            fmt.setBackground(tint)
+            # The one place an underline still earns its keep: it separates
+            # the entry being edited from every other marked word without
+            # needing a second colour.
+            fmt.setUnderlineColor(accent)
+            fmt.setUnderlineStyle(
+                QTextCharFormat.UnderlineStyle.SingleUnderline)
         return fmt
 
     # -- finding one ------------------------------------------------------

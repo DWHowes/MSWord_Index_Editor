@@ -112,12 +112,47 @@ class TestTheEntryWindow:
         opened._show_in_entry_window(entry_id)
         assert opened.entry_window.isVisible()
 
-    def test_the_gesture_toggles_it(self, window):
+    def test_the_gesture_toggles_it(self, opened):
+        """Takes `opened` now: with nothing open the gesture is refused."""
+        opened.show()
+        opened.toggle_entry_window()
+        assert opened.entry_window.isVisible()
+        opened.toggle_entry_window()
+        assert not opened.entry_window.isVisible()
+
+    def test_the_gesture_is_refused_with_no_document(self, window):
+        """
+        **The defect this pins.** The window opened over an empty editor tab,
+        an indexer could fill in a heading and press Create, and
+        `_create_entry` returned at its first line without a word: no entry,
+        no error, nothing typed into anything.
+
+        Eleven actions were already disabled with nothing open. The entry
+        window's was the twelfth and was missing from that sweep, which is the
+        whole of the fault.
+        """
         window.show()
         window.toggle_entry_window()
-        assert window.entry_window.isVisible()
-        window.toggle_entry_window()
         assert not window.entry_window.isVisible()
+        assert "Open a document" in window.statusBar().currentMessage()
+
+    def test_the_action_is_disabled_with_no_document(self, window):
+        assert not window.entry_window_action.isEnabled()
+
+    def test_the_action_is_enabled_once_one_is_open(self, opened):
+        assert opened.entry_window_action.isEnabled()
+
+    def test_the_title_bar_closes_it(self, opened):
+        """
+        The shared bar reports the gesture; this host resolves it by hiding,
+        because its entry window is a pane in a splitter rather than a dock.
+        """
+        opened.show()
+        opened.toggle_entry_window()
+        assert opened.entry_window.isVisible()
+
+        opened.entry_window.title_bar.close_button.click()
+        assert not opened.entry_window.isVisible()
 
 
 class TestTheGesturesAreTheSuiteS:

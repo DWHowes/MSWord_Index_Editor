@@ -5,6 +5,58 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Five things an indexer asked for, after using it
+
+**The entry window opened with no document, and swallowed what was typed
+into it.** `entry_window_action` was the one gesture missing from the sweep
+that disables eleven others when nothing is open, so the window could be
+opened over an empty tab. An indexer could fill in a heading, press Create,
+and `_create_entry` returned at its first line without a word: no entry, no
+error, nothing. It joins both sweeps and starts disabled, and
+`toggle_entry_window` refuses with a reason as well, because the shortcut is
+a second way in. The other nineteen no-session guards are behind actions that
+really are disabled, so their silence is defence in depth rather than the
+same fault.
+
+**It has a title bar now**, `EntryWindowTitleBar` from the shared package,
+which the LaTeX editor has always had. Closing means hiding here, because
+this entry window is a pane in a splitter rather than a dock; the shared bar
+reports the gesture and this application answers it.
+
+**The caret is visible.** The view used `setReadOnly(True)` and Qt draws no
+cursor in a read-only widget, so clicking into the manuscript told the
+indexer nothing about where the insertion point had landed -- and every
+gesture that acts at the caret was guesswork unless they selected something.
+It uses `bookindexcore.ui.text_view.ReadOnlyTextMixin`, which keeps the
+widget editable and closes every route that writes, including the drop route
+neither editor had guarded.
+
+**Paragraphs have air between them.** The block margins were 8 points on a
+heading and 3 on everything else, which over two thousand paragraphs reads as
+a wall of text. The toolbar has a spacing picker, added to each margin rather
+than replacing it so a heading keeps the larger gap it already had.
+
+**A marked word is drawn in a contrasting ink, and a range shows its
+extent.** The marker was an underline, which is invisible at reading speed.
+The range half needed something that did not exist: `OoxmlBackend.bookmark_spans`,
+`name -> (start, end)` in `read_text` space. A Word range is one field naming
+a bookmark, so the extent lives in the bookmark and nothing here could read it
+back; the view drew the start alone, and an overlapping or an enclosed range
+was invisible until the generated index came out wrong. Start and end are
+matched on `w:id` because that is what Word matches them on, and a bookmark
+with no end is left out rather than given an invented extent.
+
+### The reading font was stored and never read back
+
+Found while adding the spacing control, which would have had the same hole.
+`_store_typography` has written `font_family` and `font_size` into settings
+since step 11b and nothing loaded them, so the broker started every launch at
+Arial 12 and an indexer who chose a larger face for a long day found it gone
+the next morning. `_restore_typography` runs before the frame is built, and
+`_wire_view` pushes both into a newly opened tab so a second tab is not the
+only one still at the defaults.
+
+
 ### Step 11f: the window comes back the shape it was left
 
 The indexer's own finding, and a plain gap: the LaTeX editor remembers its

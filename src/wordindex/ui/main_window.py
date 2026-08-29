@@ -192,7 +192,15 @@ class MainWindow(QMainWindow):
         self.entry_window.entry_edited.connect(self._edit_entry)
         self.entry_window.entry_created.connect(self._create_entry)
         self.entry_window.entry_deleted.connect(self._delete_entry)
+        # The shared title bar reports the gesture and resolves nothing, so
+        # what closing means is answered here. This window is a pane in a
+        # splitter, so it hides; the LaTeX editor's is a dock and closes.
+        self.entry_window.close_requested.connect(self._hide_entry_window)
 
+        # **Before the frame**, because the toolbar reads these when it builds
+        # its pickers and a value restored afterwards would leave the control
+        # showing one thing and the view doing another.
+        self._restore_typography()
         self._build_frame()
 
         file_menu = self.menuBar().addMenu("&File")
@@ -277,6 +285,11 @@ class MainWindow(QMainWindow):
             "Toggle the index &entry window", self.toggle_entry_window)
         self.entry_window_action.setShortcut(
             shortcuts.sequence(shortcuts.TOGGLE_ENTRY_WINDOW))
+        # Off until a document is open, like the other eleven. It was the one
+        # action created enabled, which is why the entry window could be
+        # opened over an empty tab and typed into with nowhere for the entry
+        # to go.
+        self.entry_window_action.setEnabled(False)
         view_menu.addSeparator()
         self.dark_mode_action = view_menu.addAction(
             "&Dark mode", self._toggle_dark_mode)
@@ -342,11 +355,15 @@ class MainWindow(QMainWindow):
         self.entry_window.show_entry(None)
         self.entry_window.hide()
         self.notice.setText("")
+        # `entry_window_action` was the one gesture missing from this sweep,
+        # and that omission is the whole of the defect: eleven actions were
+        # already refused with nothing open, and the twelfth opened a form an
+        # indexer could fill in and submit into nothing at all.
         for action in (self.add_action, self.name_action, self.styles_action,
                        self.mark_action, self.check_action, self.find_action,
                        self.search_action, self.save_action,
                        self.index_document_action, self.close_project_action,
-                       self.reopen_action):
+                       self.reopen_action, self.entry_window_action):
             action.setEnabled(False)
         self.setWindowTitle("Word Index Editor")
         self.statusBar().showMessage("Open a Word manuscript to begin.")
@@ -370,10 +387,19 @@ class MainWindow(QMainWindow):
         **Both halves of scope §3 item 3**: a marker click selects the row in
         the entry table, and a row click moves the manuscript to the marker.
         Each side blocks the other's echo, so the two do not chase each other.
+
+        The reading font and the paragraph spacing are pushed in as well. A
+        view is built with the defaults, so a second tab opened after either
+        was changed would otherwise be the only one still at them.
         """
         view.position_changed.connect(self._show_position)
         view.entry_clicked.connect(self.index_panel.select_entry)
         view.entry_clicked.connect(self._show_in_entry_window)
+
+        broker = AppStyleConfiguration.event_broker()
+        view.apply_typography(str(broker.get_property("font_family")),
+                              int(broker.get_property("font_size")))
+        view.apply_line_spacing(int(broker.get_property("line_spacing") or 0))
 
     def _document_activated(self, path) -> None:
         """
@@ -419,8 +445,12 @@ class MainWindow(QMainWindow):
         The sidebar's panel indices are fixed here, because the toolbar's
         buttons and the focus shortcuts both address panels by number.
         """
+        # `line_spacing=True`: this host has a view of prose to open up, and
+        # the control is declared rather than assumed for the reason the LaTeX
+        # editor's signal-wiring test made unavoidable. See MainToolBar.
         self.tool_bar = MainToolBar(self, SIDEBAR_PANELS,
-                                    icon_root=get_icons_root())
+                                    icon_root=get_icons_root(),
+                                    line_spacing=True)
         self.addToolBar(self.tool_bar)
         self.setStatusBar(MainStatusBar(self))
 
@@ -470,6 +500,7 @@ class MainWindow(QMainWindow):
         self.tool_bar.dark_mode_toggle_requested.connect(self._set_dark_mode)
         self.tool_bar.font_family_changed.connect(self._set_font_family)
         self.tool_bar.font_size_changed.connect(self._set_font_size)
+        self.tool_bar.line_spacing_changed.connect(self._set_line_spacing)
 
         # **How the window was left**, which the LaTeX editor has always
         # remembered and this one did not. The proportions above are the
@@ -511,15 +542,33 @@ class MainWindow(QMainWindow):
         """Bring one sidebar panel forward. The View menu and the toolbar."""
         self.sidebar.show_panel(index)
 
+    def _hide_entry_window(self) -> None:
+        """What the title bar's close button means here: the pane goes away."""
+        self.entry_window.hide()
+
     def toggle_entry_window(self) -> None:
         """
         Show the entry window, or hide it. `Ctrl+\\`, as in the LaTeX editor.
+
+        **Refused with no document open**, and that is a fix rather than a
+        restriction. The window opened perfectly happily over an empty editor
+        tab; an indexer could fill in a heading, press Create, and
+        `_create_entry` would return at its first line without a word. No
+        entry, no error, nothing. A form that accepts typing and discards it
+        is the silent no-op this project has a rule against, and the rule is
+        answered in two places: here, so the window is not offered when it
+        cannot work, and at each guard that can still be reached another way,
+        so that it says why.
 
         Showing it re-applies the proportions, because a pane that was hidden
         has no height of its own to come back to and Qt will otherwise give it
         a sliver.
         """
         wanted = not self.entry_window.isVisible()
+        if wanted and (self.session is None or self._path is None):
+            self.statusBar().showMessage(
+                "Open a document before making index entries.")
+            return
         self.entry_window.setVisible(wanted)
         if wanted:
             self._apply_proportions()
@@ -693,12 +742,65 @@ class MainWindow(QMainWindow):
         self.dark_mode_action.setChecked(bool(is_dark))
         self.tool_bar.refresh_theme_presentation(bool(is_dark))
 
+    def _restore_typography(self) -> None:
+        """
+        Put the reading font and the paragraph spacing back as they were left.
+
+        **They were stored and never read back.** `_store_typography` has
+        written `font_family` and `font_size` into this application's settings
+        since step 11b, and nothing loaded them: the broker starts every
+        launch at Arial 12, so an indexer who had chosen a larger face for a
+        long day found it gone the next morning and the stored value sitting
+        in the registry unused. Found while adding the spacing control, which
+        would have had exactly the same hole.
+
+        The defaults are the broker's own, so a first launch is unchanged.
+        """
+        settings = Preferences().settings
+        broker = AppStyleConfiguration.event_broker()
+        for key, cast in (("font_family", str),
+                          ("font_size", int),
+                          ("line_spacing", int)):
+            stored = settings.value(key)
+            if stored in (None, ""):
+                continue
+            try:
+                broker.set_property(key, cast(stored))
+            except (TypeError, ValueError):
+                # A settings file written by hand, or by a later version. The
+                # default is a better answer than a crash at startup.
+                continue
+
     def _set_font_family(self, family: str) -> None:
         self._store_typography("font_family", family)
 
     def _set_font_size(self, size: int) -> None:
         self._store_typography("font_size", int(size))
         self.view.setStyleSheet("")
+
+    def _set_line_spacing(self, points: int) -> None:
+        """
+        Extra space between paragraphs, across every open manuscript.
+
+        **The markers are redrawn**, for the reason `_store_typography`
+        records at length: spacing lives in each paragraph's block format, so
+        changing it re-renders the document, and a re-rendered document
+        carries no entry layer until something draws one. Choosing a font size
+        used to empty the markers silently and it was found by photographing a
+        page that should have had some. The same trap, one control along.
+        """
+        points = max(0, int(points))
+        AppStyleConfiguration.event_broker().set_property("line_spacing", points)
+        settings = Preferences().settings
+        settings.setValue("line_spacing", points)
+        settings.sync()
+
+        open_views = [self.tabs.view_for(path)
+                      for path in self.tabs.documents()]
+        for view in open_views or [self.view]:
+            if view is not None:
+                view.apply_line_spacing(points)
+        self._draw_markers()
 
     def _store_typography(self, key: str, value) -> None:
         """
@@ -847,6 +949,7 @@ class MainWindow(QMainWindow):
         self.search_action.setEnabled(True)
         self.index_document_action.setEnabled(True)
         self.close_project_action.setEnabled(True)
+        self.entry_window_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -1032,6 +1135,35 @@ class MainWindow(QMainWindow):
             (r.entry_id, self._positions[r.entry_id], r.heading_raw)
             for r in self._references
             if r.entry_id in self._positions)
+        self._draw_ranges()
+
+    def _draw_ranges(self) -> None:
+        """
+        How far each of this document's page ranges reaches.
+
+        A Word range is one field naming a bookmark, so the extent is in the
+        bookmark rather than in the entry, and until `bookmark_spans` existed
+        nothing here could read it back: the view drew a range's start and an
+        indexer had no way to see that two of them overlapped, or that one sat
+        inside another, before the generated index came out wrong.
+
+        Entries with no range contribute nothing, which is most of them, and a
+        bookmark whose end is missing is absent from `bookmark_spans` rather
+        than being drawn with an invented extent.
+        """
+        if self.session is None or self._path is None:
+            self.view.show_ranges(())
+            return
+        backend = self.session.backends.get(self._path)
+        if backend is None:
+            self.view.show_ranges(())
+            return
+
+        spans = backend.bookmark_spans(BODY_PART)
+        self.view.show_ranges(
+            (r.entry_id, *spans[r.range_extent])
+            for r in self._references
+            if r.range_extent and r.range_extent in spans)
 
     def _go_to_entry(self, entry_id) -> None:
         """
