@@ -5,6 +5,50 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Consolidate cross-references, on the Index menu
+
+The gesture the last two commits built the machinery for. It gathers each
+heading's cross-references into one, shows every change in `PreviewDialog`
+before anything happens, and applies only the rows left ticked.
+
+**It runs over the project, not the document in front.** References are handed
+to the consolidator in the order the book reads in: the indexer's own ordering
+of the file list, then each backend's `order_key` within a file. That is what
+decides which occurrence survives, and it is the half the VBA macro could not
+do -- it iterated `ActiveDocument.Fields`, so a heading whose cross-references
+sit in two chapters could never be gathered at all.
+
+Refusals are reported rather than skipped. A heading carrying both a *see* and
+a *see also* is a contradiction only the indexer can resolve, and one with no
+room for another level is a placement decision; neither may be quietly left
+out, because an omitted heading looks exactly like a heading with nothing to
+consolidate.
+
+### `PresentationPrefs`: the third store, and the third half of one fault
+
+`_save_preferences` took the shared preferences payload and stored the Check
+Index and Generated Index keys out of it. **Nothing stored the Presentation
+page's.** So `xref_placement`, `see_label` and `see_also_label` were collected
+from the indexer, handed to this window, and dropped on the floor.
+
+That is the same fault as the one the core commit fixed, one layer down and
+found by trying to read a setting that had never been written. A setting that
+is neither stored nor read looks exactly like a setting that works.
+
+The store owns three keys and not the whole page, deliberately: nothing here
+reads capitalisation, subheading order or the passim settings yet, and storing
+a value nothing reads is precisely what this module exists to stop.
+
+### A test that wrote the indexer's real preferences
+
+Caught before it was committed rather than after: `test_the_window_saves_them`
+constructed `PresentationPrefs()` with no argument, which is the live
+`QSettings`, so running the suite changed the settings of whoever ran it. It
+takes a temporary store now. Worth naming because it is invisible when it
+works -- the test passes either way, and only the machine is different
+afterwards.
+
+
 ### Cross-reference placement: composing it, and running it over a project
 
 `xref_placement` turns a consolidated cross-reference into the `XE` field Word

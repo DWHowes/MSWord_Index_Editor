@@ -36,6 +36,7 @@ from pathlib import Path
 
 from bookindexcore.backend.locator import Locator, SourceEdit
 from bookindexcore.ui.findings_dialog import FindingsDialog
+from bookindexcore.ui.preview_dialog import PreviewDialog
 from bookindexcore.ui.help.controller import HelpController
 from bookindexcore.ui.identity import AppIdentity
 from bookindexcore.qt.watcher import ExternalFileWatcherEngine
@@ -58,6 +59,8 @@ from .. import __version__
 from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
 from ..checking import check_project
+from ..presentation_prefs import PresentationPrefs
+from ..xref_run import apply_changes, build_change_set
 from ..entries import all_references, heading_rows
 from ..generated_index import GeneratedIndexPrefs, index_instruction
 # The module rather than its names: this window has a `write_index_document`
@@ -252,6 +255,9 @@ class MainWindow(QMainWindow):
             "&Reopen changed documents…", self.reopen_changed_documents)
         self.reopen_action.setEnabled(False)
         index_menu.addSeparator()
+        self.consolidate_action = index_menu.addAction(
+            "Consolidate c&ross-references…", self.consolidate_xrefs)
+        self.consolidate_action.setEnabled(False)
         self.check_action = index_menu.addAction(
             "&Check index…", self.check_index)
         self.check_action.setEnabled(False)
@@ -363,7 +369,8 @@ class MainWindow(QMainWindow):
                        self.mark_action, self.check_action, self.find_action,
                        self.search_action, self.save_action,
                        self.index_document_action, self.close_project_action,
-                       self.reopen_action, self.entry_window_action):
+                       self.reopen_action, self.entry_window_action,
+                       self.consolidate_action):
             action.setEnabled(False)
         self.setWindowTitle("Word Index Editor")
         self.statusBar().showMessage("Open a Word manuscript to begin.")
@@ -950,6 +957,7 @@ class MainWindow(QMainWindow):
         self.index_document_action.setEnabled(True)
         self.close_project_action.setEnabled(True)
         self.entry_window_action.setEnabled(True)
+        self.consolidate_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -1324,6 +1332,99 @@ class MainWindow(QMainWindow):
 
     # -- assembly: step 9 -------------------------------------------------
 
+    def consolidate_xrefs(self) -> None:
+        """
+        Gather each heading's cross-references into one, with a preview.
+
+        **Propose, never apply.** Consolidating removes `XE` fields an indexer
+        put in a manuscript, and §2's promise is that what is handed back
+        differs by the added fields and nothing else, so every removal is a row
+        that can be unticked before anything happens.
+
+        The references are handed over **in project order**: the file list's
+        reading order, then each backend's own within a document. That is what
+        decides which occurrence survives, and it is the thing the VBA macro
+        this replaces could not do, because it worked one document at a time.
+        """
+        if self.session is None or self._path is None:
+            self.statusBar().showMessage(
+                "Open a document before consolidating cross-references.")
+            return
+
+        prefs = PresentationPrefs()
+        changes, refused = build_change_set(
+            self._references,
+            placement=prefs.placement(),
+            profile=prefs.profile(),
+            order_of=self._project_order,
+        )
+
+        if not changes:
+            self._report_refusals(refused, nothing_to_do=True)
+            return
+
+        dialog = PreviewDialog(changes, self)
+        dialog.exec()
+        approved = dialog.approved()
+        if not approved:
+            self.statusBar().showMessage("No cross-references were changed.")
+            return
+
+        run = apply_changes(approved, references=self._references,
+                            backend_for=self.session.backend_of)
+        self._after_change(str(run))
+        self._report_refusals(refused, run=run)
+
+    def _project_order(self, reference):
+        """
+        A key putting a reference in the order the book reads in.
+
+        Two parts, because a project has two: **which document**, from the
+        indexer's own ordering of the file list, and **where inside it**, from
+        that backend's `order_key`. Neither alone is enough, and only this
+        window has both -- which is why `consolidate` takes its references
+        already ordered rather than working it out.
+        """
+        documents = list(self.session.documents) if self.session else []
+        path = self.session.document_of(reference.entry_id) if self.session else None
+        first = documents.index(path) if path in documents else len(documents)
+
+        backend = self.session.backend_of(reference.entry_id) if self.session else None
+        try:
+            second = backend.order_key(reference.locator) if backend else 0
+        except Exception:                       # noqa: BLE001 -- a stale anchor
+            second = 0
+        return (first, second)
+
+    def _report_refusals(self, refused, *, run=None, nothing_to_do=False) -> None:
+        """
+        Say what was not done, and why, rather than leaving it out.
+
+        A heading refused for carrying both a *see* and a *see also* is the
+        indexer's to resolve, and one refused for having no room for another
+        level is a placement decision. Neither is something this window may
+        quietly skip: it would look exactly like a heading with nothing to
+        consolidate.
+        """
+        lines = [f"{c.heading}: {c.reason}" for c in refused]
+        if run is not None:
+            lines += [f"{entry_id}: {why}" for entry_id, why in run.refused]
+
+        if nothing_to_do and not lines:
+            self.statusBar().showMessage(
+                "Every heading's cross-references are already gathered.")
+            return
+        if not lines:
+            return
+
+        shown = "\n\n".join(lines[:12])
+        if len(lines) > 12:
+            shown += f"\n\n(and {len(lines) - 12} more)"
+        QMessageBox.information(
+            self, "Cross-references not consolidated",
+            f"{len(lines)} heading{'s' if len(lines) != 1 else ''} "
+            f"could not be consolidated:\n\n{shown}")
+
     def check_index(self) -> None:
         """
         Run the shared checking rules over every entry in the project.
@@ -1458,6 +1559,10 @@ class MainWindow(QMainWindow):
         """
         CheckIndexPrefs().save(payload)
         GeneratedIndexPrefs().save(payload)
+        # The third store, added when the cross-reference work found that this
+        # page's placement and label settings were collected, handed over, and
+        # stored by nothing at all.
+        PresentationPrefs().save(payload)
 
     def _run(self, entry_id, edit, said: str) -> None:
         """
