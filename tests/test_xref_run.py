@@ -61,6 +61,7 @@ class TestWhatItProposes:
         refs = [ref("a", "Kant", "X"), ref("b", "Kant", "Y")]
         changes, _ = build_change_set(refs)
         assert "cannot be undone" in changes.prompt
+        assert "**" not in changes.prompt, "the preview label draws plain text"
         assert "save" in changes.prompt
 
     def test_the_placement_reaches_the_instruction(self):

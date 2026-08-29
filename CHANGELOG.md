@@ -5,6 +5,30 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Two defects found by running it against a real book
+
+the CUP monograph (CUP, 9781108497831), on a copy, with the original's
+SHA-256 recorded before and checked after. 2,269 entries, 71 carrying a
+cross-reference, 9 headings proposed for consolidation and none refused. The
+largest is **Space**, where 14 references become one.
+
+**Every label came out lower case.** `PRESENTATION_DEFAULTS` took all three of
+its values from the shared `STYLE_DEFAULTS`, where `see_also_label` is
+`see also` -- which suits a format that places the label mid-entry. Word does
+not: an `INDEX` field renders `Heading. <payload>`, so the label begins after a
+full stop and `Kant, Immanuel. see also Empiricism` reads as a slip. This
+application declares its own capitalised defaults now, which is
+`xref_label_owner` being *ours* meaning ours to get right. An indexer can still
+override them.
+
+**The preview's one important sentence was wearing markup nobody rendered.**
+The prompt said `**This cannot be undone**` and `PreviewDialog` draws it in an
+ordinary label, so the asterisks printed. Plain words now, pinned by a test.
+
+Neither would have been found by the suite: both were correct in every
+assertion and wrong on the page. Both were found by looking at it.
+
+
 ### Consolidate cross-references, on the Index menu
 
 The gesture the last two commits built the machinery for. It gathers each

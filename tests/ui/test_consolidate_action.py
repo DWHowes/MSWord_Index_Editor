@@ -121,12 +121,33 @@ class TestTheSettingsArrive:
         assert values["see_also_label"] == "Compare"
         assert "not_ours" not in values
 
-    def test_the_defaults_are_the_shared_profiles(self, qt_app, tmp_path):
+    def test_the_placement_default_is_the_shared_one(self, qt_app, tmp_path):
         from PySide6.QtCore import QSettings
         store = PresentationPrefs(QSettings(str(tmp_path / "empty.ini"),
                                             QSettings.Format.IniFormat))
         assert store.placement() == XREF_AT_END
-        assert store.profile().see_also_label == "see also"
+
+    def test_the_labels_are_capitalised_because_word_renders_them_after_a_stop(
+            self, qt_app, tmp_path):
+        """
+        Word renders `Heading. <payload>`, so the label begins after a full
+        stop and the shared lower-case default reads as a typing slip.
+
+        **Found by running a consolidation over a real book**: all nine
+        proposed headings came back reading `see also` mid-sentence.
+        """
+        from PySide6.QtCore import QSettings
+        store = PresentationPrefs(QSettings(str(tmp_path / "empty.ini"),
+                                            QSettings.Format.IniFormat))
+        assert store.profile().see_also_label == "See also"
+        assert store.profile().see_label == "See"
+
+    def test_an_indexer_can_still_override_them(self, qt_app, tmp_path):
+        from PySide6.QtCore import QSettings
+        store = PresentationPrefs(QSettings(str(tmp_path / "own.ini"),
+                                            QSettings.Format.IniFormat))
+        store.save({"see_also_label": "Compare"})
+        assert store.profile().see_also_label == "Compare"
 
     def test_the_window_saves_them(self, window, monkeypatch, tmp_path):
         """

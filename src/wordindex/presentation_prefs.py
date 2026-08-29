@@ -43,9 +43,22 @@ PREF_PREFIX = "presentation"
 #: stop, so it would be an odd thing to start doing here.
 PRESENTATION_KEYS = ("xref_placement", "see_label", "see_also_label")
 
-PRESENTATION_DEFAULTS: Dict[str, Any] = {
-    key: STYLE_DEFAULTS[key] for key in PRESENTATION_KEYS
-}
+PRESENTATION_DEFAULTS: Dict[str, Any] = dict(
+    {key: STYLE_DEFAULTS[key] for key in PRESENTATION_KEYS},
+    # **Capitalised, where the shared default is not, and that is Word.**
+    # An `INDEX` field renders a cross-reference as `Heading. <payload>`, so
+    # the label begins after a full stop and a lower-case one reads as a
+    # typing slip. The shared default suits a format that places the label
+    # differently; this is the same measurement `xref_label_owner` records,
+    # which is that in this format the words are ours and so is getting them
+    # right.
+    #
+    # Found by running a consolidation over a real book and reading the
+    # proposal: every one of nine headings came out `see also`, mid-sentence,
+    # after a full stop.
+    see_label="See",
+    see_also_label="See also",
+)
 
 
 class PresentationPrefs:

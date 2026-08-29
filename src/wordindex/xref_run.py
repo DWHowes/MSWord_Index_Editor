@@ -118,9 +118,13 @@ def build_change_set(references, *, placement=XREF_AT_END, profile=None,
                   if xref.superseded else ""),
         ))
 
+    # Plain words, no markup: the preview draws this in an ordinary label, so
+    # asterisks meant as emphasis print as asterisks. Seen in a screenshot of
+    # a real run, where the one sentence that had to carry weight was the one
+    # wearing punctuation nobody rendered.
     prompt = (f"{len(changes)} heading"
               f"{'s' if len(changes) != 1 else ''} would have their "
-              f"cross-references gathered into one. **This cannot be undone**: "
+              f"cross-references gathered into one. This cannot be undone: "
               f"nothing reaches disk until you save, so closing without saving "
               f"is the only way back.")
     return ChangeSet(title="Consolidate cross-references",
