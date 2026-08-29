@@ -5,6 +5,23 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 11f: the window comes back the shape it was left
+
+The indexer's own finding, and a plain gap: the LaTeX editor remembers its
+size, its place and its dividers, and this one opened at 1180 by 780 with the
+sidebar at 30% however it had been left.
+
+It now remembers **the window and all three dividers**: the sidebar against the
+manuscript, the manuscript against the entry window, and the file list against
+the outline. Each is stored under its own name, so a fourth added later cannot
+inherit a third's place. The proportions in `_apply_proportions` are the answer
+for a first launch only.
+
+Written on close, in this application's own store (D10). **Only the layout is
+written**: entries are the indexer's to save, and a window that quietly wrote a
+manuscript because it was closing would be the one thing this application is
+built not to do. That has its own test.
+
 ### Step 10a: the User Guide's figures, and what taking them found
 
 Ten figures, **rendered from the application rather than drawn**:

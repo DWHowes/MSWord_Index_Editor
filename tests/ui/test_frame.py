@@ -259,3 +259,74 @@ class TestTypography:
         sizes = {document.findBlockByNumber(n).charFormat().font().pointSize()
                  for n in range(min(4, document.blockCount()))}
         assert sizes and max(sizes) >= 20
+
+
+class TestTheLayoutIsRemembered:
+    """
+    What the indexer noticed: the LaTeX editor comes back the shape it was
+    left and this one did not.
+    """
+
+    def _window(self, store):
+        from wordindex.ui.main_window import MainWindow
+
+        return MainWindow()
+
+    def test_the_window_size_and_the_dividers_come_back(self, qt_app,
+                                                        monkeypatch, tmp_path):
+        from PySide6.QtCore import QSettings
+        from wordindex.ui.main_window import MainWindow
+
+        store = QSettings(str(tmp_path / "wdx.ini"), QSettings.Format.IniFormat)
+        monkeypatch.setattr("wordindex.ui.preferences.settings", lambda: store)
+
+        first = MainWindow()
+        first.resize(700, 520)
+        first.main_splitter.setSizes([180, 520])
+        first.close()
+
+        second = MainWindow()
+        assert second.size().width() == 700
+        assert second.main_splitter.saveState() == first.main_splitter.saveState()
+
+    def test_every_divider_has_its_own_place(self, qt_app, monkeypatch,
+                                             tmp_path):
+        from PySide6.QtCore import QSettings
+        from wordindex.ui.main_window import MainWindow
+
+        store = QSettings(str(tmp_path / "wdx.ini"), QSettings.Format.IniFormat)
+        monkeypatch.setattr("wordindex.ui.preferences.settings", lambda: store)
+
+        first = MainWindow()
+        assert set(first._splitters()) == {"main", "right", "files"}
+        first.files_splitter.setSizes([90, 610])
+        first.right_splitter.setSizes([500, 120])
+        first.close()
+
+        second = MainWindow()
+        assert second.files_splitter.saveState() ==             first.files_splitter.saveState()
+        assert second.right_splitter.saveState() ==             first.right_splitter.saveState()
+
+    def test_closing_writes_the_layout_and_nothing_else(self, qt_app,
+                                                        monkeypatch, tmp_path):
+        """
+        Entries are the indexer's to save. A window that quietly wrote a
+        manuscript because it was closing would be the one thing this
+        application is built not to do.
+        """
+        from PySide6.QtCore import QSettings
+        from wordindex.ui.main_window import MainWindow
+
+        store = QSettings(str(tmp_path / "wdx.ini"), QSettings.Format.IniFormat)
+        monkeypatch.setattr("wordindex.ui.preferences.settings", lambda: store)
+
+        window = MainWindow()
+        window.open_document(sample_document(tmp_path / "01_Chapter One.docx"))
+        entry = window._references[0]
+        window._edit_entry(entry.entry_id, 'XE "Not saved"')
+        before = (tmp_path / "01_Chapter One.docx").read_bytes()
+
+        window.close()
+
+        assert (tmp_path / "01_Chapter One.docx").read_bytes() == before
+        assert store.value("layout/geometry")

@@ -46,7 +46,8 @@ from bookindexcore.ui.style import AppStyleConfiguration
 from bookindexcore.ui.tab_find_dialog import TabFindDialog
 from bookindexcore.ui.theme.config_model import ThemeConfigModel
 from bookindexcore.ui.theme.controller import ThemeConfigController
-from bookindexcore.ui.window import MainStatusBar, MainToolBar, PanelButton
+from bookindexcore.ui.window import (
+    MainStatusBar, MainToolBar, PanelButton, WindowLayoutState)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor, QTextDocument
 from PySide6.QtWidgets import (
@@ -424,7 +425,8 @@ class MainWindow(QMainWindow):
         self.setStatusBar(MainStatusBar(self))
 
         self.sidebar = SidebarPanels(self)
-        files_page = QSplitter(Qt.Orientation.Vertical)
+        self.files_splitter = QSplitter(Qt.Orientation.Vertical)
+        files_page = self.files_splitter
         files_page.addWidget(self.file_list)
         files_page.addWidget(self.outline_tree)
         files_page.setStretchFactor(1, 3)
@@ -468,6 +470,35 @@ class MainWindow(QMainWindow):
         self.tool_bar.dark_mode_toggle_requested.connect(self._set_dark_mode)
         self.tool_bar.font_family_changed.connect(self._set_font_family)
         self.tool_bar.font_size_changed.connect(self._set_font_size)
+
+        # **How the window was left**, which the LaTeX editor has always
+        # remembered and this one did not. The proportions above are the
+        # answer for a first launch only; after that an indexer's own division
+        # of the screen is what opens.
+        self._layout_state = WindowLayoutState(Preferences().settings)
+        self._layout_state.restore(self, self._splitters())
+
+    def _splitters(self) -> dict:
+        """
+        The dividers worth remembering, by name.
+
+        Named rather than numbered, because a fourth one added later must not
+        silently inherit a third's stored position.
+        """
+        return {"main": self.main_splitter,
+                "right": self.right_splitter,
+                "files": self.files_splitter}
+
+    def closeEvent(self, event) -> None:                        # noqa: N802
+        """
+        Remember the layout on the way out.
+
+        Only the layout: entries are the indexer's to save, and a window that
+        quietly wrote a manuscript because it was closing would be the one
+        thing this application is built not to do.
+        """
+        self._layout_state.save(self, self._splitters())
+        super().closeEvent(event)
 
     def _apply_proportions(self) -> None:
         """30/70 across, 80/20 down. The LaTeX editor's proportions."""
