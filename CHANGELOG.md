@@ -5,6 +5,49 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Phase X0: the cross-reference label survives into a separate index document
+
+Six measurements against Word 16.0, in `probe_xref_placement.py`, written up in
+`xref_placement_measurements.md`. The question the indexer could not answer for
+their macro: it italicises the words *See also* inside the `XE` field code, and
+nobody knew whether that reaches an index generated in a **different** document
+through `RD`.
+
+**It does, and it lands on exactly the right characters.** Read back from the
+generated index: `Kant, Immanuel. ` roman, `See also` **italic**,
+` Empiricism` roman. Every gating question came back positive, so nothing in
+the scope is blocked, and roman -- accepted as a fallback -- is not needed.
+
+A **character style** does not survive: it is not carried into the index
+document at all, so a run referring to it renders in the default. Direct
+formatting is not the crude option, it is the only one that works.
+
+`;aaa` and `;zzz` sort first and last in an index merged from two `RD`
+documents, so placements B and C exist in this workflow. And a heading with a
+locator on one field and `	` on another keeps both, which confirms by
+measurement the design constraint the scope had only derived.
+
+**One finding came from checking a negative.** The first run showed placements
+B and C with roman labels, which looked like a real limitation; they had simply
+not been marked. Marked, they carry an italic label like A. Written up as it
+happened, because the difference between *cannot* and *was not asked* would
+have sent the design somewhere it did not need to go.
+
+### Two method notes about driving Word
+
+`Fields.Add(range, wdFieldIndex, ...)` into a document holding `RD` fields
+**crashes Word outright**, reproducibly. The probe stopped using COM to build
+the index document and used this application's own `write_index_document`
+instead, which writes the same fields as raw OOXML: the crash disappeared and
+the measurement got better, because what is indexed is now the real output
+rather than a COM approximation of it.
+
+And a crashed Word raises a dialog `DisplayAlerts = 0` does not suppress, so a
+headless instance waits for a click nobody can give it. Three runs stalled that
+way before each phase was put in a child process under a hard timeout. Any
+probe driving an Office application should be built that way from the start.
+
+
 ### Five things an indexer asked for, after using it
 
 **The entry window opened with no document, and swallowed what was typed

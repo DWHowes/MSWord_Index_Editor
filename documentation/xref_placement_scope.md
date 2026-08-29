@@ -1,5 +1,12 @@
 # Cross-reference placement, including into a separate index document
 
+**APPROVED 29 August 2026. Phase X0 RUN 29 August 2026**, results in
+`xref_placement_measurements.md`: every gating question came back positive, so
+nothing in §5 is blocked. The italic label survives across an `RD` boundary in
+all three placements, which is better than answer 4 settled for, and a
+character style does not, so direct formatting is the mechanism. §4's table is
+kept as written with the answers beside it.
+
 **APPROVED 29 August 2026.** The four questions in §8 are answered. No code
 has been written yet; §8.1's first gap was fixed separately, as its own
 commit in `bookindexcore` (`references.wrong_type` counts sub-entries as
@@ -125,14 +132,14 @@ house style wants italic, with no error.
 No code beyond probes. Probes go in `documentation/e0_probes/`, carrying their
 results in their docstrings, as the thirty-five already there do.
 
-| # | question | why it decides something |
-|---|---|---|
-| **X0.1** | Does italic on `See also` inside an `XE` field code reach an index generated **in the same document**? | The macro's own assumption. If it fails here the macro works for a reason nobody has identified, and the port must not copy it. |
-| **X0.2** | Does it reach an index generated in a **separate document via `RD`**? | **The question the indexer could not answer.** Everything about how the label is emitted depends on it. |
-| **X0.3** | If not: does a **character style** on that run survive where direct formatting does not? | The next candidate, and the one Word's own model would favour. |
-| **X0.4** | Do the `;aaa` / `;zzz` placement keys sort correctly in an index merged from several `RD` documents? | B and C are worthless if the merged sort does not honour them. Expected to work, unverified. |
-| **X0.5** | Does `\e` interact with a consolidated cross-reference? | Already measured that `\e` right-aligns *See* against the page-number margin. Worth re-checking against a long consolidated target list, which is the case that will look worst. |
-| **X0.6** | ~~What does an index do with two cross-references on one heading?~~ **Demoted by answer 2.** | It is a fault to report rather than a layout to measure, so consolidation refuses the heading and `references.both_kinds` names it. Still worth a look, because the check reports and does not block, so a document can reach Word in that state. Lowest priority of the six. |
+| # | question | why it decides something | result |
+|---|---|---|---|
+| **X0.1** | Does italic on `See also` inside an `XE` field code reach an index generated **in the same document**? | The macro's own assumption. If it fails here the macro works for a reason nobody has identified, and the port must not copy it. | **ANSWERED: ITALIC.** The assumption holds. |
+| **X0.2** | Does it reach an index generated in a **separate document via `RD`**? | **The question the indexer could not answer.** Everything about how the label is emitted depends on it. | **ANSWERED: ITALIC, and only the label.** Survives the `RD` boundary intact. |
+| **X0.3** | If not: does a **character style** on that run survive where direct formatting does not? | The next candidate, and the one Word's own model would favour. | **ANSWERED: roman.** The style is not carried into the index document at all, so direct formatting is the only mechanism. Closed. |
+| **X0.4** | Do the `;aaa` / `;zzz` placement keys sort correctly in an index merged from several `RD` documents? | B and C are worthless if the merged sort does not honour them. Expected to work, unverified. | **ANSWERED: yes**, first and last as intended. B and C exist in this workflow. |
+| **X0.5** | Does `\e` interact with a consolidated cross-reference? | Already measured that `\e` right-aligns *See* against the page-number margin. Worth re-checking against a long consolidated target list, which is the case that will look worst. | **ANSWERED:** locator and cross-reference coexist; `\e` moves the separator as already known. |
+| **X0.6** | ~~What does an index do with two cross-references on one heading?~~ **Demoted by answer 2.** | It is a fault to report rather than a layout to measure, so consolidation refuses the heading and `references.both_kinds` names it. Still worth a look, because the check reports and does not block, so a document can reach Word in that state. Lowest priority of the six. | **ANSWERED:** `Fees. See Costs, See also Charges`, chained with a comma. A fault, as answer 2 decided. |
 
 **X0.2 and X0.3 are no longer blocking**, per answer 4: roman is acceptable.
 They still run, because an italic label is worth having where it is available
