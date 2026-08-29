@@ -5,6 +5,51 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Cross-reference placement: composing it, and running it over a project
+
+`xref_placement` turns a consolidated cross-reference into the `XE` field Word
+wants, in each of the three placements, every shape read back out of a
+generated index in phase X0. The two sub-entry placements go through
+`XEDialect.build_level` rather than string assembly, so a heading containing a
+semicolon stays correct: E4 §3 measured that *Smith; or, The Tale* otherwise
+files under **O**.
+
+`xref_run` assembles a `ChangeSet` for a whole project and applies the approved
+part. Consolidating deletes `XE` fields an indexer put in a manuscript, and §2's
+promise is that what is handed back differs by the added fields and nothing
+else, so every removal is a row that can be unticked.
+
+**The surviving reference is rewritten in place rather than replaced.** Every
+reference being gathered up already carries `	` and therefore contributes no
+locator, so the first can simply be rewritten: one operation fewer, no position
+to look up, and the consolidated reference keeps the place in the document the
+first one had. The rewrite happens before any removal, so a refused write costs
+nothing; the other order deletes an indexer's cross-references and then fails to
+write the replacement.
+
+A heading with no room for another level is refused **by name**, rather than
+written at the wrong depth or quietly switched to a placement nobody chose.
+
+Three defects of the VBA macro are not inherited: targets are joined and split
+on a semicolon, so *Hume, David* stays one target where the macro makes it two;
+the label comes from `StyleProfile` rather than being hard-coded; and nothing
+strips the letters "See" from the middle of a target.
+
+### A correction: this application has no undo
+
+The scope for this feature said the run would be "one undoable command" because
+this application routes edits through `IndexCommandStack`. **It does not, and
+never has.** The core has the stack; nothing here has adopted it, so no edit is
+reversible: not a consolidation, not a marked selection, not a deleted entry.
+
+What exists instead is that nothing reaches disk until Save, which is the whole
+application's safety net rather than a weakness of this feature. The preview
+says so in those words, because an indexer approving sixty deletions is
+entitled to know what taking them back would cost. Adopting the command stack
+is real work and its own scope; it is named in `xref_run` rather than left for
+somebody to find.
+
+
 ### Phase X0: the cross-reference label survives into a separate index document
 
 Six measurements against Word 16.0, in `probe_xref_placement.py`, written up in

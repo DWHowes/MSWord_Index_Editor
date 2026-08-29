@@ -431,8 +431,26 @@ class XEDialect:
                 return XRefSpec(kind, remainder)
         return None
 
-    def build_xref(self, kind: str, target: str) -> str:
-        prefix = "See also" if kind == XREF_SEEALSO else "See"
+    def build_xref(self, kind: str, target: str, *, labels=None) -> str:
+        r"""
+        The words Word will print, because Word prints them verbatim.
+
+        `xref_label_owner` is `XREF_LABEL_OURS` here, measured in E7: Word
+        renders the `	` payload exactly as given and contributes only the
+        `. ` separator. So the label is the project's to choose, and `labels`
+        is where its choice arrives -- `StyleProfile.see_label` and
+        `see_also_label`, which were collected by the Presentation page and
+        reached nothing at all until this argument existed.
+
+        **A custom label makes the reference unreadable to `parse_xref`**, and
+        that is the format rather than this method: Word stores the rendered
+        words and nothing else, so *See also* is the only thing marking a
+        reference as a *see also*. Renaming it to *Compare* produces exactly
+        what the indexer asked for on the page and an entry this application
+        can no longer classify. Worth saying beside the control.
+        """
+        default = "See also" if kind == XREF_SEEALSO else "See"
+        prefix = (labels or {}).get(kind) or default
         return f"{prefix} {target}"
 
     # -- presentation -------------------------------------------------------
@@ -617,7 +635,8 @@ class XEDialect:
                                               (False, False))
         return self._with_flag(self._with_flag(raw, "b", bold), "i", italic)
 
-    def with_xref(self, raw: str, kind: str = "", target: str = "") -> str:
+    def with_xref(self, raw: str, kind: str = "", target: str = "",
+                  *, labels=None) -> str:
         r"""
         Set or clear ``\t``. An empty target removes the switch.
 
@@ -626,7 +645,7 @@ class XEDialect:
         target alone.
         """
         target = (target or "").strip()
-        payload = self.build_xref(kind, target) if target else ""
+        payload = self.build_xref(kind, target, labels=labels) if target else ""
         return self._with_switch(raw, "t", payload, quoted=True)
 
     def _with_flag(self, raw: str, switch: str, on: bool) -> str:
