@@ -6,7 +6,10 @@ not something to assume:
 
 * a field **crossing** a paragraph -- well formed, opens in one paragraph and
   closes in a later one. If Word indexes it, the application is silently
-  short an entry the book will print, and the finding is an error.
+  short an entry the book will print, and the finding is an error. *What the
+  printed line below does not show, because this probe collapses whitespace,
+  is that the two paragraphs come out as one*; see
+  `probe_crossing_field_layout.py`, which renders a matched pair.
 * a field with **no beginning** -- an `end` with no `begin`. The corpus has
   one, and Word appeared to ignore it; a constructed control says so without
   the rest of a real book around it.

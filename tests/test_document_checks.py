@@ -179,6 +179,20 @@ class TestTheRules:
         assert [f.rule for f in found] == [FIELD_CROSSES_PARAGRAPH]
         assert "Word indexes it" in found[0].message
 
+    def test_a_crossing_field_says_the_paragraphs_merge(self, tmp_path):
+        """
+        The second half of that fault, and the half a reader can *see*. The
+        paragraph mark falls inside the field, so Word swallows it: rendered
+        against a matched control, two paragraphs print as one with the
+        sentences run together. Measured in
+        `documentation/probe_crossing_field_layout.py`.
+        """
+        found, _ = self._findings(
+            tmp_path,
+            paragraph(BEGIN, instr('XE "Crossing"')),
+            paragraph(END))
+        assert "print as one" in found[0].message
+
     def test_a_finding_names_no_entries(self, tmp_path):
         """There is no entry. That is the finding."""
         found, _ = self._findings(tmp_path, paragraph(

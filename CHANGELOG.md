@@ -37,12 +37,18 @@ do not ship the same way**:
   anything, and this one has something to find.*
 - **`document.field_crosses_paragraph`, off** — a field opening in one
   paragraph and closing in another. **Word indexes it and this application
-  does not**, measured the same way. None in the corpus, so leaving it on
-  would add a rule to every run that has never had anything to say. The walk
-  stays per paragraph deliberately — the reset is what stops one unmatched
-  `begin` swallowing the rest of a document — so the answer is to report the
-  first one rather than to widen the walk and buy a whole-document failure
-  mode.
+  does not**, measured the same way. *And it does something visible*: the
+  paragraph mark falls inside the field, so Word swallows it and **the two
+  paragraphs print as one**, sentences run together. Rendered against a
+  matched control with the same text and no field, and confirmed on the
+  rasterised page rather than in a text layer —
+  `probe_crossing_field_layout.py`. The first extraction had collapsed
+  whitespace and hidden it, which is why the pair exists. None in the corpus,
+  so leaving the rule on would add one to every run that has never had
+  anything to say. The walk stays per paragraph deliberately — the reset is
+  what stops one unmatched `begin` swallowing the rest of a document — so the
+  answer is to report the first one rather than to widen the walk and buy a
+  whole-document failure mode.
 
 *One cost of shipping a rule on is named rather than left to be found*: a rule
 built for the settings page, with no faults to look at, is now reached by a

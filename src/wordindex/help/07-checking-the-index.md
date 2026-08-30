@@ -45,9 +45,14 @@ invisible in the index, and visible in the proofs. Fix it in Word, where the
 field is.
 
 **Index fields crossing a paragraph — off unless you ask.** A field opening in
-one paragraph and closing in another. Word indexes it and this tool does not, so the entry would
-reach the printed index without ever appearing here. None of the manuscripts
-measured contain one.
+one paragraph and closing in another. Word indexes it and this tool does not,
+so the entry would reach the printed index without ever appearing here.
+
+It does something visible as well: the paragraph mark falls **inside** the
+field, so Word swallows it and **the two paragraphs print as one**, with the
+sentences run together. None of the manuscripts measured contain one, and
+neither Word nor Index Manager writes them, which is why the check is off. Turn
+it on for a manuscript from tooling you do not know.
 
 ## What it cannot check
 

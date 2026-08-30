@@ -120,7 +120,7 @@ nobody had asked. Word rendering each fixture to PDF:
 
 | fixture | Word indexes it | the printed page |
 |---|:--:|---|
-| crossing | **yes** | `Before. After.` |
+| crossing | **yes** | `Before. After.` — **on one line; see below** |
 | unopened | no | **`Before. XE "Unopened" After.`** |
 | unclosed | no | **`Before. XE "Unclosed" After.`** |
 | control | yes | `Before. After.` |
@@ -139,6 +139,29 @@ proofs.*
 The crossing case is settled too, and the other way: **Word indexes it.** So a
 crossing field is a real entry this application would lose — worth reporting
 even though the corpus has none.
+
+### And a crossing field merges the two paragraphs
+
+*That table hid it*, because the extraction collapsed whitespace and one line
+looks like two once the newline is gone. `probe_crossing_field_layout.py`
+renders a **matched pair** — the same visible text, once with the crossing
+field between the paragraphs and once with no field at all — because a single
+rendering proves nothing about a layout.
+
+| | printed lines |
+|---|---|
+| control | `First paragraph, which ends here.` / `Second paragraph, which begins here.` |
+| crossing | `First paragraph, which ends here.Second paragraph, which begins here.` |
+
+Confirmed on the rasterised page, not only in the text layer. **The paragraph
+mark falls inside the field** — Word's own text reads
+`First paragraph, which ends here.␓ XE "Crossing" ␍␕Second paragraph…`, with
+the carriage return between the field delimiters — so Word swallows it and the
+two paragraphs run together, sentences and all.
+
+So the crossing finding is two faults at once: an entry the indexer cannot
+see, and a visible defect on the page. They arrive together and neither is
+noticeable from inside this application.
 
 ## 5. Three corrections to what was reported on 30 August
 

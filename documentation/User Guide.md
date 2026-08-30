@@ -376,7 +376,13 @@ Both live under *In the document* in **Preferences > Check Index**, and they rep
 
 This application cannot show it either: it reads a paragraph's text and a field's instruction is not text. So the fault is invisible in the manuscript view, invisible in the index, and visible in the proofs. That is what the check is for. Fix it in Word, where the field is; nothing here will repair a document.
 
-**Index fields crossing a paragraph — off unless you ask.** A field that opens in one paragraph and closes in another. Word indexes it and this application reads fields a paragraph at a time, so such an entry would reach the printed index without ever appearing here. None of the 116 manuscripts measured contain one, and the check exists so that the first one is noticed rather than lost.
+**Index fields crossing a paragraph — off unless you ask.** A field that opens in one paragraph and closes in another. Word indexes it and this application reads fields a paragraph at a time, so such an entry would reach the printed index without ever appearing here.
+
+It does something visible as well. The paragraph mark falls **inside** the field, so Word swallows it and **the two paragraphs print as one**, sentences run together:
+
+> First paragraph, which ends here.Second paragraph, which begins here.
+
+None of the 116 manuscripts measured contain one, and neither Word nor Index Manager writes them — which is why the check is off. Turn it on for a manuscript from tooling you do not know.
 
 ### What it cannot check
 

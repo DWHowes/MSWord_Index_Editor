@@ -25,12 +25,23 @@ paragraph without it. **A fault invisible in both the tool and the source is
 exactly the kind that reaches print**, and it is why this is a check rather
 than a note in a measurements file.
 
-**A field crossing a paragraph is an entry we lose and Word keeps.** Word
-indexes it; the walk here is per paragraph and does not. None exist in the
-corpus, and the walk stays per paragraph deliberately -- the reset is what
-stops one unmatched ``begin`` swallowing the rest of a document -- so the
-honest answer is to say when one appears rather than to widen the walk and buy
-a whole-document failure mode. See
+**A field crossing a paragraph is an entry we lose, and it takes the paragraph
+break with it.** Word indexes it; the walk here is per paragraph and does not.
+*And the paragraph mark is inside the field*, so Word swallows it: rendered
+against a matched control with the same text and no field
+(`probe_crossing_field_layout.py`), two paragraphs print as **one**, with the
+sentences run together --
+
+    First paragraph, which ends here.Second paragraph, which begins here.
+
+-- where the control prints two. So the finding is not only an entry the
+indexer cannot see; it is a visible fault in the book, and the two travel
+together.
+
+None exist in the corpus, and the walk stays per paragraph deliberately -- the
+reset is what stops one unmatched ``begin`` swallowing the rest of a document
+-- so the honest answer is to say when one appears rather than to widen the
+walk and buy a whole-document failure mode. See
 `documentation/paragraph_straddling_field_scope.md` §6 option D.
 
 #### Never a repair
@@ -166,14 +177,17 @@ def document_rules(faults=None) -> tuple:
         ),
         make(
             FIELD_CROSSES_PARAGRAPH, _CROSSING,
-            "an index field crossing a paragraph. Word indexes it and this "
-            "application cannot show it:",
+            "an index field crossing a paragraph. Word indexes it, this "
+            "application cannot show it, and the two paragraphs print as "
+            "one:",
             "Index fields crossing a paragraph",
             "A field that opens in one paragraph and closes in another. Word "
             "indexes it; this application reads fields a paragraph at a time "
             "and does not, so the entry would reach the printed index without "
-            "ever appearing here. None of the manuscripts measured contain "
-            "one, which is why it is off unless you ask for it.",
+            "ever appearing here. The paragraph mark falls inside the field, "
+            "so Word swallows it and the two paragraphs run together on the "
+            "page. None of the manuscripts measured contain one, which is why "
+            "it is off unless you ask for it.",
             False,
         ),
     )
