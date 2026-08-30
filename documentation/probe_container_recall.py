@@ -10,6 +10,12 @@ Only the files carrying a field inside a container are interesting, so the
 census runs first and this reports the ones it flags -- plus a total over the
 whole corpus, because a walk that gained two entries and lost three somewhere
 else is not a fix.
+
+**The raw XML is not the authority on what an entry is; Word is.** This probe
+counts every `instrText` that starts with `XE`, and one of them in the corpus
+belongs to a field with no `fldChar begin` -- which Word does not treat as an
+entry either. So a difference reported here is a *question*, not a defect. See
+`paragraph_straddling_field_scope.md`.
 """
 
 from __future__ import annotations
@@ -28,6 +34,23 @@ from wordindex.ooxml_backend import OoxmlBackend             # noqa: E402
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 CUP = Path(r"<your CUP projects folder>")
 PARTS = ("word/document.xml", "word/footnotes.xml", "word/endnotes.xml")
+
+#: Index Manager's own backup folder, hidden, one in every project that used
+#: it. **Never scanned.** The files inside are the tool's saved revisions, not
+#: documents anyone works on, and counting them makes one file look like
+#: hundreds: this probe's first run reported "158 files" for what is one entry
+#: in one working copy, because 157 were archive revisions of the same book.
+ARCHIVE = ".Index-Manager x64-Archive"
+
+
+def working_files(root: Path):
+    """Every .docx an indexer actually works on, backups excluded."""
+    for path in sorted(root.rglob("*.docx")):
+        if path.name.startswith("~$"):
+            continue
+        if any(part.startswith(".") for part in path.relative_to(root).parts):
+            continue
+        yield path
 
 
 def q(tag):
@@ -78,8 +101,7 @@ def ours(path):
 
 
 def main() -> int:
-    files = [p for p in sorted(CUP.rglob("*.docx"))
-             if not p.name.startswith("~$")]
+    files = list(working_files(CUP))
     print(f"{len(files)} .docx under the CUP corpus\n")
 
     xml_total = 0

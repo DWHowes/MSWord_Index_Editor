@@ -59,58 +59,37 @@ claim is therefore recall *against the document*, not against an earlier
 version of ourselves -- and it catches the opposite error too, a walk that
 gains two entries here and loses three somewhere else.
 
-Over the corpus -- 2,032 `.docx`, 1,916 of them carrying `XE` fields:
-**1,388,676 in the XML and 1,388,518 found**.
+Over the **116 working `.docx`** of the corpus -- Index Manager's
+`.Index-Manager x64-Archive` backups excluded, because they are the tool's own
+saved revisions and one book's backups would otherwise be counted as hundreds
+of books: **24,442 `XE` instructions in the XML and 24,441 found**.
 **Every file the census flags agrees exactly** -- the `w:hyperlink` cases in
 *the CUP monograph?*, *Benign Bigotry* and *Mutiny to Revolt*, and the
 nested `w:smartTag` in *Second CUP book and Guardianship*. Nothing anywhere is
 found that is not in the document.
 
-**158 files come out one short, and not one of them for a reason this scope is
-about.** See §4.
+**One file comes out one short, and not for a reason this scope is about.**
+See §4.
 
 `probe_container_census.py` reproduces §3 of the scope unchanged, as it must:
 it reads the XML and knows nothing about the walk.
 
-## 4. A second class of invisible entry, and it is not ours to fix today
+## 4. One file short, and it is not an entry
 
 The recall probe compares the walk against the *document*, so it can find
-things the walk was never looking for, and it did. All 158 shortfalls are
-**one entry**, and it is not in a container at all:
+things the walk was never looking for. One file does not agree:
+`the manuscript` holds 1,334 `XE` instructions in its
+XML and the walk reads 1,333.
 
-```
-XE "Some Long Heading" 	 "See Other"
-```
+**The one it does not read has no `fldChar begin` anywhere** -- the part holds
+1,339 begins and 1,340 ends -- and **Word does not read it either**: asked
+through COM, Word reports 1,333 `XE` fields in that book, the same 1,333, with
+nothing on either side of the comparison. It is a damaged field, not an entry,
+and the raw XML counter is what over-counts.
 
-Its instruction and its `fldChar end` sit in a paragraph whose **`fldChar
-begin` is somewhere else**, and `_walk_fields` starts every paragraph at depth
-zero. `probe_paragraph_straddle.py` sizes it over the corpus:
-
-| | |
-|---|---:|
-| files with an `XE` field of this shape | 158 |
-| of those, Index Manager archive revisions | **157** |
-| live working copies | **1** |
-| books | **1** (the manuscript) |
-| non-`XE` fields of the same shape | 320 |
-
-So the population is **one entry, in one book, saved 157 times by Index
-Manager's archive** -- and it is a *cross-reference*, which is the class of
-entry an index can least afford to lose.
-
-**Not a regression, and not H1's.** The same file reads 82 entries with the
-walk as it was this morning and 82 with the walk as it is now:
-`_containers_of` on that run returns `[]`. It is an older limitation that the
-container work merely put a measuring instrument next to.
-
-**Left for the indexer to scope**, with three things worth knowing before that
-conversation. The application already knows fields cross paragraphs --
-`index_document._fields` says so in its own docstring, and handles it, for the
-generated index document. The 320 non-`XE` fields say the shape is ordinary in
-Word and not a sign of a damaged file. And *this is the third time a walk here
-has been found by comparing it to the document rather than to itself*, which
-is an argument for keeping `probe_container_recall.py` runnable rather than for
-any particular fix.
+Scoped in full, at the indexer's request, in
+`paragraph_straddling_field_scope.md` -- including the corrections to what was
+first reported here, which was wrong in three ways.
 
 ## 5. Word opens what we write
 

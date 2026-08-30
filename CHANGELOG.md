@@ -102,21 +102,26 @@ accident of `root.iter(w:p)`. A descent that did not stop at a nested `w:p`
 would have found their fields a *second* time, through the run holding the box
 -- exactly the error the container census made on its first attempt.
 
-#### And one thing found, measured and deliberately not fixed
+#### One file reads short, and it is not an entry
 
 `probe_container_recall.py` compares the walk against the *document* rather
 than against an earlier version of ourselves, so it can find what the walk was
-never looking for. It did: **158 files read one short, and none of them for a
-reason this scope is about.** All 158 are the same entry -- a cross-reference,
-`XE "Some Long Heading" 	 "See Other"` -- whose instruction sits in
-a paragraph that does not contain its `fldChar begin`, and `_walk_fields`
-starts every paragraph at depth zero.
+never looking for. One file of 116 disagrees:
+`the manuscript` holds 1,334 `XE` instructions and the
+walk reads 1,333.
 
-157 of the 158 are Index Manager archive revisions of one book, so the live
-population is **one entry, in one working copy**. It is not a regression: that
-file reads 82 entries before H1 and 82 after. **Left for the indexer to
-scope**, sized by `probe_paragraph_straddle.py` and written up in the
-measurements.
+**The missing one has no `fldChar begin` anywhere in the part, and Word does
+not read it either** -- 1,333 each way through COM, nothing on either side. A
+damaged field, not an entry.
+
+*This was first written up as "158 files hold an entry that begins in one
+paragraph and ends in another", and that was wrong three times over*: it does
+not straddle, it is one file rather than 158 (the other 157 were Index Manager
+backups that should never have been scanned), and Word cannot see it any more
+than we can. Scoped, with the corrections, in
+`documentation/paragraph_straddling_field_scope.md`.
+`probe_paragraph_straddle.py` is deleted rather than corrected, and every
+corpus probe now excludes `.Index-Manager x64-Archive`.
 
 Measurements: `documentation/hyperlink_field_walk_measurements.md`. Tests:
 `tests/test_container_walk.py`, 28 of them, including
