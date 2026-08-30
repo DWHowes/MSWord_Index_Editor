@@ -594,7 +594,7 @@ class XEDialect:
     #
     # **Surgical, never rebuilt.** Every method here changes one thing and
     # copies the rest of the instruction through untouched, which matters more
-    # than it sounds: 1,539 of the 2,074 entries in a measured book carry a
+    # than it sounds: 1,541 of the 2,076 entries in a measured book carry a
     # `\r` bookmark this application does not offer to edit, and a composer
     # that assembled an instruction from the fields it knows about would
     # silently drop the range from every entry an indexer so much as retyped.

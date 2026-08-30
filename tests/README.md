@@ -231,6 +231,21 @@ tests/
                             documents after a mutation and doing that 35
                             times is 34 rescans of a book nobody asked for.
 
+  test_container_walk.py    H1 and H2: fields inside a w:hyperlink, nested
+                            w:smartTags, a tracked insertion, a text box.
+                            The file exists because Word counted 2,076 XE
+                            fields in a book where this application counted
+                            2,074, and because place_at would write an entry
+                            *into* a link, report ok, and leave it invisible
+                            for good. Three things here are worth more than
+                            the rest: the probe that showed that defect is
+                            kept as TestMarkingAHyperlinkedWord; the text box
+                            test asserts a field is found ONCE, because a
+                            descent that does not stop at a nested w:p finds
+                            it twice; and TestPlacementRefusedByName pins the
+                            indexer's decision that deleted text and content
+                            controls are refused, and refused *by name*
+
   ui/test_undo_action.py    step U3 over real documents, and the file exists
                             because the entries were right throughout while
                             the XML was not. Two defects were found by

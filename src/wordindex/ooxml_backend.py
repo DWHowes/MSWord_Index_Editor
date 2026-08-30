@@ -66,6 +66,104 @@ RANGE_PREFIX = "wir_"
 _VISIBLE = {"t": None, "tab": "\t", "br": "\n"}
 
 
+#: Run-level elements that *hold* runs and are transparent to a field walk.
+#:
+#: The whole of ECMA-376's ``EG_ContentRunContent`` and the run-level tracked
+#: change elements, rather than the two the corpus happens to contain: an
+#: enumeration taken from the schema cannot have a hole in it, and a walk that
+#: descends into some containers and not others is the defect this list exists
+#: to close. A field inside one of these is a real entry -- **Word indexes it**
+#: -- and it reaches the publisher whether or not this application can see it.
+_RUN_CONTAINERS = {
+    "hyperlink", "customXml", "smartTag", "sdt", "sdtContent", "dir", "bdo",
+    "ins", "moveTo",
+}
+
+#: Containers holding **deleted** text, which this walk does not enter.
+#:
+#: *Decided by the indexer, 30 August 2026, not inferred.* A field inside a
+#: ``w:del`` is an entry in text the author has deleted; reading it would make
+#: this application report entries that vanish when the changes are accepted.
+#: Descending is the one case that could *invent* entries rather than reveal
+#: them, so the conservative reading is the one taken. ``w:ins`` and
+#: ``w:moveTo`` are live text and are read like any other container.
+_DELETED_CONTAINERS = {"del", "moveFrom"}
+
+#: Containers a *new* field may be written into (H2).
+#:
+#: ``w:hyperlink`` because that is where Word itself put the two entries this
+#: application could not see, and because an offset inside a link is an offset
+#: the indexer can see and click; ``w:smartTag`` because it is a transparent
+#: wrapper and nothing else; ``w:ins`` and ``w:moveTo`` because they are live
+#: text. Everything not named here is refused **by name** -- see ``_REFUSALS``.
+_PLACEABLE_CONTAINERS = {"hyperlink", "smartTag", "ins", "moveTo"}
+
+#: Why placement into a container is refused, said in the indexer's terms.
+#: The default covers a container the schema allows and this application has
+#: no opinion about; naming the tag is the point either way.
+_REFUSALS = {
+    "del": "an entry in deleted text is not an entry",
+    "moveFrom": "an entry in moved-from text is not an entry",
+    "sdt": "a content control belongs to the publisher's tooling",
+    "sdtContent": "a content control belongs to the publisher's tooling",
+    "customXml": "a custom XML region belongs to the publisher's tooling",
+}
+
+
+def _name(node) -> str:
+    """An element's local name, or ``""`` for a comment or processing node."""
+    return etree.QName(node).localname if isinstance(node.tag, str) else ""
+
+
+def _field_carriers(node):
+    """
+    Every element that can begin, carry or end a field, in document order.
+
+    **Descends through run-level containers**, which is the whole of H1. The
+    walk this replaced read a paragraph's own children, so a ``w:hyperlink``
+    was skipped whole -- while :func:`_walk_para`, which every offset in this
+    application is expressed in terms of, uses ``para.iter()`` and descends.
+    The text inside a link was therefore read, displayed and counted, and only
+    the *fields* inside it were missed. Two entries of the acceptance book were
+    invisible for that reason and Word printed both.
+
+    A container's children are yielded **flat, in the container's place**, so
+    the pairing loop sees one document-order stream and a field that begins
+    outside a container and ends inside it still pairs correctly. Every
+    consumer of a field's nodes has been parent-relative since U3, so nodes
+    with different parents are handled rather than refused.
+
+    Two things it deliberately does not enter: a nested ``w:p`` -- a text box's
+    paragraph is walked in its own right by ``root.iter(w:p)``, and counting it
+    twice is exactly the error the container census made on its first attempt
+    -- and a deleted-text container, per ``_DELETED_CONTAINERS``.
+    """
+    for child in node:
+        tag = _name(child)
+        if tag == "p" or tag in _DELETED_CONTAINERS:
+            continue
+        if tag in _RUN_CONTAINERS:
+            yield from _field_carriers(child)
+        else:
+            yield child
+
+
+def _containers_of(node):
+    """
+    The container tags between a node and the paragraph holding it, innermost
+    first, or ``[]`` when it sits directly in its paragraph.
+
+    What :meth:`OoxmlBackend.place_at` asks before it writes anything, and what
+    the container census asked of the corpus.
+    """
+    chain = []
+    parent = node.getparent()
+    while parent is not None and _name(parent) != "p":
+        chain.append(_name(parent))
+        parent = parent.getparent()
+    return chain
+
+
 def _walk_para(para):
     """
     ``(tag, node, visible_text)`` for **every** element, in document order.
@@ -528,6 +626,13 @@ class OoxmlBackend(DocumentBackend):
         one: a run carries ``w:rPr`` describing its font, and a citation is
         very often italic. Building a plain run would silently un-italicise the
         second half of a case name.
+
+        **An offset inside a run-level container is answered, not assumed.**
+        A hyperlink, a smart tag and live tracked-change text take the field
+        the way Word itself does; a deleted region, a moved-from region and a
+        content control are **refused by name**, because an entry in deleted
+        text is not an entry and a content control is the publisher's tooling.
+        See ``_PLACEABLE_CONTAINERS``.
         """
         if not instruction:
             return EditResult.failed("nothing to place")
@@ -552,13 +657,35 @@ class OoxmlBackend(DocumentBackend):
 
         start, _end, node = target
         run = node.getparent()
-        paragraph = run.getparent()
-        if paragraph is None:
+        parent = run.getparent()
+        if parent is None:
             return EditResult.failed("a text node with no paragraph")
+
+        # **`parent` is not always the paragraph**, and a local name that said
+        # it was is how this wrote entries nothing could find again: inside a
+        # `w:hyperlink`, `run.getparent()` *is* the hyperlink. The field went
+        # in well formed, correctly anchored, reported ok -- and was invisible
+        # immediately and after a save and a reopen, because `_walk_fields`
+        # did not descend. It descends now, so placing inside a link is a
+        # decision rather than an accident: the indexer's, 30 August 2026, and
+        # it is what Word does itself in the book this application indexes.
+        #
+        # *And the local name here is `wrapper`, not `container`*: `container`
+        # is this method's part name, and shadowing it made the rescan at the
+        # end run against `"hyperlink"` -- placing an entry that then did not
+        # appear, which is the very defect being fixed, in a second costume.
+        for wrapper in _containers_of(run):
+            if wrapper not in _PLACEABLE_CONTAINERS:
+                return EditResult.failed(
+                    f"offset {offset} is inside a w:{wrapper}: "
+                    + _REFUSALS.get(
+                        wrapper,
+                        "this application does not write entries there")
+                )
 
         cut = offset - start
         text = node.text or ""
-        insert_at = list(paragraph).index(run)
+        insert_at = list(parent).index(run)
 
         if cut < len(text):
             tail = copy.deepcopy(run)
@@ -568,12 +695,12 @@ class OoxmlBackend(DocumentBackend):
                 tail_text.set(
                     "{http://www.w3.org/XML/1998/namespace}space", "preserve")
                 break
-            paragraph.insert(insert_at + 1, tail)
+            parent.insert(insert_at + 1, tail)
 
         anchor = new_anchor()
         for position, field_node in enumerate(
                 self._build_field(anchor, instruction)):
-            paragraph.insert(insert_at + 1 + position, field_node)
+            parent.insert(insert_at + 1 + position, field_node)
 
         self._rescan(container)
         return EditResult(ok=True, locator=self._locator_of(container, anchor))
@@ -728,13 +855,19 @@ class OoxmlBackend(DocumentBackend):
         Handles all three shapes. The run form is reassembled across however
         many ``instrText`` elements it happens to be split into, which is the
         case HLD §10 risk 2 calls out as causing silent entry loss.
+
+        **It descends into run-level containers** (H1), through
+        :func:`_field_carriers`. This read ``list(para)`` -- a paragraph's own
+        children -- so a ``w:hyperlink`` was skipped whole and the two entries
+        Word reports in the acceptance book and this application did not were
+        exactly the ones inside one. See `hyperlink_field_walk_scope.md` §2.1.
         """
         for para in tree.getroot().iter(_q("p")):
             depth = 0
             nodes: list = []
             instruction: list[str] = []
 
-            for child in list(para):
+            for child in _field_carriers(para):
                 if child.tag == _q("fldSimple"):
                     yield "simple", [child], child.get(_q("instr")) or ""
                     continue
@@ -761,16 +894,32 @@ class OoxmlBackend(DocumentBackend):
                     instruction.append(element.text or "")
 
     def _anchor_before(self, node) -> str:
-        """The ``wim_`` bookmark immediately preceding a field, if any."""
-        previous = node.getprevious()
-        while previous is not None:
-            if previous.tag == _q("bookmarkStart"):
-                name = previous.get(_q("name")) or ""
-                if name.startswith(ANCHOR_PREFIX):
-                    return name
-            elif previous.tag != _q("bookmarkEnd"):
-                break
-            previous = previous.getprevious()
+        """
+        The ``wim_`` bookmark immediately preceding a field, if any.
+
+        **Leaves its container when it runs out of siblings** (H1). A field
+        first inside a ``w:hyperlink`` has no previous sibling at all, so this
+        stepped straight to "no anchor" and minted a second bookmark for a
+        field that already had one sitting just outside the link. Stepping out
+        is only legitimate because nothing separates the two but the container
+        boundary: anything else in the way still stops the walk, exactly as a
+        run of text does.
+        """
+        while node is not None:
+            previous = node.getprevious()
+            while previous is not None:
+                if previous.tag == _q("bookmarkStart"):
+                    name = previous.get(_q("name")) or ""
+                    if name.startswith(ANCHOR_PREFIX):
+                        return name
+                elif previous.tag != _q("bookmarkEnd"):
+                    return ""
+                previous = previous.getprevious()
+
+            parent = node.getparent()
+            if parent is None or _name(parent) not in _RUN_CONTAINERS:
+                return ""
+            node = parent
         return ""
 
     def _mint_anchor(self, node) -> str:
@@ -779,6 +928,15 @@ class OoxmlBackend(DocumentBackend):
 
         Every managed entry needs one, and a document written by Word itself
         has none. Nothing reaches disk until ``save``.
+
+        **The bookmark is a sibling of the field, which inside a container
+        means inside the container.** Placing it outside instead would give
+        two fields in one hyperlink the same preceding bookmark, and identity
+        here *is* that bookmark. The schema allows it -- ``EG_PContent``
+        reaches ``bookmarkStart`` through ``EG_RunLevelElts`` -- but a schema
+        reading is not the acceptance: **Word opens the file we write without
+        a repair prompt**, checked through COM, as the page-style and ``INDEX``
+        measurements were. See `hyperlink_field_walk_measurements.md`.
         """
         anchor = new_anchor()
         self._bookmark_id += 1

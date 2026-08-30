@@ -200,3 +200,12 @@ this arises.
 into what it hands back**, and nothing reports it. Recorded here rather than
 fixed, because the field walk is this application's most load-bearing parser
 and changing what it reaches is a scope of its own.
+
+> **Closed, 30 August 2026.** That scope was written
+> (`hyperlink_field_walk_scope.md`) and built the same week. The walk descends
+> into run-level containers now, and *the far more serious half was the one
+> this note did not reach*: `place_at` would write an entry **into** a
+> hyperlink, report success, and leave it invisible for good. Both halves are
+> fixed; the reader and Word now agree on this book exactly, 2,076 each way
+> with nothing on either side of the comparison. See
+> `hyperlink_field_walk_measurements.md`.

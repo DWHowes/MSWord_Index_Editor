@@ -21,6 +21,12 @@ field at a character offset in the visible text.
 On the CUP monograph: **2,074 XE fields across 10 containers, ~1M
 characters**, read without complaint.
 
+> *Superseded 30 August 2026*: **2,076**. The walk did not enter a
+> `w:hyperlink`, and two of this book's entries are inside one. The figures
+> below are the ones measured on the day and are left as they were; see
+> `hyperlink_field_walk_measurements.md` for what moved.
+
+
 So the missing piece is not the writing. It is that `read_text` returns
 
     "".join(w:t for each w:p)  joined by newlines

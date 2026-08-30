@@ -1,5 +1,13 @@
 # The field walk and the containers it never enters
 
+> **BUILT, 30 August 2026. H1, H2 and H3, all of it.** The two questions in §0
+> were put to the indexer first and answered: a mark on a hyperlinked word goes
+> **inside** the link, and a field inside a tracked deletion is **not** an entry
+> and is refused rather than read. The acceptance book now reads **2,076** and
+> agrees with Word exactly, nothing on either side of the comparison. What was
+> measured is in `hyperlink_field_walk_measurements.md`; the scope below is left
+> as it was written, including §6's alternatives, which were not taken.
+
 **H1, H2 and H3 chosen by the indexer, 30 August 2026, and staged as the next
 session's work.** Alternative A, the two-hour refusal, is not taken. No
 production code has been written; the figures below come from probes over the

@@ -77,6 +77,34 @@ def field_runs(instruction: str, *, bookmark: str = "", split: int = 1) -> str:
     return "".join(out)
 
 
+def container(tag: str, *inner: str, attributes: str = "") -> str:
+    r"""
+    A run-level container -- ``w:hyperlink``, ``w:smartTag``, ``w:del`` --
+    wrapped round whatever it is given.
+
+    Word puts a cross-reference's text inside a ``w:hyperlink``, and it puts
+    the ``XE`` field for that text **inside the link with it**: that is where
+    the two entries the acceptance book holds and this application could not
+    see were sitting. A fixture that only ever shows a field as a paragraph's
+    own child is a fixture that cannot fail the way the real book does.
+    """
+    space = " " if attributes else ""
+    return f"<w:{tag}{space}{attributes}>{''.join(inner)}</w:{tag}>"
+
+
+def deleted_text(value: str) -> str:
+    r"""
+    Text inside a tracked deletion, which uses ``w:delText`` and not ``w:t``.
+
+    So deleted text is already invisible to ``read_text``, and the decision
+    that a field inside one is not an entry is about the *fields*, not the
+    prose.
+    """
+    return (f'<w:del w:id="900" w:author="A" w:date="2026-08-30T00:00:00Z">'
+            f'<w:r><w:delText xml:space="preserve">{value}</w:delText></w:r>'
+            f"</w:del>")
+
+
 def field_simple(instruction: str) -> str:
     r"""
     The ``w:fldSimple`` form.

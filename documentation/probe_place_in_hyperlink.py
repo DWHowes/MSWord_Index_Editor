@@ -5,6 +5,18 @@ an offset `place_at` can be given. `_walk_fields` reads a paragraph's own
 children, so a field inside a hyperlink is not found. If both are true, marking
 a hyperlinked word writes an entry into the document that the application
 cannot see afterwards, which is worse than not being able to mark it.
+
+**Both were true, and H1 and H2 closed it on 30 August 2026.** What this
+printed then::
+
+    place_at ok=True  anchor='wim_e418328eeabe429283f3968bd13ecbe3'
+    entries the backend can see straight afterwards: 0
+    entries after a save and a reopen: 0
+
+and what it prints now is 1 and 1, with the field still inside the link, which
+is where Word puts its own and what the indexer chose. The probe is kept
+because it is how the defect was shown; the standing version of it is
+`tests/test_container_walk.py::TestMarkingAHyperlinkedWord`.
 """
 import sys
 import zipfile

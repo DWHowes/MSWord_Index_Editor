@@ -166,7 +166,7 @@ The numbers count that term's own entries. They are **not page numbers** and the
 
 The lower half is one row per entry across the project, with its heading, its sort key and its page style. The filter box above it narrows it as you type, matching the displayed headings and their sort keys, so filtering here searches the whole book at once.
 
-The line above both says how many terms and how many entries the project holds. On a real 2,074-entry book that reads *1,127 index terms in 2,074 entries*, and the gap between the two numbers is the index doing its job.
+The line above both says how many terms and how many entries the project holds. On a real 2,076-entry book that reads *1,127 index terms in 2,076 entries*, and the gap between the two numbers is the index doing its job.
 
 ---
 
@@ -189,8 +189,15 @@ The entry is anchored at the **start** of what you selected.
 - **A heading is not an insertion point.** Headings are for navigation.
 - **An excluded region is not yours to index**: front matter, a bibliography, a generated index.
 - **A style nobody has decided about** cannot be indexed, because the application does not know what it is.
+- **Text the author has deleted with track changes**, and text inside a content control, are refused by name. A deleted passage is on its way out of the book; a content control is filled in by the publisher's own tooling, and an entry put inside one travels wherever that tool decides to put its contents.
 
 Each refusal says which of these it was, in the status bar.
+
+### Cross-references and other links
+
+A word inside a hyperlink can be marked like any other, and the entry goes **inside** the link, which is where Word puts its own. This matters more than it sounds: a cross-reference to a figure or a chapter is exactly the kind of phrase an index wants, and manuscripts are full of them.
+
+If your manuscript already carries entries inside links, they are listed, checked, edited and deleted here like the rest. They were not always: until 30 August 2026 this application read a link's text and not its entries, so a real Cambridge book showed 2,074 entries where Word saw 2,076.
 
 ### The markers
 
@@ -267,7 +274,7 @@ Standard, bold, italic, or bold italic. This styles the **page number** in the g
 
 ### Page ranges
 
-A range in Word is **one entry naming a bookmark** that spans the passage, not a start and an end. So a range cannot be typed in. An entry that arrived with one keeps it through any edit you make here: on the real Cambridge book measured, 1,539 of 2,074 entries carry a range, and none of them lost it.
+A range in Word is **one entry naming a bookmark** that spans the passage, not a start and an end. So a range cannot be typed in. An entry that arrived with one keeps it through any edit you make here: on the real Cambridge book measured, 1,541 of 2,076 entries carry a range, and none of them lost it.
 
 ---
 

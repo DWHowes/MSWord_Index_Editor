@@ -5,6 +5,123 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The field walk enters the containers it never entered (H1, H2, H3)
+
+**Word said this book held 2,076 `XE` fields and the application said 2,074.**
+The two it could not see were inside a `w:hyperlink`, and the cause was one
+asymmetry: `_walk_para`, which every offset here is expressed in terms of, uses
+`para.iter()` and descends, while `_walk_fields` read a paragraph's *own
+children*. So a link's text was read, displayed, greyed or not and counted in
+every offset, and only its fields were missed. An entry the walk misses is
+missing from the index panel, the tree, Check Index, the entry window and the
+search, and it cannot be edited or deleted -- and Word still prints it.
+
+**The half that made it urgent was writing.** `place_at` took
+`run.getparent()` and called the result `paragraph`; inside a link that *is*
+the link. The field went in well formed, correctly anchored, `ok=True` -- and
+was invisible immediately and after a save and a reopen. *An entry written into
+the publisher's manuscript that this application cannot see, list, check or
+take back.*
+
+#### Two decisions, taken by the indexer before any code was written
+
+The scope said to ask these first, because H2 cannot land without them and H1
+alone is not worth a commit.
+
+**A mark on a hyperlinked word goes inside the link**, which is what Word
+writes itself and where both of the book's own hidden entries sit. What changed
+is not where the field goes but that it can be found again.
+
+**A field inside a tracked deletion is not an entry**: not read, and refused by
+name when an offset falls inside one. Descending is the one case that could
+*invent* entries rather than reveal them, so it was decided rather than
+inferred. `w:ins` and `w:moveTo` are live text and are read and written like
+any other container; a content control is refused, because it belongs to the
+publisher's tooling.
+
+#### What was built
+
+`_field_carriers` walks a paragraph's run-level descendants in document order,
+flattening containers in place. Its list of containers is **the whole of
+ECMA-376's `EG_ContentRunContent`** plus the run-level tracked-change elements,
+not the two the corpus happens to hold: an enumeration taken from the schema
+cannot have a hole in it, and this defect *was* a walk that descended into some
+containers and not others.
+
+`_anchor_before` leaves its container when it runs out of siblings, so a field
+first inside a link finds the `wim_` bookmark sitting just outside it instead
+of being given a second one. Anything but a bookmark still stops the search.
+
+`_mint_anchor` is unchanged, and that is the decision: the companion bookmark
+stays a sibling of the field, because putting it outside would give two fields
+in one hyperlink the same preceding bookmark, and identity here *is* that
+bookmark. The schema allows a bookmark there; **Word was asked anyway**, through
+COM, and opens the file without a repair prompt with the bookmark intact and
+inside the link.
+
+`place_at` names its container and refuses the ones it must, saying which:
+*"offset 4 is inside a w:sdtContent: a content control belongs to the
+publisher's tooling"*.
+
+#### The entry counts that moved, each one named
+
+No test assertion pinned a real book's count -- the suites run on fixtures --
+so this is four figures in the documentation and one docstring:
+
+* `documentation/User Guide.md` §"the index panel": *1,127 index terms in
+  2,074 entries* becomes **2,076**. The terms do not move: both recovered
+  entries are further references to headings the book already had.
+* `documentation/User Guide.md` §"Page ranges": 1,539 of 2,074 carry a range
+  becomes **1,541 of 2,076**.
+* `src/wordindex/xe_dialect.py`, the surgical-composer note: the same
+  1,539/2,074 becomes **1,541/2,076**.
+* `documentation/docx_reader_measurements.md` and
+  `documentation/step3_measurements.md` keep the figures measured on the day
+  and carry a dated note saying what superseded them.
+
+`documentation/page_style_measurements.md`, which recorded the disagreement and
+did not fix it, now records it closed.
+
+#### Three things the day found that the scope had not
+
+**The same defect, in the fix, in a second costume.** The replacement for the
+misnamed `paragraph` introduced `for container in _containers_of(run)`, which
+shadowed the method's own part name -- so the rescan at the end ran against
+`"hyperlink"`, and `place_at` reported success while the entry did not appear.
+*Written by somebody who had just finished reading about the first one.* Three
+tests taken from the probe caught it within a minute.
+
+**A field that straddles a container is handled, not refused.** The scope named
+that risk and allowed refusing it by name; neither was needed, because the
+carriers are one flat document-order stream and every consumer of a field's
+nodes has been parent-relative since U3. It reads, edits, deletes and undoes to
+byte-identical XML.
+
+**Text boxes had to be protected, not gained.** They were already reached, by
+accident of `root.iter(w:p)`. A descent that did not stop at a nested `w:p`
+would have found their fields a *second* time, through the run holding the box
+-- exactly the error the container census made on its first attempt.
+
+#### And one thing found, measured and deliberately not fixed
+
+`probe_container_recall.py` compares the walk against the *document* rather
+than against an earlier version of ourselves, so it can find what the walk was
+never looking for. It did: **158 files read one short, and none of them for a
+reason this scope is about.** All 158 are the same entry -- a cross-reference,
+`XE "Some Long Heading" 	 "See Other"` -- whose instruction sits in
+a paragraph that does not contain its `fldChar begin`, and `_walk_fields`
+starts every paragraph at depth zero.
+
+157 of the 158 are Index Manager archive revisions of one book, so the live
+population is **one entry, in one working copy**. It is not a regression: that
+file reads 82 entries before H1 and 82 after. **Left for the indexer to
+scope**, sized by `probe_paragraph_straddle.py` and written up in the
+measurements.
+
+Measurements: `documentation/hyperlink_field_walk_measurements.md`. Tests:
+`tests/test_container_walk.py`, 28 of them, including
+`probe_place_in_hyperlink.py` kept as `TestMarkingAHyperlinkedWord`.
+
 ### Undo and redo (step U3)
 
 Nothing this application did was reversible. What stood in for an undo was that

@@ -27,8 +27,22 @@ The entry is anchored at the **start** of what you selected.
 - **A style nobody has decided about** cannot be indexed, because the
   application does not know what it is. See
   [Telling it what the styles mean](03-styles.md).
+- **Text the author deleted with track changes**, and text inside a content
+  control, are refused by name. A deleted passage is on its way out of the
+  book; a content control is filled in by the publisher's own tooling, and an
+  entry inside one travels wherever that tool puts its contents.
 
 Each refusal says which of these it was, in the status bar.
+
+## Cross-references and other links
+
+A word inside a hyperlink marks like any other, and the entry goes **inside**
+the link, which is where Word puts its own. A cross-reference to a figure or a
+chapter is exactly the kind of phrase an index wants, and a manuscript is full
+of them.
+
+Entries your manuscript already carries inside a link are listed, checked,
+edited and deleted here like the rest.
 
 ## The markers
 

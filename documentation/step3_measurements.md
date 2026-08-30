@@ -27,6 +27,12 @@ Measured on the CUP monograph, a book this indexer indexed:
 | entries carrying a range | 1,539 |
 | entries in footnotes | 0 |
 
+> *Superseded 30 August 2026*: **2,076 fields and 1,541 with a range**, the
+> other four figures unchanged -- the two the walk was missing sit inside a
+> `w:hyperlink` and are further references to headings this book already had.
+> The table is left as it was measured. See
+> `hyperlink_field_walk_measurements.md`.
+
 ### A range is an extent, never a role
 
 1,539 of the 2,074 entries carry `\r "idxintern*"`, a bookmark written by
