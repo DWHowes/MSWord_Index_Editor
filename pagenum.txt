@@ -1,0 +1,7 @@
+To investigate
+
+If you change a page style (set to bold for example), Word does not handle that elegantly. Any entry with a non-standard page style should be listed separately in the index. Word will fold that bold or italic page reference into a page range. Even worse, the page range can pick up the page style of decorated reference, if it opens or closes the range.
+
+Is there anything we can do to avoid this, or is it simply a restriction of the word indexing module?
+
+Note that this behaviour is evident in the index for the CUP monograph?

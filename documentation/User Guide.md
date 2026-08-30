@@ -1,9 +1,14 @@
 # Word Index Editor User Guide
 
-**Draft of 28 August 2026.** Sections marked *[blocked]* wait on packaging.
+**Draft of 30 August 2026.** Nothing is marked *[blocked]* any more.
 
 *The two sections marked "not yet built" on 25 August, the Generated index page
-and the index document, were built on 28 August and the markers are gone.*
+and the index document, were built on 28 August and the markers are gone. §2,
+Installing it, was the last one waiting on packaging: it is written now against
+the route that exists — running from source — and says what the packaged
+installer will look like when there is one. A guide that cannot be finished
+until the installer exists, and an installer built from the finished guide, is
+a circle somebody has to step out of.*
 
 **The figures are the application itself**, rendered from it rather than drawn:
 `documentation/render_screenshots.py` opens the sample book in
@@ -48,9 +53,69 @@ The application shows you the manuscript with a **marker** at the location of ea
 
 ---
 
-## 2. Installing it *[blocked]*
+## 2. Installing it
 
-Waits on packaging. This section will cover the installer, where the application puts its settings and its logs, and what to do about the anti-virus warning a newly signed installer can attract.
+There are two ways in, and only one of them exists today.
+
+### Running from source
+
+**This is the route that works now**, and it is the one to use until there is an installer. It needs Python 3.12 or later and the ability to install a few packages with `pip`.
+
+**Two repositories, not one.** The application is built on `bookindexcore`, a shared package the LaTeX and ToA tools use as well, and it is not published to PyPI — so it is installed from its own clone rather than downloaded. Clone them side by side:
+
+```
+git clone https://github.com/DWHowes/bookindexcore.git
+git clone https://github.com/DWHowes/MSWord_Index_Editor.git
+
+cd MSWord_Index_Editor
+python -m venv .venv
+
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# macOS/Linux:
+source .venv/bin/activate
+
+pip install -e ../bookindexcore
+pip install -e ".[qt]"
+```
+
+The `qt` part matters: without it you get the headless half — the reader, the backend and the checks — and no window. That split is deliberate and is what lets the shared package stay free of Qt.
+
+With the environment active, `python main.py` opens the application, the same way the installer's shortcut will. An example Windows batch file:
+
+```
+@echo off
+cd /d <the folder you cloned into>
+call .venv\Scripts\activate
+python main.py
+```
+
+**Word itself is not needed to run this.** The application reads and writes `.docx` files directly and never asks Word to open one, which is the whole reason it can be used on a machine with no Word licence. You will want Word to *look* at the result, and the publisher certainly has it, but nothing here depends on it.
+
+### Installing the packaged application
+
+**There is no installer yet, and this section will name the release page when there is one.** That is not an oversight: the installer is built from a finished guide, and the guide is what tells you how to run the installer, so one of the two has to be written first. This one was.
+
+When the installer exists it will follow the pattern the LaTeX Indexing Editor already uses, so what follows is what to expect rather than what to do:
+
+* a Windows installer on the project's GitHub Releases page, run by double-clicking it;
+* **no Python, no command line and no administrator rights** — it installs for your own user account only;
+* a *"Windows protected your PC"* SmartScreen warning the first time. That is what Windows says about any installer that is not code-signed, and is not a sign that anything is wrong. Click **More info**, then **Run anyway**;
+* a Start Menu entry, and a Desktop shortcut if you ask for one during setup.
+
+**One warning worth expecting, because it has already happened on this machine.** Norton's `IDP.Generic` heuristic objects to newly built PyInstaller executables — it is judging the *shape* of the program rather than anything in it, so a new build with no reputation behind it is exactly what it flags. If it quarantines the installer, restore it from Norton's history and add an exclusion. An anti-virus product saying it has never seen a file before is not the same as one finding something in it.
+
+Running from source stays supported afterwards, and is the only route on macOS and Linux: the packaged build is Windows-only.
+
+### Where the application keeps its own files
+
+Three things live outside your project folders, and knowing where they are matters when something looks wrong:
+
+* **Style profiles** — what each publisher's styles mean, one entry per project. In your user application-data folder, as `style_profiles.json`.
+* **Session logs** — a timestamped file per run, in a `session_logs` folder beside the profile store.
+* **Preferences** — Qt's own settings store, per user.
+
+**None of them is in the manuscript's folder**, and that is deliberate: that folder is the publisher's, and what goes back to them should differ from what arrived by the added index entries and nothing else.
 
 ---
 

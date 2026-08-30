@@ -5,6 +5,31 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The install chapter, §2
+
+The last section marked *[blocked]*. Written against the route that exists —
+running from source — with the packaged installer described as what to expect
+rather than as instructions for something that does not exist. *A guide that
+cannot be finished until the installer exists, and an installer built from the
+finished guide, is a circle somebody has to step out of.*
+
+**It names both repositories**, which the first draft did not: `bookindexcore`
+is not on PyPI, so a fresh clone that ran `pip install -r requirements.txt`
+would have installed everything except the package the application is built
+on. And it names the `qt` extra, because without it you get the reader, the
+backend and the checks and no window — a split that is deliberate and is what
+keeps Qt out of the shared package.
+
+**Then it was run**: a clean virtual environment, both installs, and the
+imports checked. An instruction in a guide is a claim like any other.
+
+Two things the chapter adds beyond the LaTeX editor's: **where the application
+keeps its own files** — profiles, session logs and preferences all outside the
+manuscript's folder, because that folder is the publisher's — and the Norton
+`IDP.Generic` warning, which judges the shape of a PyInstaller build rather
+than anything in it.
+
+
 ### the manuscript surveyed, and `basic.empty_heading` added to the core
 
 Asked whether the book held any other damaged fields. **It does not.**
