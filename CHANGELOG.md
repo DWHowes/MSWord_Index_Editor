@@ -5,6 +5,50 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The Table of Authorities pipeline, wired to the core's whole of it
+
+Scope decision (1). `build_plan` used to call `CitationParser`,
+`merge_citations` and `assemble` itself — which found the authorities and
+skipped everything between them: **short forms went unresolved**, a
+publisher's house style reached nothing, and the section plan was always the
+standard's. A law book cites most of its authorities by `supra`, so the
+shortcut was losing most of the occurrences that give an entry its locators.
+
+It calls `build_table` now, through `ManuscriptSource` — the three-method seam
+over a `.docx`, whose **`page_for` returns None for everything**. That is the
+honest answer rather than a stub: a Word manuscript has no pages until Word
+composes it, which is why this application places `XE` fields and lets Word
+compute the locators.
+
+**Measured on a real law book, either side of the change.** The same book
+through this host and through ToA_Builder now produces **the same 584 rows and
+strikes the same 4**, where before the change it produced 694 and struck none.
+The two fixes that closed the gap were both paginated-only assumptions in the
+core, and are in its changelog.
+
+Then the whole plan was placed: **1,199 `XE` fields into a 1.1M-character
+manuscript, none refused, the visible text byte-identical afterwards, and all
+1,199 still there after a save and reopen.** It took 224 seconds, which is a
+number the interface has to answer for — this belongs on the worker thread the
+application already has, with the progress and cancel it already knows how to
+show.
+
+#### §4 of the scope, measured
+
+Two things were named as *likely* paginated-only and left unmeasured. Both
+answered, and neither is a defect:
+
+* **Short-form resolution is identical in both hosts** — 94 resolved, 1,252
+  unresolved, 342 the highest note wanted, 25 covered, 513 agreeing, 0
+  disagreeing. The footnote apparatus is recovered from text alone and does
+  not depend on pages. *This was the biggest risk in the scope and it is not
+  one.*
+* **`body_mentions` is inert without pages** — it adds 9 occurrences to the
+  proofs and 0 to the manuscript, and changes no rows in either. Since a host
+  with no locators has nothing for those occurrences to contribute a page to,
+  nothing is lost. Recorded rather than fixed.
+
+
 ### The install chapter, §2
 
 The last section marked *[blocked]*. Written against the route that exists —

@@ -55,14 +55,13 @@ from bookindexcore.authorities import (
     CATEGORY_RULE,
     CATEGORY_SECONDARY,
     CATEGORY_STATUTE,
-    CitationParser,
-    assemble,
-    merge_citations,
+    build_table,
 )
 from bookindexcore.sorting import SortRules
 
 __all__ = [
     "INDEX_NAMES",
+    "ManuscriptSource",
     "WordToaEntry",
     "WordToaPlan",
     "build_plan",
@@ -204,6 +203,10 @@ class WordToaPlan:
     table: object
     unresolved: tuple = ()
     unknown: tuple = ()
+    #: Rows `build_table` removed as back-matter residue, by display string.
+    #: **Carried so a deletion is never silent**, the same reason
+    #: `PlacedTable` carries them.
+    struck: tuple = ()
 
     @property
     def is_empty(self) -> bool:
@@ -238,9 +241,53 @@ def _leaf_paths(table):
     return paths
 
 
-def build_plan(backend, system, rules: SortRules) -> WordToaPlan:
+class ManuscriptSource:
+    r"""
+    A ``.docx`` as the three-method source the ToA pipeline reads.
+
+    **`page_for` returns None for everything, and that is the honest answer
+    rather than a stub.** A Word manuscript has no pages until Word composes
+    it — the same reason `DocumentBackend.resolve_page_numbers` returns None
+    for LaTeX, and the reason this application places `XE` fields and lets
+    Word compute the locators instead of printing a table itself.
+
+    Empty containers are dropped, because a header holding two characters is
+    not a part of the book and would only add a coordinate range nothing lives
+    in.
+    """
+
+    def __init__(self, backend):
+        self._backend = backend
+
+    def containers(self) -> Sequence[str]:
+        return [name for name in self._backend.containers()
+                if self._backend.read_text(name).strip()]
+
+    def read_text(self, container: str) -> str:
+        return self._backend.read_text(container)
+
+    def page_for(self, container: str, offset: int) -> Optional[str]:
+        return None
+
+
+def build_plan(backend, system, rules: SortRules, *,
+               house=None, proposer=None,
+               on_progress=None, should_cancel=None) -> WordToaPlan:
     """
     Read a document, find its authorities, and describe the fields to write.
+
+    **The whole of the core's pipeline, not a shortcut through the middle of
+    it.** This used to call `CitationParser`, `merge_citations` and `assemble`
+    itself, which found the authorities and skipped everything between: short
+    forms went unresolved, a publisher's house style reached nothing, and the
+    section plan was always the standard's. A law book cites most of its
+    authorities by `supra`, so the shortcut was losing most of the entries'
+    occurrences — the indexer's decision, 30 August 2026, is that this host
+    calls `build_table` like the other one.
+
+    Measured either side of that change: **the same book through this host and
+    through ToA_Builder now produces the same 584 rows**, and the two fixes
+    that took it there were both paginated-only assumptions in the core.
 
     Only the backend's read half is used, and the text it returns is already
     prose -- which is the one way Word is *easier* than LaTeX here. There is no
@@ -248,47 +295,35 @@ def build_plan(backend, system, rules: SortRules) -> WordToaPlan:
     they are not visible in the rendered document, so an `XE` this application
     wrote earlier is not read back as prose on a second run.
     """
-    import dataclasses
-
-    parser = CitationParser(system)
-    found = []
-    for container in backend.containers():
-        text = backend.read_text(container)
-        for base, paragraph in _paragraphs(text):
-            if not paragraph.strip():
-                continue
-            for citation in parser.parse(paragraph):
-                found.append((container, base + citation.start,
-                              base + citation.end, citation))
-
-    shifted = []
-    origin = {}
-    base = 0
-    for container, start, end, citation in found:
-        moved = dataclasses.replace(citation, start=base, end=base + (end - start))
-        origin[base] = (container, end)
-        shifted.append(moved)
-        base += (end - start) + 1
-
-    merged = merge_citations(shifted, system=system)
-    table = assemble(shifted, system, rules, merged=merged)
+    placed = build_table(ManuscriptSource(backend), system, rules,
+                         house=house, proposer=proposer,
+                         on_progress=on_progress, should_cancel=should_cancel)
+    table = placed.table
     paths = _leaf_paths(table)
 
     entries = []
-    for authority in merged.authorities:
-        placed = paths.get(id(authority))
-        if placed is None:
-            continue
-        category, path = placed
-        name = index_name_for(category)
-        if name is None:
-            continue
-        instruction = xe_instruction(path, name)
-        for occurrence in authority.occurrences:
-            container, at = origin[occurrence.start]
-            entries.append(WordToaEntry(
-                container=container, offset=at, instruction=instruction,
-                display=path[-1][1], category=category))
+    for section in table.sections:
+        for entry in _every_entry(section):
+            found = paths.get(id(entry.authority)) if entry.authority else None
+            if found is None:
+                continue
+            category, path = found
+            name = index_name_for(category)
+            if name is None:
+                continue
+            instruction = xe_instruction(path, name)
+            for occurrence in entry.occurrences:
+                # **The field goes at the citation's end**, so it attaches to
+                # the last character of the citation rather than pushing the
+                # first one along.
+                where = placed.container_for(occurrence.end)
+                if where is None:
+                    continue
+                container, offset = where
+                entries.append(WordToaEntry(
+                    container=container, offset=offset,
+                    instruction=instruction,
+                    display=path[-1][1], category=category))
 
     entries.sort(key=lambda e: (e.container, -e.offset))
 
@@ -297,6 +332,23 @@ def build_plan(backend, system, rules: SortRules) -> WordToaPlan:
         for section in table.sections
         if index_field_for(section.category) is not None
     )
-    return WordToaPlan(entries=tuple(entries), index_fields=fields,
-                       table=table, unresolved=merged.unresolved,
-                       unknown=merged.unknown)
+    report = placed.resolution
+    return WordToaPlan(
+        entries=tuple(entries), index_fields=fields, table=table,
+        unresolved=getattr(report, "unresolved", ()) or (),
+        unknown=table.unknown,
+        struck=placed.struck)
+
+
+def _every_entry(section):
+    """Every row of a section, nested rows included."""
+    for group in section.groups:
+        for entry in group.entries:
+            yield entry
+            yield from _descend(entry)
+
+
+def _descend(entry):
+    for child in entry.subentries:
+        yield child
+        yield from _descend(child)

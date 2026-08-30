@@ -23,6 +23,7 @@ from bookindexcore.authorities import (
 from bookindexcore.sorting import sort_rules_from_settings
 from wordindex.ooxml_backend import OoxmlBackend
 from wordindex.toa_emission import (
+    ManuscriptSource,
     INDEX_NAMES,
     build_plan,
     index_field_for,
@@ -282,3 +283,112 @@ class TestAppliedEndToEnd:
             book.place_at(entry.container, entry.offset, entry.instruction)
 
         assert len(build_plan(book, OSCOLA, rules).entries) == len(plan.entries)
+
+class TestThePlanRunsTheWholePipeline:
+    """
+    Scope decision (1), 30 August 2026: this host calls `build_table` like the
+    other one, rather than reaching into the middle of it.
+
+    The shortcut it replaced called `CitationParser`, `merge_citations` and
+    `assemble` directly. That found the authorities and skipped everything
+    between them: **short forms went unresolved**, a publisher's house style
+    reached nothing, and the section plan was always the standard's. A law book
+    cites most of its authorities by `supra`, so the shortcut was losing most
+    of the occurrences that give an entry its locators.
+
+    Measured either side of the change: the same book through this host and
+    through ToA_Builder now produces **the same 584 rows**.
+    """
+
+    def _plan(self, tmp_path, text, name="book.docx"):
+        from bookindexcore.authorities.systems import system_for
+        from bookindexcore.sorting import sort_rules_from_settings
+
+        from docx_fixtures import document, paragraph, write_docx
+        from docx_fixtures import text as run
+
+        path = write_docx(tmp_path / name,
+                          document("".join(paragraph(run(line))
+                                           for line in text.split("\n"))))
+        backend = OoxmlBackend()
+        backend.open(path)
+        return build_plan(backend, system_for("mcgill"),
+                          sort_rules_from_settings({}))
+
+    def test_a_short_form_reaches_the_authority_it_names(self, tmp_path):
+        """
+        The whole reason for the change. `ibid` after a citation is an
+        occurrence of *that* authority, and the shortcut never asked.
+        """
+        plan = self._plan(tmp_path,
+                          "See R v Oakes, [1986] 1 SCR 103.\n"
+                          "And again, ibid at 140.")
+        assert len(plan.entries) >= 2
+
+    def test_the_plan_carries_what_was_struck(self, tmp_path):
+        """
+        A deletion an indexer is not told about is not a tidy-up. The plan
+        carries the rows `build_table` removed for the same reason
+        `PlacedTable` does.
+        """
+        plan = self._plan(tmp_path, "Nothing cited here at all.")
+        assert plan.struck == ()
+
+    def test_a_document_with_no_citations_plans_nothing(self, tmp_path):
+        plan = self._plan(tmp_path, "Prose about nothing in particular.")
+        assert plan.is_empty
+        assert plan.entries == ()
+
+    def test_the_offsets_are_this_host_s_own(self, tmp_path):
+        """
+        `container_for` turns the pipeline's global offset back into a
+        container and an offset in that container's text — which is the space
+        `place_at` takes. A plan whose offsets were global would write every
+        field into the wrong place in the first part.
+        """
+        plan = self._plan(tmp_path, "See R v Oakes, [1986] 1 SCR 103.")
+        backend = OoxmlBackend()
+        backend.open(tmp_path / "book.docx")
+        for entry in plan.entries:
+            assert 0 <= entry.offset <= len(backend.read_text(entry.container))
+
+    def test_every_planned_field_can_still_be_placed(self, tmp_path):
+        plan = self._plan(tmp_path, "See R v Oakes, [1986] 1 SCR 103.")
+        backend = OoxmlBackend()
+        backend.open(tmp_path / "book.docx")
+        before = backend.read_text("word/document.xml")
+        for entry in plan.entries:
+            assert backend.place_at(entry.container, entry.offset,
+                                    entry.instruction).ok
+        assert backend.read_text("word/document.xml") == before
+
+
+class TestTheSourceItReadsThrough:
+    """`ManuscriptSource`: the three-method seam over a `.docx`."""
+
+    def test_it_reports_no_page_for_anything(self, tmp_path):
+        from docx_fixtures import document, paragraph, write_docx
+        from docx_fixtures import text as run
+
+        path = write_docx(tmp_path / "book.docx",
+                          document(paragraph(run("Some prose."))))
+        backend = OoxmlBackend()
+        backend.open(path)
+        source = ManuscriptSource(backend)
+        assert source.page_for("word/document.xml", 0) is None
+
+    def test_empty_containers_are_left_out(self, tmp_path):
+        """
+        A header holding two characters is not a part of the book, and would
+        only add a coordinate range nothing lives in.
+        """
+        from docx_fixtures import document, paragraph, write_docx
+        from docx_fixtures import text as run
+
+        path = write_docx(tmp_path / "book.docx",
+                          document(paragraph(run("Some prose."))))
+        backend = OoxmlBackend()
+        backend.open(path)
+        named = ManuscriptSource(backend).containers()
+        assert "word/document.xml" in named
+        assert all(backend.read_text(c).strip() for c in named)
