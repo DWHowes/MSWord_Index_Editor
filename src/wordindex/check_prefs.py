@@ -28,19 +28,39 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from bookindexcore.checks import ALL_RULES, DISABLED_RULES_KEY
+from bookindexcore.checks import DISABLED_RULES_KEY, every_rule
 from bookindexcore.model.grammar import GRAMMAR_DEFAULTS, grammar_from_settings
 
 #: Where these sit inside `QSettings`. One prefix, so a future setting cannot
 #: land loose in the root alongside window geometry.
 PREF_PREFIX = "check_index"
 
+def host_rules():
+    """
+    This application's own Check Index rules, for their names only.
+
+    Built without faults, so running one refuses rather than reporting
+    nothing -- see :func:`wordindex.document_checks.document_rules`. Imported
+    lazily because `document_checks` imports the core's checks package and
+    this module is imported by it in turn from the preferences dialog.
+    """
+    from .document_checks import document_rules
+
+    return document_rules()
+
+
 #: The shipped defaults: the shared grammar's, plus the rules that are off
 #: unless asked for. **No `mixed_case_exceptions`**, deliberately. See the
 #: module docstring.
+#:
+#: **Derived from `every_rule`, not from `ALL_RULES`**: this application
+#: contributes two rules of its own, and a default list that did not know
+#: about them would leave a rule declaring `default_on=False` switched *on*
+#: in every project -- the exact inversion the key's own docstring warns
+#: about in the other direction.
 CHECK_INDEX_DEFAULTS: Dict[str, Any] = dict(GRAMMAR_DEFAULTS)
 CHECK_INDEX_DEFAULTS[DISABLED_RULES_KEY] = sorted(
-    rule.id for rule in ALL_RULES if not rule.default_on)
+    rule.id for rule in every_rule(host_rules()) if not rule.default_on)
 
 
 class CheckIndexPrefs:
@@ -83,7 +103,8 @@ class CheckIndexPrefs:
         silently absent because an old settings file never named it.
         """
         disabled = set(self.load().get(DISABLED_RULES_KEY) or ())
-        return {rule.id for rule in ALL_RULES if rule.id not in disabled}
+        return {rule.id for rule in every_rule(host_rules())
+                if rule.id not in disabled}
 
     # -- writing ------------------------------------------------------------
 

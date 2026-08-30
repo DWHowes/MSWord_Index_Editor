@@ -1,5 +1,12 @@
 # The paragraph-straddling field
 
+> **OPTION B TAKEN, and built 30 August 2026.** Two rules, off by default,
+> under *In the document* in Preferences > Check Index. **And the probe run to
+> settle their severity changed what this document says**: a damaged field does
+> not merely go unindexed, **it prints its instruction text in the book** --
+> including on page 25 of a real Cambridge manuscript in this corpus. §4 and §6
+> are updated below; the recommendation in §6 was A, and it was wrong.
+
 **Scoped 30 August 2026, at the indexer's request, and the honest answer is
 that there is almost nothing to build.** No index entry in the corpus straddles
 a paragraph. What was found under that name is *one damaged field in one book*,
@@ -103,6 +110,35 @@ the raw counter counts and Word does not.
 
 *The reader is not missing an entry. The book is.*
 
+### And the wreckage is printed
+
+Added after the fact, and it is the reason option A was wrong.
+`probe_word_reads_broken_fields.py` was written to settle a *severity* — does
+Word index a field that crosses a paragraph? — and answered a second question
+nobody had asked. Word rendering each fixture to PDF:
+
+| fixture | Word indexes it | the printed page |
+|---|:--:|---|
+| crossing | **yes** | `Before. After.` |
+| unopened | no | **`Before. XE "Unopened" After.`** |
+| unclosed | no | **`Before. XE "Unclosed" After.`** |
+| control | yes | `Before. After.` |
+
+A field with no beginning is not a hidden field at all. Its `instrText` runs
+are ordinary text, and Word prints them. Rendering the real manuscript
+confirms it — page 25 of `the manuscript`:
+
+> …under which new design features could work**XE "Some Long Heading" \t "See Other"**. The book is divided into four parts.
+
+**And this application cannot show it either.** `read_text` counts `w:t`, and
+an `instrText` is not one, so the manuscript view draws that paragraph without
+it. *A fault invisible in the tool, invisible in the index, and visible in the
+proofs.*
+
+The crossing case is settled too, and the other way: **Word indexes it.** So a
+crossing field is a real entry this application would lose — worth reporting
+even though the corpus has none.
+
 ## 5. Three corrections to what was reported on 30 August
 
 1. **"A field that begins in one paragraph and ends in another."** No. It has
@@ -125,18 +161,28 @@ is; Word is.**
 
 ## 6. The options
 
-**A. Nothing, and record why.** The application agrees with Word. The one
-damaged field is one book's damage, its cross-reference survives elsewhere in
-that book, and no entry anywhere in the corpus crosses a paragraph.
-**Recommended.** Cost: this document, which is already written.
+**A. Nothing, and record why.** ~~Recommended.~~ **Withdrawn**, and it was
+wrong. It was written before the rendering probe, on the belief that the fault
+cost nothing but an entry nobody had. It costs the printed page. *The
+comparison against Word answered "is it an entry" and I did not think to ask
+"then what is it".*
 
-**B. Report it.** A check that says *"a field in this document has no
-beginning; Word will not index it"*, in Check Index, opt-in. It tells an
-indexer that a tool damaged something in a manuscript they are responsible for
-— which is real, if rare. The detector is `probe_field_boundaries.survey`, some
-forty lines, and it is a **report**, never a change. Cost: half a day with its
-tests and its preferences entry. **Worth taking only if the indexer has seen
-this before in their own work**; the corpus says once in 116 files.
+**B. Report it. TAKEN, and built.** Two rules rather than one, because a
+damaged field and a crossing field are two decisions:
+
+* **`document.damaged_field`** — *"a damaged index field. Word does not index
+  it, and its text prints in the book."*
+* **`document.field_crosses_paragraph`** — *"an index field crossing a
+  paragraph. Word indexes it and this application cannot show it."*
+
+Both **report** and neither repairs. Both are off until switched on, under
+*In the document* in Preferences > Check Index. The detector is
+`OoxmlBackend.field_faults`, beside the walk whose blind spot it describes;
+the rules are `wordindex/document_checks.py`.
+
+*The corpus test said "worth taking only if the indexer has seen this before".
+The rendering probe answered that differently: they have seen it, on page 25,
+and had no way to know.*
 
 **C. Repair it** — write the missing `begin` so the entry becomes real.
 **Rejected, and it should stay rejected.** Scope §2's promise is that what goes
@@ -164,10 +210,21 @@ Index Manager or by Word itself, and neither writes a crossing `XE`. A
 publisher whose tooling wraps entries differently could produce them, and the
 detector to notice is now committed and takes seconds to run over a corpus.
 
-## 8. Acceptance, if B is ever taken
+## 8. Acceptance — met
 
-* The check fires on `the manuscript` and on no other
-  file in the corpus.
-* It names the paragraph and the instruction text it recovered.
-* It is off by default, like every other opt-in check.
-* It changes nothing in the document, and there is a test that says so.
+* The check fires on `the manuscript` and **on no
+  other file in the corpus**: 116 working manuscripts, one finding.
+* It names the document, the paragraph (numbered from 1, for a person looking
+  at Word) and the instruction text it recovered.
+* Both rules are off by default, and reach the disabled set an unconfigured
+  project gets.
+* It changes nothing: the parts are byte-identical after a run, and the file on
+  disk is untouched. There is a test.
+* All three suites green.
+
+**One thing deliberately left as the indexer decided it.** Both rules ship
+*off*. The core's own runner says a check nobody has switched on has never
+found anything, and a damaged field prints in the book — which argues the first
+rule should be on by default. That is a one-line change (`default_on=True` in
+`document_checks.py`) and it is the indexer's call, not one to take while
+writing the feature.

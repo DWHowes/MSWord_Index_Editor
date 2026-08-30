@@ -5,6 +5,53 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Two Check Index rules about the manuscript (option B)
+
+Scoping the paragraph-straddling field found one damaged field in one book and
+concluded there was almost nothing to build. Then the probe that was meant to
+settle a *severity* settled something else.
+
+**A damaged field prints in the book.** Asked to render a two-line fixture,
+Word's own PDF reads
+
+    Before. XE "Unopened" After.
+
+and page 25 of a real Cambridge manuscript in this indexer's corpus reads
+
+    ...under which new design features could workXE "Some Long Heading" \t "See Other". The book is divided into four parts.
+
+*This application cannot show it either.* `read_text` counts `w:t` and an
+`instrText` is not one, so the manuscript view draws that paragraph without
+it. **A fault invisible in the tool, invisible in the index, and visible in
+the proofs** is worth a check on its own account, and that is what turns
+option B from a tidy-up into the useful half of the day.
+
+Two rules, both **off until switched on**, under *In the document* in
+Preferences > Check Index:
+
+- **`document.damaged_field`** — a field whose `begin` or `end` is missing.
+  Word does not index it and its text prints. One finding across the 116
+  working manuscripts of the corpus, and it is a real one.
+- **`document.field_crosses_paragraph`** — a field opening in one paragraph
+  and closing in another. **Word indexes it and this application does not**,
+  measured the same way. None in the corpus. The walk stays per paragraph
+  deliberately — the reset is what stops one unmatched `begin` swallowing the
+  rest of a document — so the answer is to report the first one rather than to
+  widen the walk and buy a whole-document failure mode.
+
+`OoxmlBackend.field_faults` is the detector, beside the walk whose blind spot
+it describes. `document_checks.py` is the two rules. **Both report and neither
+repairs**: reconstructing a field would change the publisher's manuscript on a
+guess about what was meant, and what goes back differs by the added fields and
+nothing else.
+
+The core learned to take rules from a host for this — `check_index(extra_rules=...)`
+and a sixth `DOCUMENT` family — rather than declaring a rule about `w:fldChar`
+that the LaTeX editor would have to see in its own preferences and could never
+run. A rule built for the settings page **refuses** rather than reporting
+nothing, because an empty list from a rule that was never given anything to
+look at is indistinguishable from a clean manuscript.
+
 ### The field walk enters the containers it never entered (H1, H2, H3)
 
 **Word said this book held 2,076 `XE` fields and the application said 2,074.**
@@ -302,7 +349,7 @@ promise is that what is handed back differs by the added fields and nothing
 else, so every removal is a row that can be unticked.
 
 **The surviving reference is rewritten in place rather than replaced.** Every
-reference being gathered up already carries `	` and therefore contributes no
+reference being gathered up already carries `\t` and therefore contributes no
 locator, so the first can simply be rewritten: one operation fewer, no position
 to look up, and the consolidated reference keeps the place in the document the
 first one had. The rewrite happens before any removal, so a refused write costs
@@ -351,7 +398,7 @@ formatting is not the crude option, it is the only one that works.
 
 `;aaa` and `;zzz` sort first and last in an index merged from two `RD`
 documents, so placements B and C exist in this workflow. And a heading with a
-locator on one field and `	` on another keeps both, which confirms by
+locator on one field and `\t` on another keeps both, which confirms by
 measurement the design constraint the scope had only derived.
 
 **One finding came from checking a negative.** The first run showed placements

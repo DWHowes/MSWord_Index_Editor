@@ -22,6 +22,15 @@ and the filesystem does not know, which is the whole of step 8.
 `word/document.xml` -- so this resolves it by anchor, the same way an edit is
 routed to its backend.
 
+#### The rules only this application can run
+
+Two, and they are about the **manuscript**: a field Word will not index whose
+instruction text *prints on the page*, and a field crossing a paragraph that
+Word indexes and this walk cannot see. Both read `w:fldChar`, so shared code
+cannot write them; the core takes them through `check_index(extra_rules=...)`
+and they appear in this application's preferences and no other's. See
+`document_checks`.
+
 #### The rules that cannot run here
 
 `references.*` reason about locators per heading and run fine. What does not
@@ -35,6 +44,8 @@ from __future__ import annotations
 
 from bookindexcore.checks import check_index
 from bookindexcore.model.grammar import ProjectGrammar
+
+from .document_checks import document_rules, faults_in_project
 
 from .xe_dialect import XE_DIALECT
 
@@ -90,10 +101,18 @@ def check_project(session, *, prefs=None, grammar=None, enabled=None):
         grammar = grammar if grammar is not None else prefs.grammar()
         enabled = enabled if enabled is not None else prefs.enabled_rules()
 
+    # **The host's own two rules, built over faults detected now.** They are
+    # about the manuscript rather than the index -- a field Word will not
+    # index and whose text prints in the book, and a field crossing a
+    # paragraph that Word indexes and this application cannot show -- so
+    # shared code cannot write them and the core takes them as `extra_rules`.
+    # Built with the faults rather than without: a rule handed nothing to look
+    # at refuses, which is what stops "no findings" meaning two things.
     return check_index(
         session.references,
         dialect=XE_DIALECT,
         grammar=grammar or ProjectGrammar(),
         order_key=project_order_key(session),
         enabled=enabled,
+        extra_rules=document_rules(faults_in_project(session)),
     )

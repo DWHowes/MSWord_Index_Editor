@@ -60,6 +60,7 @@ from .. import __version__
 from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
 from ..checking import check_project
+from ..document_checks import document_rules
 from ..presentation_prefs import PresentationPrefs
 from ..undo import CannotReverse, UndoStack, command_for
 from ..xref_run import apply_changes, build_change_set
@@ -1496,9 +1497,13 @@ class MainWindow(QMainWindow):
         if self._findings_dialog is not None:
             self._findings_dialog.close()
 
+        # The host's rules are handed over for **grouping**, not for running:
+        # a finding whose rule the core has never heard of would otherwise be
+        # filed under "Inside an entry", and a fault in the manuscript is not
+        # one.
         self._findings_dialog = FindingsDialog(
             findings, title=f"Check index: {self.session.project.name}",
-            parent=self)
+            parent=self, extra_rules=document_rules())
         self._findings_dialog.entries_activated.connect(self._go_to_findings)
         self._findings_dialog.show()
 

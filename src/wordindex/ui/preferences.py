@@ -79,6 +79,20 @@ class WordPreferencesDialog(PreferencesDialog):
         super().__init__(XE_DIALECT, parent)
         self.generated_index_tab.populate(GeneratedIndexPrefs().load())
 
+    def host_check_rules(self):
+        """
+        The two Check Index rules only this application can run.
+
+        Built for display -- names, labels and explanations -- so the page can
+        offer them; the runner builds its own over the faults it detected.
+        They are here rather than in the core because they read `w:fldChar`,
+        and a check the LaTeX editor could never run has no business in the
+        LaTeX editor's preferences.
+        """
+        from ..check_prefs import host_rules
+
+        return host_rules()
+
     def build_host_tabs(self) -> None:
         """
         One: what the `INDEX` field will say when the book is composed.

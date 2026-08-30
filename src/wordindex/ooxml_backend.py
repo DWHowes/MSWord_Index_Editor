@@ -164,6 +164,16 @@ def _containers_of(node):
     return chain
 
 
+#: What an instruction has to start with to be an index entry rather than any
+#: other field. Said once here because `_rescan` and `field_faults` both ask.
+XE_KEYWORD = "XE"
+
+
+def _tidy(pieces) -> str:
+    """Instruction text reassembled and its whitespace collapsed."""
+    return " ".join("".join(pieces).split())
+
+
 def _walk_para(para):
     """
     ``(tag, node, visible_text)`` for **every** element, in document order.
@@ -831,6 +841,83 @@ class OoxmlBackend(DocumentBackend):
                 RawField(anchor, container, instruction.strip(), len(fields), nodes, kind)
             )
         self._fields[container] = fields
+
+    def field_faults(self, container: str) -> list:
+        r"""
+        ``(kind, instruction, paragraph_index)`` for every field in a part
+        that this walk cannot read, in document order.
+
+        **Three kinds, and Word treats them differently, measured rather than
+        assumed** (`probe_word_reads_broken_fields.py`):
+
+        * ``"crossing"`` -- a well-formed field opening in one paragraph and
+          closing in a later one. **Word indexes it and this application does
+          not show it**, so it is an entry that reaches the printed index and
+          that the indexer cannot see, edit or check. None in the corpus, and
+          the walk is per-paragraph on purpose, so the only honest thing to do
+          is say so.
+        * ``"unopened"`` -- an ``end`` with no ``begin``. Word does not index
+          it *and* **its instruction text prints on the page**: rendered
+          through Word, the fixture reads ``Before. XE "Unopened" After.``
+          The corpus holds one, on page 25 of a real manuscript.
+        * ``"unclosed"`` -- a ``begin`` with no ``end``. Word behaves the same
+          way: not indexed, and the instruction prints.
+
+        A *report*, never a repair. Reconstructing a field would be a change
+        to the publisher's manuscript on a guess about what was meant, and
+        what goes back differs by the added fields and nothing else.
+
+        This lives beside :meth:`_walk_fields` because it is that walk's
+        blind spot stated in the same terms: the pairing is per paragraph,
+        and every fault here is a field the pairing drops.
+        """
+        tree = self._trees.get(container)
+        if tree is None:
+            return []
+
+        faults = []
+        depth = 0
+        opened_in = None
+        opened_instruction: list[str] = []
+        instruction: list[str] = []
+
+        for index, para in enumerate(tree.getroot().iter(_q("p"))):
+            for child in _field_carriers(para):
+                if child.tag == _q("fldSimple"):
+                    continue
+                marker = child.find(_q("fldChar"))
+                kind = marker.get(_q("fldCharType")) if marker is not None                     else None
+
+                if kind == "begin":
+                    if depth:
+                        depth += 1
+                        continue
+                    depth = 1
+                    opened_in = index
+                    opened_instruction = instruction = []
+                    continue
+                if kind == "end":
+                    if depth == 0:
+                        # An `end` with nothing open. Whatever instruction text
+                        # ran up to it is what Word prints.
+                        faults.append(
+                            ("unopened", _tidy(instruction), index))
+                        instruction = []
+                        continue
+                    depth -= 1
+                    if depth == 0:
+                        if opened_in != index:
+                            faults.append(
+                                ("crossing", _tidy(instruction), opened_in))
+                        instruction = []
+                    continue
+                for element in child.iter(_q("instrText")):
+                    instruction.append(element.text or "")
+
+        if depth:
+            faults.append(("unclosed", _tidy(opened_instruction), opened_in))
+        return [fault for fault in faults
+                if fault[1].startswith(XE_KEYWORD)]
 
     def _last_paragraph(self, container: str):
         """

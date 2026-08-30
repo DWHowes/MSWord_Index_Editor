@@ -27,6 +27,27 @@ message, nothing to notice.
 **Preferences > Check Index** turns individual rules on and off. A rule turned
 off stays off for every project.
 
+## Two checks about the document, not the index
+
+Both are **off until you turn them on**, under *In the document* in
+**Preferences > Check Index**. They report; they never change anything.
+
+**Damaged index fields.** A field whose beginning or end is missing. Word does
+not index it, and its instruction text **prints in the book as ordinary
+text** -- measured by asking Word to render the page. One real manuscript
+prints `XE "Some Long Heading" \t "See Other"` in the middle of a
+sentence on page 25.
+
+This tool cannot show it either: it reads a paragraph's text, and a field's
+instruction is not text. So the fault is invisible in the manuscript view,
+invisible in the index, and visible in the proofs. Fix it in Word, where the
+field is.
+
+**Index fields crossing a paragraph.** A field opening in one paragraph and
+closing in another. Word indexes it and this tool does not, so the entry would
+reach the printed index without ever appearing here. None of the manuscripts
+measured contain one.
+
 ## What it cannot check
 
 Anything that needs page numbers, because there are none until the book is

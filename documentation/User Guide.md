@@ -366,6 +366,18 @@ One rule objects to a capital letter inside a word, and it is right to: it is ho
 
 **Preferences > Check Index** turns individual rules on and off. A rule turned off stays off for every project.
 
+### Two checks about the document, not the index
+
+Both are **off until you turn them on**, under *In the document* in **Preferences > Check Index**. They report; they never change anything.
+
+**Damaged index fields.** A field whose beginning or end is missing. Word does not index it, and — measured by asking Word to render the page — **its instruction text prints in the book as ordinary text**. One real Cambridge manuscript in this indexer's own corpus prints, on page 25:
+
+> …under which new design features could work**XE "Some Long Heading" \t "See Other"**. The book is divided into four parts.
+
+This application cannot show it either: it reads a paragraph's text and a field's instruction is not text. So the fault is invisible in the manuscript view, invisible in the index, and visible in the proofs. That is what the check is for. Fix it in Word, where the field is; nothing here will repair a document.
+
+**Index fields crossing a paragraph.** A field that opens in one paragraph and closes in another. Word indexes it and this application reads fields a paragraph at a time, so such an entry would reach the printed index without ever appearing here. None of the 116 manuscripts measured contain one, and the check exists so that the first one is noticed rather than lost.
+
 ### What it cannot check
 
 Anything that needs page numbers. Nothing here can tell you whether a range is too long or a locator too vague.

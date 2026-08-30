@@ -246,6 +246,25 @@ tests/
                             indexer's decision that deleted text and content
                             controls are refused, and refused *by name*
 
+  test_document_checks.py   Option B: the two Check Index rules about the
+                            manuscript rather than the index. The file exists
+                            because a damaged field -- one whose fldChar
+                            begin or end is missing -- is not indexed by Word
+                            AND has its instruction text printed on the page
+                            as ordinary text, which was measured by asking
+                            Word to render a fixture to PDF. A real Cambridge
+                            manuscript prints XE "Some Long Heading" 	 "See Other" in the middle of a
+                            sentence on page 25. What is asserted beyond the
+                            detection: the message names the document and the
+                            paragraph (numbered from 1, for a person looking
+                            at Word); an INDEX field crossing paragraphs is
+                            NOT reported, or the check would fire on every
+                            book that has an index in it; a rule built for
+                            the settings page refuses rather than reporting
+                            nothing; and checking leaves the document
+                            byte-identical, because this reports and never
+                            repairs
+
   ui/test_undo_action.py    step U3 over real documents, and the file exists
                             because the entries were right throughout while
                             the XML was not. Two defects were found by
