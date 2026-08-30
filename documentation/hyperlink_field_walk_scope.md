@@ -1,8 +1,33 @@
 # The field walk and the containers it never enters
 
-**Scope, for approval. No production code has been written.** The figures below
-come from probes over the corpus and from one throwaway script that drove
-`place_at`; both are named where they are used.
+**H1, H2 and H3 chosen by the indexer, 30 August 2026, and staged as the next
+session's work.** Alternative A, the two-hour refusal, is not taken. No
+production code has been written; the figures below come from probes over the
+corpus and from one throwaway script that drove `place_at`, both named where
+they are used.
+
+## 0. Where the next session starts
+
+**Ask §5's first two questions before writing anything**, because H2 cannot
+land without them and H1 alone is not worth a commit:
+
+1. **Where does a mark on a hyperlinked word belong** -- inside the link, which
+   is what Word itself writes and what the current code accidentally does, or
+   immediately after it, which keeps entries out of a construct the publisher's
+   tooling owns and survives the link being re-targeted?
+2. **Is an entry inside a tracked deletion an entry?** The recommendation is
+   no, and that it is refused rather than read, but descending is the one case
+   that could *invent* entries rather than reveal them and this should not be
+   decided by inference.
+
+Then in order: **H1** (`_walk_fields` descends; `_anchor_before` leaves its
+container; `_mint_anchor` checked against Word), **H2** (placement, per the
+answer to question 1), **H3** (the entry counts move, each named).
+
+The evidence to work from is already here:
+`documentation/probe_container_census.py` reproduces §3's table over the
+corpus, and `documentation/probe_place_in_hyperlink.py` is §2.2 in fifty lines
+and should become a test rather than stay a probe.
 
 ## 1. What prompted it
 
@@ -91,7 +116,7 @@ is well formed and unreachable at the same time.
 
 ## 3. The population, measured
 
-`census2.py` over the CUP corpus, counting each part once. Per book, in the
+`documentation/probe_container_census.py` over the CUP corpus, counting each part once. Per book, in the
 file with the most entries:
 
 | book | entries | inside a container |
