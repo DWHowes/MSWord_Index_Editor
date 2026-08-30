@@ -5,6 +5,98 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Undo and redo (step U3)
+
+Nothing this application did was reversible. What stood in for an undo was that
+nothing reaches disk until Save, which is a real net and an all-or-nothing one:
+an indexer wanting the last action back had to discard the session. The case
+that forced it was the consolidation, which over a real book rewrote 9 fields
+and removed 34 in one gesture.
+
+**A consolidation run is one command.** That is what the cross-reference scope
+promised and could not deliver -- it asserted this application routed edits
+through `IndexCommandStack`, which was written without checking and was wrong.
+`apply_changes` now reports every edit that landed, and the window records the
+run as a single `IndexCommand`, so the whole thing comes back together or not
+at all. A command that fails partway is rolled back, because a document left
+half reversed is worse than one not reversed at all: nothing tells the indexer
+which half.
+
+#### The backend puts back what it took out
+
+The first version of the stack **refused** to undo a deletion. The reasoning
+looked sound: putting a removed field back means placing it, a placement here
+is located by an ordinal, the ordinals shift when a field is removed, and
+`OoxmlBackend._place` says in its own docstring that the mechanism is "very
+probably not" the right one. So it refused by name rather than putting an entry
+back one position from where it was, which is the kind of wrong that looks
+right.
+
+**A test found the hole within the hour.** A consolidation is recorded as an
+*edit* and contains removals, so a rule reading the command's *kind* both
+missed the case it was aimed at and would have refused the single operation
+this whole step exists to reverse.
+
+The answer was not to place better but to **not place at all**. `OoxmlBackend`
+now keeps what it removed -- the elements themselves, their parents, and the
+index each sat at, captured immediately before each one comes out -- and an
+undo splices them back exactly. Undoing walks the list backwards, which unwinds
+those states in the opposite order, so every recorded index is right again at
+the moment it is used. No ordinal, no neighbour, no guess. **Deleting an entry
+and undoing it leaves the document's XML byte-identical**, and so does a whole
+consolidation run across two documents, which is the scope's acceptance test.
+
+`_needs_placement` is gone with it. Whether an edit can be applied is the
+backend's answer, given at the moment of applying it; this stack asks and
+reports what it is told.
+
+#### Two defects the XML comparison exposed
+
+**The ownership map was emptied on every re-read**, so `backend_of` answered
+`None` for exactly the entries an undo is for. Undoing a deletion refused with
+"that entry is not in an open document", which was true of the map and false of
+the document. `OpenProject._owner` is added to and never emptied now, and
+cleared only by `open`, which is a different project; an entry never moves
+between documents, so a stale answer is not reachable.
+
+**Every fixture bookmark carried `w:id="9"`.** Word requires a bookmark id to
+be unique and `_remove_bookmark` pairs a start with the end carrying its id, so
+deleting one entry in a test document also took out a *different* entry's
+`bookmarkEnd`. It had been there since the fixtures were written and no test
+could see it, because none had ever compared a document's XML to itself --
+only its entries, which were correct throughout.
+
+#### The rest
+
+Everything else round-trips: a heading rewritten from the entry window, a
+marked selection undone by the anchor `place_at` minted, a deletion redone.
+
+**The history belongs to the project.** Opening another one clears it, and a
+document changing on disk clears it too: step 11e already refuses to write over
+a document somebody else has edited, so an undo list still offering to reverse
+an operation into it would be offering something that cannot happen.
+
+That is deliberately wider than the document that changed, and it has to be.
+Every Word document's body is `word/document.xml`, so the container a command
+records names a part and not a manuscript, and nothing in the history
+distinguishes the chapter that changed from the seventeen beside it. The anchor
+is what identifies an entry here and it is not on the command. Dropping the lot
+is the conservative reading; the narrower one cannot be kept honestly today.
+
+`Ctrl+Z` and `Ctrl+Y` come from the shared `ui.shortcuts`, and the manuscript
+view **claims them itself** rather than leaving them to the menu. That is not
+belt and braces: `install_read_only_caret` keeps the widget editable so the
+caret is drawn, and an editable `QTextEdit` accepts the shortcut-override for
+the editing keys, so a menu action bound to `Ctrl+Z` never fires while the
+manuscript has focus.
+
+Two smaller slips, both caught by a test that was looking.
+`IndexCommandStack.undo_label` is a plain **method** where `can_undo` beside it
+is a property, so reading it without the parentheses yields a bound method that
+is truthy, non-empty, and useless as a menu label. And the fake backend in the
+stack's own tests counted successes rather than calls, so it refused its own
+rollback and the all-or-nothing law appeared to fail.
+
 ### Two defects found by running it against a real book
 
 the CUP monograph (CUP, 9781108497831), on a copy, with the original's

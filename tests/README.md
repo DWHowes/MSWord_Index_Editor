@@ -218,4 +218,29 @@ tests/
                             ids nobody should see, and no reference carrying
                             a location at all -- see
                             documentation/step9b_tree_measurements.md
+
+  test_undo.py              step U3: the command stack, away from Qt. What is
+                            asserted is what a stack is for rather than what
+                            it is made of -- a consolidation of 35 edits
+                            reverses together or not at all, a failure
+                            partway puts back what it had already done, and
+                            a refused command stays on the list so it can be
+                            tried again once the cause is gone. Also: one
+                            _after_change for a 35-edit command, because
+                            this application re-reads its index from the
+                            documents after a mutation and doing that 35
+                            times is 34 rescans of a book nobody asked for.
+
+  ui/test_undo_action.py    step U3 over real documents, and the file exists
+                            because the entries were right throughout while
+                            the XML was not. Two defects were found by
+                            comparing a document to itself and by nothing
+                            else: an ownership map emptied on every re-read,
+                            so an undo was refused for exactly the entries
+                            it is for, and every fixture bookmark carrying
+                            w:id="9", so deleting one entry took out a
+                            different entry's bookmarkEnd. The acceptance
+                            test is a consolidation across two documents,
+                            undone, with both bodies byte-identical to what
+                            they were.
 ```

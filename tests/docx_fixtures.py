@@ -12,6 +12,7 @@ reads one run at a time simply does not see that entry, and nothing anywhere
 reports a problem.
 """
 
+import itertools
 import zipfile
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -41,6 +42,17 @@ def text(value: str) -> str:
     return f'<w:r><w:t xml:space="preserve">{value}</w:t></w:r>'
 
 
+#: Bookmark ids handed out by :func:`field_runs`, one per bookmark.
+#:
+#: **They used to all be 9**, and that made every fixture document invalid in
+#: a way nothing noticed: Word requires a bookmark id to be unique, and
+#: `_remove_bookmark` pairs a start with the end carrying its id. Deleting one
+#: entry therefore took out a *different* entry's `bookmarkEnd` as well.
+#: Invisible until a test compared the document's XML before and after an
+#: undo, because no test had ever looked at anything but the entries.
+_next_bookmark_id = itertools.count(9)
+
+
 def field_runs(instruction: str, *, bookmark: str = "", split: int = 1) -> str:
     r"""
     The three-run field form, optionally split across several ``instrText``
@@ -55,7 +67,9 @@ def field_runs(instruction: str, *, bookmark: str = "", split: int = 1) -> str:
 
     out = []
     if bookmark:
-        out.append(f'<w:bookmarkStart w:id="9" w:name="{bookmark}"/><w:bookmarkEnd w:id="9"/>')
+        marker = next(_next_bookmark_id)
+        out.append(f'<w:bookmarkStart w:id="{marker}" w:name="{bookmark}"/>'
+                   f'<w:bookmarkEnd w:id="{marker}"/>')
     out.append('<w:r><w:fldChar w:fldCharType="begin"/></w:r>')
     for piece in pieces:
         out.append(f'<w:r><w:instrText xml:space="preserve">{piece}</w:instrText></w:r>')

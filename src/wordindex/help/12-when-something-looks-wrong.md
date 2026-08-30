@@ -31,6 +31,12 @@ between words, so an entry imported from another tool may have been placed
 before or after the phrase it is about. Hover the marker to see which entries
 are there.
 
+## You marked the wrong thing, or deleted the right thing
+
+`Ctrl+Z`. Every change to the index is reversible, including a whole
+cross-reference consolidation, and the menu item names what it is about to
+reverse. See [Marking an entry](04-marking-an-entry.md).
+
 ## The entry count changed after saving
 
 It should not. If it does, something outside this application edited the file.

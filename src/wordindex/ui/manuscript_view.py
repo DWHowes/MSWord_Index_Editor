@@ -94,10 +94,46 @@ class ManuscriptView(ReadOnlyTextMixin, QTextEdit):
     #: the index tree; the reverse also".
     entry_clicked = Signal(str)
 
+    #: Ctrl+Z and Ctrl+Y, claimed for the index. Emitted rather than acted on,
+    #: because the view knows nothing about documents or commands.
+    undo_requested = Signal()
+    redo_requested = Signal()
+
     #: How near a click must land to count as hitting a marker, in characters.
     #: A marker is a word wide, so this only catches the click that lands in
     #: the space just before one.
     CLICK_SLACK = 2
+
+    def handle_reserved_key(self, event) -> bool:
+        """
+        Ctrl+Z and Ctrl+Y are the **index's** undo, not the document's.
+
+        Claimed here rather than left to the menu, and that is not belt and
+        braces: `install_read_only_caret` keeps this widget editable so the
+        caret is drawn, and an editable QTextEdit accepts the shortcut-override
+        for the editing keys, so a menu action bound to Ctrl+Z never fires
+        while the manuscript has focus. The keystroke arrives here instead, and
+        this is where it has to be turned back into the operation the indexer
+        meant. Step U3.
+
+        The same reasoning the LaTeX editor recorded: the document's own undo
+        running first would fight a command that reverses text, index and views
+        together. `setUndoRedoEnabled(False)` next door makes that undo empty
+        rather than absent, which is a quiet no-op and exactly what claiming
+        the key avoids.
+        """
+        ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        if not ctrl:
+            return False
+        if event.key() == Qt.Key.Key_Z:
+            self.undo_requested.emit()
+            event.accept()
+            return True
+        if event.key() == Qt.Key.Key_Y:
+            self.redo_requested.emit()
+            event.accept()
+            return True
+        return False
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)

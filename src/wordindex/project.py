@@ -118,6 +118,7 @@ class OpenProject:
         """
         self.backends.clear()
         self._plain.clear()
+        self._owner.clear()
         self._failed = []
 
         for path in self.project.documents:
@@ -183,9 +184,18 @@ class OpenProject:
     # -- the index ----------------------------------------------------------
 
     def reread(self) -> None:
-        """Re-read every document's entries and rebuild the ownership map."""
+        """Re-read every document's entries and refresh the ownership map."""
         self._references = []
-        self._owner = {}
+        # **Added to, never emptied**, and that is what undo needs. An entry
+        # that has just been deleted still has to be routable: putting it back
+        # is an edit like any other, and the only thing that knows which
+        # document it came out of is this map. Emptying it here made
+        # `backend_of` answer None for exactly the entries an undo is for, and
+        # the refusal that produced -- "that entry is not in an open document"
+        # -- was true of the map and false of the document.
+        #
+        # An entry never moves between documents, so a stale answer here is
+        # not reachable; `open` clears it because that is a different project.
         for path in self.documents:
             for reference in all_references(self.backends[path]):
                 self._owner[reference.entry_id] = path

@@ -204,6 +204,33 @@ The marked word is the one nearest the entry's anchor and is **not necessarily t
 
 ---
 
+### Taking it back
+
+**Edit ▸ Undo**, or `Ctrl+Z`, reverses the last thing you did to the index:
+a marked entry, a changed heading, a deleted entry, or an entire run of the
+cross-reference consolidation. **Edit ▸ Redo**, or `Ctrl+Y`, does it again.
+The menu items name the operation, so you read *Undo Consolidate
+cross-references* and know what is about to come back.
+
+An operation comes back whole. A consolidation that rewrote nine entries and
+removed thirty-four is one item and not forty-three, because it was one thing
+you asked for; if any part of reversing it were refused, none of it would
+happen, and you would be told why. A document left half restored is worse than
+one not restored at all, because nothing tells you which half.
+
+`Ctrl+Z` here is the index's undo and not the manuscript's. The manuscript is
+not yours to edit in this tool, so there is nothing else the key could mean.
+
+**The history belongs to the project.** Opening another project empties it.
+So does a manuscript changing on disk while you have it open, and that is
+deliberate: the tool already refuses to write over a document somebody else
+has edited since you opened it, so an undo list still offering to reverse an
+operation into that document would be offering something that cannot happen.
+
+Undo does not reach back past a save, and it is not meant to. Saving writes
+the files; an undo after that changes the index again, and the next save
+writes what you then have.
+
 ## 8. The entry window
 
 Shows whichever entry is current, and creates new ones.
@@ -525,6 +552,12 @@ The book's headings are not styled as headings. Some publishers send chapter tit
 ### Marking is refused
 
 The status bar says why: a heading, an excluded region, or a style nobody has decided about.
+
+### You marked the wrong thing, or deleted the right thing
+
+`Ctrl+Z`. Every change to the index is reversible, including a whole
+cross-reference consolidation, and the menu item names what it is about to
+reverse. See *Taking it back* in section 7.
 
 ### An entry is in the list but there is no marker
 

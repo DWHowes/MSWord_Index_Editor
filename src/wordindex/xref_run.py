@@ -155,6 +155,10 @@ class AppliedRun:
         self.created = 0
         self.deleted = 0
         self.refused: list = []
+        #: Every edit that landed, in the order it landed, so the caller can
+        #: record the whole run as **one** undoable command. A consolidation
+        #: is one thing an indexer asked for however many fields it touches.
+        self.edits: list = []
 
     @property
     def ok(self) -> bool:
@@ -202,26 +206,30 @@ def apply_changes(approved: Sequence[ProposedChange], *, references,
             run.refused.append((carrier_id, "the entry is no longer there"))
             continue
 
-        written = backend.apply(SourceEdit(
+        rewrite = SourceEdit(
             entry_id=carrier_id, locator=carrier.locator,
             before=(carrier.locator.hint or {}).get("instruction", ""),
-            after=change.key["instruction"]))
+            after=change.key["instruction"])
+        written = backend.apply(rewrite)
         if not written.ok:
             run.refused.append((carrier_id, written.message or "refused"))
             continue
         run.created += 1
+        run.edits.append(rewrite)
 
         for entry_id in change.key[_SUPERSEDED]:
             victim = by_id.get(entry_id)
             owner = backend_for(entry_id)
             if victim is None or owner is None:
                 continue
-            gone = owner.apply(SourceEdit(
+            removal = SourceEdit(
                 entry_id=entry_id, locator=victim.locator,
                 before=(victim.locator.hint or {}).get("instruction", ""),
-                after=""))
+                after="")
+            gone = owner.apply(removal)
             if gone.ok:
                 run.deleted += 1
+                run.edits.append(removal)
             else:
                 run.refused.append((entry_id, gone.message or "refused"))
 

@@ -35,6 +35,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bookindexcore.backend.locator import Locator, SourceEdit
+from bookindexcore.model.commands import DELETE, EDIT, INSERT
 from bookindexcore.ui.findings_dialog import FindingsDialog
 from bookindexcore.ui.preview_dialog import PreviewDialog
 from bookindexcore.ui.help.controller import HelpController
@@ -60,6 +61,7 @@ from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
 from ..checking import check_project
 from ..presentation_prefs import PresentationPrefs
+from ..undo import CannotReverse, UndoStack, command_for
 from ..xref_run import apply_changes, build_change_set
 from ..entries import all_references, heading_rows
 from ..generated_index import GeneratedIndexPrefs, index_instruction
@@ -191,6 +193,15 @@ class MainWindow(QMainWindow):
         #: manuscript" without first asking whether there is one.
         self._blank_view = ManuscriptView()
 
+        #: Undo, at last. Step U3, and it needed U1 first: the shared command
+        #: record carried a character offset and a LaTeX macro name until then,
+        #: neither of which this format has.
+        self.undo_stack = UndoStack(
+            backend_for=lambda entry_id: (
+                self.session.backend_of(entry_id) if self.session else None),
+            after_change=self._after_change,
+        )
+
         self.entry_window = EntryWindow()
         self.entry_window.entry_edited.connect(self._edit_entry)
         self.entry_window.entry_created.connect(self._create_entry)
@@ -231,6 +242,14 @@ class MainWindow(QMainWindow):
         self.styles_action = manuscript_menu.addAction(
             "&Styles…", self.edit_profile)
         self.styles_action.setEnabled(False)
+
+        edit_menu = self.menuBar().addMenu("&Edit")
+        self.undo_action = edit_menu.addAction("&Undo", self.undo)
+        self.undo_action.setShortcut(shortcuts.sequence(shortcuts.UNDO))
+        self.undo_action.setEnabled(False)
+        self.redo_action = edit_menu.addAction("&Redo", self.redo)
+        self.redo_action.setShortcut(shortcuts.sequence(shortcuts.REDO))
+        self.redo_action.setEnabled(False)
 
         index_menu = self.menuBar().addMenu("&Index")
         # **The gesture.** Word's own is Alt+Shift+X and an indexer coming
@@ -402,6 +421,10 @@ class MainWindow(QMainWindow):
         view.position_changed.connect(self._show_position)
         view.entry_clicked.connect(self.index_panel.select_entry)
         view.entry_clicked.connect(self._show_in_entry_window)
+        # A view per tab, so the keys are claimed per tab. Both routes end at
+        # the same stack: the menu item and the keystroke are one operation.
+        view.undo_requested.connect(self.undo)
+        view.redo_requested.connect(self.redo)
 
         broker = AppStyleConfiguration.event_broker()
         view.apply_typography(str(broker.get_property("font_family")),
@@ -596,6 +619,22 @@ class MainWindow(QMainWindow):
         correct about a version of the file that no longer exists. That is why
         reopening discards them: an anchor into the old text is not an anchor.
         """
+        # **Its commands go with it, and so does every other document's.**
+        # One recorded against the text this application read cannot be
+        # replayed against text somebody else has edited, and step 11e
+        # already refuses to write over that; an undo list that kept them
+        # would offer to reverse an operation into a document that no longer
+        # matches it.
+        #
+        # *It cannot be narrower than the project*, because every Word
+        # document's body is `word/document.xml` and a command records that
+        # as its container, so nothing in the history distinguishes this
+        # manuscript from the one beside it. Dropping the lot is the
+        # conservative reading and it is the one an indexer can trust; the
+        # anchor is what identifies an entry here, and it is not on the
+        # command.
+        self.undo_stack.forget_document(BODY_PART)
+        self._refresh_undo_actions()
         if self.session is None:
             return
         document = Path(path)
@@ -961,6 +1000,12 @@ class MainWindow(QMainWindow):
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
+        # **The history belongs to the project, not to the window.** A command
+        # recorded against the last project names entries that are not in this
+        # one, and `backend_of` would refuse each of them one at a time; an
+        # empty list says the same thing once and truthfully.
+        self.undo_stack.clear()
+        self._refresh_undo_actions()
 
         self._reread_index()
         self.show_document(session.documents[0])
@@ -1274,6 +1319,7 @@ class MainWindow(QMainWindow):
                 self, "Could not create",
                 result.message or _EDIT_REFUSED)
             return
+        self._record_creation(result, instruction, "Created an entry")
         self._after_change("Created an entry")
 
     def mark_selection(self) -> None:
@@ -1322,6 +1368,7 @@ class MainWindow(QMainWindow):
                 result.message or _EDIT_REFUSED)
             return
 
+        self._record_creation(result, instruction, f"Marked {heading}")
         self._after_change(f"Marked {heading!r}")
         # Open on what was just made. `place_at` hands back the anchor it
         # minted, which is the entry's identity from here on.
@@ -1372,6 +1419,14 @@ class MainWindow(QMainWindow):
 
         run = apply_changes(approved, references=self._references,
                             backend_for=self.session.backend_of)
+        # **One command for the whole run**, which is what the cross-reference
+        # scope promised and could not deliver until the stack was adopted: a
+        # rewrite and several deletions per heading are one thing an indexer
+        # asked for, and they come back together or not at all.
+        if run.edits:
+            self.undo_stack.record(command_for(
+                EDIT, "Consolidate cross-references", run.edits))
+            self._refresh_undo_actions()
         self._after_change(str(run))
         self._report_refusals(refused, run=run)
 
@@ -1564,6 +1619,32 @@ class MainWindow(QMainWindow):
         # stored by nothing at all.
         PresentationPrefs().save(payload)
 
+    def _record_creation(self, result, instruction: str, said: str) -> None:
+        """
+        Put a newly placed entry on the undo list.
+
+        **The anchor `place_at` minted is what makes this reversible**: an
+        edit carrying that anchor and an empty payload names one field
+        exactly, so its inverse is a deletion that has nothing to go looking
+        for.
+
+        *An earlier version of this said a deletion could not be undone in
+        exchange.* That was true of the first stack and is not true now:
+        `OoxmlBackend` keeps what it removed and splices it back, so both
+        directions are exact.
+        """
+        if result.locator is None or result.locator.anchor is None:
+            # `place_at` is contracted to hand back the anchor, so this is the
+            # unreachable branch -- but recording a creation with no anchor
+            # would put a command on the list that inverts into a deletion of
+            # nothing, and a missing undo entry is better than a wrong one.
+            return
+        self.undo_stack.record(command_for(
+            INSERT, said,
+            [SourceEdit(entry_id=result.locator.anchor,
+                        locator=result.locator, before="", after=instruction)]))
+        self._refresh_undo_actions()
+
     def _run(self, entry_id, edit, said: str) -> None:
         """
         Apply an edit to **the backend that owns the entry**.
@@ -1583,7 +1664,54 @@ class MainWindow(QMainWindow):
                 self, "Could not change",
                 result.message or _EDIT_REFUSED)
             return
+        # Recorded only once it has actually landed: a refused edit is not an
+        # operation and must not sit on the undo list pretending to be one.
+        self.undo_stack.record(command_for(
+            DELETE if not edit.after else EDIT, said, [edit]))
+        self._refresh_undo_actions()
         self._after_change(said, self.session.document_of(entry_id))
+
+    def undo(self) -> None:
+        """Reverse the last operation, or say why it cannot be."""
+        self._reverse(self.undo_stack.undo, "undo")
+
+    def redo(self) -> None:
+        self._reverse(self.undo_stack.redo, "redo")
+
+    def _reverse(self, action, word: str) -> None:
+        """
+        One route for both, because both fail the same way.
+
+        **A refusal leaves the command where it was.** `UndoStack` checks
+        before it writes anything and rolls back if a later edit is refused,
+        so an operation that cannot be reversed stays on the list and can be
+        tried again once the cause is gone -- a document reopened, say.
+        """
+        try:
+            label = action()
+        except CannotReverse as why:
+            QMessageBox.information(self, f"Cannot {word} that", str(why))
+            return
+        if not label:
+            self.statusBar().showMessage(f"Nothing to {word}.")
+        self._refresh_undo_actions()
+
+    def _refresh_undo_actions(self) -> None:
+        """
+        Put the stack's state on the two menu items.
+
+        Labelled with the operation, so an indexer reads *Undo Consolidate
+        cross-references* rather than a bare *Undo* and knows what is about to
+        come back.
+        """
+        self.undo_action.setEnabled(self.undo_stack.can_undo)
+        self.redo_action.setEnabled(self.undo_stack.can_redo)
+        self.undo_action.setText(
+            f"&Undo {self.undo_stack.undo_label}".rstrip()
+            if self.undo_stack.can_undo else "&Undo")
+        self.redo_action.setText(
+            f"&Redo {self.undo_stack.redo_label}".rstrip()
+            if self.undo_stack.can_redo else "&Redo")
 
     def _after_change(self, said: str, document=None) -> None:
         """

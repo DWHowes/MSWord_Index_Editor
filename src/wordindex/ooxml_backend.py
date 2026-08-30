@@ -190,6 +190,11 @@ class OoxmlBackend(DocumentBackend):
         self._trees: dict[str, etree._ElementTree] = {}
         self._fields: dict[str, list[RawField]] = {}
         self._bookmark_id = 10_000
+        #: What this backend has removed in this session, by anchor, so it can
+        #: be put back **exactly** rather than placed near where it was. See
+        #: `_remove` and `_restore`. Emptied by `open`, because the elements
+        #: held here belong to trees that are then discarded.
+        self._removed: dict = {}
 
     # -- discovery ----------------------------------------------------------
 
@@ -199,6 +204,7 @@ class OoxmlBackend(DocumentBackend):
         self._zip_items.clear()
         self._trees.clear()
         self._fields.clear()
+        self._removed.clear()
 
         with zipfile.ZipFile(self._path) as archive:
             for name in archive.namelist():
@@ -293,6 +299,14 @@ class OoxmlBackend(DocumentBackend):
 
         field = self._find(edit.locator)
         if field is None:
+            # **It may be one this backend removed**, in which case putting it
+            # back is exact rather than approximate. That is what makes a
+            # consolidation reversible: the run removes 34 fields, and an undo
+            # that had to *place* 34 fields would be 34 guesses.
+            if edit.after:
+                restored = self._restore(edit)
+                if restored is not None:
+                    return restored
             return EditResult.failed(
                 f"no field anchored {edit.locator.anchor!r} in {edit.locator.container!r}"
             )
@@ -572,14 +586,69 @@ class OoxmlBackend(DocumentBackend):
         orphaned ``wim_`` names in the user's document, which HLD §9.4 has to
         sweep up at save time precisely because a deletion path forgot.
         """
+        taken = []
         for node in field._nodes:
             parent = node.getparent()
             if parent is not None:
+                # Captured **immediately before** this node comes out, so the
+                # index is the one that holds in the tree as it then stands.
+                # Undoing walks the list backwards, which unwinds those states
+                # in the exact opposite order, so every index is right again
+                # at the moment it is used.
+                taken.append((parent, parent.index(node), node))
                 parent.remove(node)
-        self._remove_bookmark(field.container, field.anchor)
+        taken += self._remove_bookmark(field.container, field.anchor)
 
+        self._removed[field.anchor] = (field.container, field.instruction, taken)
         self._rescan(field.container)
         return EditResult(ok=True)
+
+    def _restore(self, edit: SourceEdit):
+        """
+        Put back a field this backend removed, node for node.
+
+        Returns ``None`` when there is no record of removing it, so the caller
+        can report the ordinary "no such field" refusal. **This is the whole
+        of what makes an undo here exact**: the alternative is `_place`, which
+        works from an ordinal that shifts when a field is removed and which
+        its own docstring calls very probably not the right mechanism.
+
+        The record is dropped once it is used, so a second restore of the same
+        anchor cannot duplicate a field. If the removal happens again, the
+        removal path records it again.
+        """
+        record = self._removed.get(edit.locator.anchor)
+        if record is None:
+            return None
+        container, instruction, taken = record
+
+        for parent, index, node in reversed(taken):
+            if index > len(parent):
+                # The document has moved on further than this record can
+                # account for. **Refused rather than put somewhere near**: a
+                # field one paragraph out is the kind of wrong that looks
+                # right, and the promise is a manuscript back differing only
+                # by the fields it was asked to add.
+                return EditResult.failed(
+                    f"the document has changed too much to put "
+                    f"{edit.locator.anchor!r} back where it was"
+                )
+            parent.insert(index, node)
+
+        del self._removed[edit.locator.anchor]
+        self._rescan(container)
+
+        if str(edit.after) != instruction:
+            # Restored, then brought up to what the edit actually asks for --
+            # a redo of a rewrite whose entry had since been removed, say.
+            field = self._find(self._locator_of(container, edit.locator.anchor))
+            if field is not None:
+                self._write_instruction(field, str(edit.after))
+                self._rescan(container)
+
+        return EditResult(
+            ok=True,
+            locator=self._locator_of(container, edit.locator.anchor))
 
     # -- durability ---------------------------------------------------------
 
@@ -726,20 +795,34 @@ class OoxmlBackend(DocumentBackend):
         parent.insert(index + 1, end)
         return anchor
 
-    def _remove_bookmark(self, container: str, anchor: str) -> None:
+    def _remove_bookmark(self, container: str, anchor: str) -> list:
+        """
+        Takes out the companion bookmark, and **says what it took**.
+
+        The returned list is the same ``(parent, index, node)`` shape
+        ``_remove`` builds, so a restore puts the bookmark back with the field
+        rather than leaving an entry the document cannot locate. Nothing read
+        this return value before undo existed; it was ``None``.
+        """
         tree = self._trees.get(container)
         if tree is None:
-            return
+            return []
         root = tree.getroot()
+        taken = []
         for start in list(root.iter(_q("bookmarkStart"))):
             if start.get(_q("name")) != anchor:
                 continue
             marker = start.get(_q("id"))
             for end in list(root.iter(_q("bookmarkEnd"))):
                 if end.get(_q("id")) == marker and end.getparent() is not None:
-                    end.getparent().remove(end)
+                    parent = end.getparent()
+                    taken.append((parent, parent.index(end), end))
+                    parent.remove(end)
             if start.getparent() is not None:
-                start.getparent().remove(start)
+                parent = start.getparent()
+                taken.append((parent, parent.index(start), start))
+                parent.remove(start)
+        return taken
 
     # -- internals: writing -------------------------------------------------
 

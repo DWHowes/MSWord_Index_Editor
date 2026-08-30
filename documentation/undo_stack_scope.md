@@ -210,3 +210,71 @@ that could go badly.
   when its document changes underneath it.
 * A test that runs a consolidation over a real book, undoes it, and asserts the
   document is byte-identical to what it was.
+---
+
+## 8. What actually landed
+
+**All three phases, and the spike was not needed as a separate exercise.**
+U2 was converted directly and the LaTeX editor's 1,731 tests passed with no
+behavioural change, which is the whole test that phase had. Alternatives A and
+B in section 5 were not taken.
+
+* **U1**, core `cc51998` and `7bda9c8`: `IndexCommand` carries `SourceEdit`,
+  `MacroEdit` gone, `EntrySnapshot.entry_id` widened to `EntryId`.
+* **U2**, LaTeX editor `41669ab` and `2138228`: commands recorded as
+  `SourceEdit`, executed through the backend seam, behaviour unchanged.
+* **U3**, this repository: the stack, the menu, the keys, and a consolidation
+  run recorded as one command.
+
+### Three things this document got wrong
+
+**Section 3's "putting a removed field back would need a position this
+application cannot recover" was wrong, and the first implementation believed
+it.** It refused to undo a deletion by name. A test found the hole within the
+hour: a consolidation is recorded as an *edit* and contains removals, so a rule
+reading the command's kind both missed the case it was aimed at and refused the
+one operation this scope exists to reverse.
+
+The answer was not to place better but to **not place at all**. `OoxmlBackend`
+keeps what it removed, the elements and their parents and the index each sat
+at, and an undo splices them back exactly. Deleting an entry and undoing it
+leaves the document's XML byte-identical, and so does a whole consolidation
+across two documents.
+
+**Section 4's "a command dropped when its document changes underneath it"
+cannot be that narrow here.** Every Word document's body is
+`word/document.xml`, so the container a command records names a part and not a
+manuscript. A document changing on disk therefore drops the whole project's
+history. That is the conservative direction and it is stated in the help.
+
+**`_needs_placement` is gone**, and with it the idea that this stack decides
+what can be applied. Whether an edit can be applied is the backend's answer,
+given at the moment of applying it.
+
+### Two defects found by comparing a document to itself
+
+Neither was visible to any test that looked only at entries, and the entries
+were correct throughout.
+
+* **The ownership map was emptied on every re-read**, so `backend_of` answered
+  `None` for exactly the entries an undo is for. The refusal it produced, "that
+  entry is not in an open document", was true of the map and false of the
+  document.
+* **Every fixture bookmark carried `w:id="9"`.** Word requires a bookmark id to
+  be unique and `_remove_bookmark` pairs a start with the end carrying its id,
+  so deleting one entry in a test document also removed a *different* entry's
+  `bookmarkEnd`. It had been there since the fixtures were written.
+
+### Acceptance, against section 7
+
+* `MacroEdit` gone, `IndexCommand` carrying `SourceEdit`s and an `EntryId`:
+  **yes**, U1.
+* The LaTeX editor's tests green with no behavioural change: **yes**, 1,731.
+* Undo and redo for every mutation, a consolidation reversing as one command,
+  labels an indexer recognises, commands dropped when the document changes:
+  **yes**, and the last is wider than promised, above.
+* A consolidation run over a real book, undone, document byte-identical:
+  **yes**, `ui/test_undo_action.py::TestAConsolidationRun`, across two
+  documents.
+
+Suite: **672 green** in this repository, 1,731 in the LaTeX editor.
