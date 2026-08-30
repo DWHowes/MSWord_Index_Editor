@@ -24,6 +24,36 @@ naming a **bookmark** that spans the passage. So a range cannot be typed in,
 and an entry carrying one must not lose it when anything else about the entry
 is edited.
 
+## A bold page number can be swallowed by a range
+
+If a heading has a **page range** and also a **decorated page reference** (bold
+or italic) that falls on the range's **first page**, Word prints one span and
+gives its opening number the decoration. The separate reference is gone, and
+nothing says so:
+
+    Space tourism
+        orbital tourism, **45**-50
+
+That happens only when the decorated entry comes **before** the range's entry
+in the manuscript. A decorated reference on the range's *last* page is not
+swallowed; it is printed a second time after the range, `40-45, `**`45`**.
+
+There are three ways round it, and all of them are yours to choose:
+
+* mark the decorated entry **after** the one that carries the range, and Word
+  prints both;
+* put the page style on the ranged entry itself, and the whole span is
+  decorated;
+* do not decorate a reference that falls on a range's first page.
+
+**Two references to one heading on one page are printed once**, whatever their
+page styles, and the one Word keeps is whichever comes first in the manuscript.
+So a passing mention marked plain and a discussion marked bold on the same page
+will show only one of them.
+
+Word never builds a range out of consecutive pages. `10, 11, 12` stays three
+numbers; a span only ever comes from a bookmark.
+
 ## The sort key is per level
 
 `XE "van Beethoven, Ludwig;Beethoven:symphonies"` files the main entry under

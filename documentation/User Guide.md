@@ -525,6 +525,39 @@ Word compares roughly the first 259 characters of a heading. Two that agree that
 
 Other formats write a range as a start and an end. Word writes one entry naming a **bookmark** that spans the passage. So a range cannot be typed in, and an entry carrying one must not lose it when anything else about the entry is edited.
 
+### A bold page number can be swallowed by a range
+
+If a heading has a **page range** and also a **decorated page reference** (bold
+or italic) falling on the range's **first page**, Word prints one span and
+gives its opening number the decoration. The separate reference disappears, and
+nothing reports it. In *the CUP monograph?* this is what produces
+
+    orbital tourism, **45**-50
+
+from a bold reference on page 45 and a range covering 45 to 50.
+
+It happens only when the decorated entry comes **before** the ranged entry in
+the manuscript. A decorated reference on the range's **last** page is not
+swallowed: it is printed again after the range, as `40-45, `**`45`**. That
+asymmetry is Word's, and it was measured rather than assumed; see
+`documentation/page_style_measurements.md`.
+
+Three ways round it:
+
+* mark the decorated entry **after** the entry carrying the range, and Word
+  prints both, at the cost of the page appearing twice;
+* put the page style on the ranged entry itself, and the whole span is
+  decorated (its dash stays plain, which is also Word's doing);
+* do not decorate a reference that falls on a range's first page.
+
+**Two references to one heading on one page print once**, whatever their page
+styles, and Word keeps whichever comes first in the manuscript. A passing
+mention marked plain and a discussion marked bold on the same page will show
+only one of the two. There are fifteen such places in *the CUP monograph?*
+
+Word never builds a range out of consecutive pages: `10, 11, 12` stays three
+numbers, and a span only ever comes from a bookmark.
+
 ### The sort key is per level
 
 `XE "van Beethoven, Ludwig;Beethoven:symphonies"` files the main entry under *Beethoven* and displays *van Beethoven, Ludwig*. One key for the whole entry is not the same thing: Word renders that as an extra index level with the sort key printed as visible text.
