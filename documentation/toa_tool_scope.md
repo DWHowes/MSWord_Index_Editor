@@ -1,5 +1,16 @@
 # A Table of Authorities in the Word editor: a scope
 
+> **DECISIONS TAKEN, 30 August 2026.** §7's four questions are answered:
+> **(1) the `build_table` pipeline**, through a null-page adapter;
+> **(2) markup** — the tool marks the manuscript and Word prints the table —
+> *and* the indexer asked to look at putting the table into the separate index
+> document this application already writes, which is added to §6 as step 6;
+> **(3) the authorities stay separate** from the subject index;
+> **(4) only when asked for** — a command, not something every project runs.
+>
+> **§3's finding is FIXED, and it turned out to be two**, core `c185734`. The
+> two hosts now agree on all **584** rows and strike the same **4**. See §3a.
+
 **Written 30 August 2026, for approval. Nothing is built.** The figures below
 come from running the core's Table of Authorities pipeline over a real law book
 twice — once as page proofs through ToA_Builder, once as a Word manuscript
@@ -109,6 +120,33 @@ also adds candidate positions for the paginated host and could find a heading
 mid-page that the page-mark anchor was quietly excluding. It needs the same
 measurement over the ToA corpus that the original rule had.
 
+## 3a. Both fixes, and why the obvious one was wrong
+
+**`back_matter_offset`** now anchors a candidate heading on a newline as well.
+That alone would have broken the host that works: measured over the law corpus
+first, **both books that currently find their bibliography instead matched
+`Bibliography   361` on their contents page at 0%**, failed the floor, and lost
+the back matter entirely. The real defect was beside it — the code took the
+*first* candidate and only then asked whether it was late enough, so one false
+match near the front lost everything. The floor is applied per candidate now.
+*It never bit the paginated host because a contents line does not sit
+immediately after a page mark: it worked by luck rather than by rule.*
+
+**`_strike_unlocated`** keyed on locators rather than on the back matter — a
+defect one day old, of exactly the shape this exercise was meant to find. Its
+test for a residue row was *"it has no locator, and another row that has one
+looks like it"*, and where nothing has a locator there is never a located twin
+to be a near-duplicate **of**. The evidence is *cited in the body* now, which
+is what the locator suppression already used and which both hosts can answer.
+
+| | proofs | manuscript |
+|---|---:|---:|
+| rows | **584** | **584** |
+| identical | **584** | **584** |
+| struck | **4** | **4** |
+
+So §9's first acceptance criterion is already met, before the tool exists.
+
 ## 4. What else is likely to be paginated-only
 
 Named as things to check rather than assumed, because the one found so far was
@@ -164,6 +202,13 @@ did not exist until there were two hosts.*
    index page already composes.
 5. A **preferences page** for the citation standard and the publisher's house
    style — both already shared, both already built.
+6. **The table in the separate index document.** *Added by the indexer, 30
+   August.* This application already writes an index document rather than
+   generating an index, so the `INDEX  "toacases"` fields belong in the same
+   place — one document the publisher composes, carrying the subject index and
+   the tables of authorities as separate indexes. That is decision (3) and
+   step 4 arriving at the same file, and it means the tool has an output an
+   indexer can look at without opening the manuscript.
 
 ## 7. Decisions the indexer must make
 
