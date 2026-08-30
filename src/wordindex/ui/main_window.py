@@ -53,13 +53,25 @@ from bookindexcore.ui.window import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor, QTextDocument
 from PySide6.QtWidgets import (
-    QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QSplitter,
+    QApplication, QFileDialog, QInputDialog, QLabel, QMainWindow,
+    QMessageBox, QSplitter,
     QStyle, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from .. import __version__
 from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
+from dataclasses import replace as _dataclass_replace
+
+from bookindexcore.authorities import house_style_for
+from bookindexcore.authorities.systems import system_for
+from bookindexcore.sorting import sort_rules_from_settings
+from bookindexcore.ui.progress_dialog import ProgressDialog
+
+from ..check_prefs import CheckIndexPrefs
 from ..checking import check_project
+from ..toa_emission import build_plan
+from ..toa_run import apply_plan
+from .toa_review import ToaReviewDialog
 from ..document_checks import document_rules
 from ..presentation_prefs import PresentationPrefs
 from ..undo import CannotReverse, UndoStack, command_for
@@ -278,6 +290,14 @@ class MainWindow(QMainWindow):
         self.consolidate_action = index_menu.addAction(
             "Consolidate c&ross-references…", self.consolidate_xrefs)
         self.consolidate_action.setEnabled(False)
+        # **Only when asked for**, which is the indexer's decision of 30
+        # August 2026 and the reason this is a command rather than something
+        # every project runs: thirteen of the fourteen books measured are
+        # subject indexes, and a table of authorities over one of those
+        # reports nothing at all.
+        self.toa_action = index_menu.addAction(
+            "Build &Table of Authorities…", self.build_table_of_authorities)
+        self.toa_action.setEnabled(False)
         self.check_action = index_menu.addAction(
             "&Check index…", self.check_index)
         self.check_action.setEnabled(False)
@@ -335,6 +355,11 @@ class MainWindow(QMainWindow):
         help_menu.addAction("&About…", self._help.show_about)
 
         self._findings_dialog = None
+        #: The `INDEX` fields a built table of authorities needs, so
+        #: the index document can carry them. Empty until one is
+        #: built, and **emptied by opening another project**: the
+        #: tables belong to the book they were found in.
+        self._toa_index_fields = ()
         self._find_dialog = None
         self._search_window = None
 
@@ -390,7 +415,7 @@ class MainWindow(QMainWindow):
                        self.search_action, self.save_action,
                        self.index_document_action, self.close_project_action,
                        self.reopen_action, self.entry_window_action,
-                       self.consolidate_action):
+                       self.consolidate_action, self.toa_action):
             action.setEnabled(False)
         self.setWindowTitle("Word Index Editor")
         self.statusBar().showMessage("Open a Word manuscript to begin.")
@@ -974,6 +999,9 @@ class MainWindow(QMainWindow):
             return
 
         self.session = session
+        # **A different book has different authorities.** Carrying these over
+        # would put the last project's tables into this one's index document.
+        self._toa_index_fields = ()
         self.tabs.close_all()
         self._unsaved.clear()
         self._edits.clear()
@@ -998,6 +1026,7 @@ class MainWindow(QMainWindow):
         self.close_project_action.setEnabled(True)
         self.entry_window_action.setEnabled(True)
         self.consolidate_action.setEnabled(True)
+        self.toa_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -1431,6 +1460,133 @@ class MainWindow(QMainWindow):
         self._after_change(str(run))
         self._report_refusals(refused, run=run)
 
+    def build_table_of_authorities(self) -> None:
+        r"""
+        Find the book's authorities and mark them, with a review first.
+
+        **Marked, never printed.** This application writes `XE` fields and
+        lets Word compute the locators, which is the premise of the whole
+        editor: a manuscript has no pages until Word composes it. The table
+        itself is collected by `INDEX \f` fields in the index document, so
+        the authorities are *separate indexes* beside the subject index rather
+        than folded into it — the indexer's decision, 30 August 2026.
+
+        The plan is built over **the whole project**, because an authority
+        cited in chapter 2 and chapter 9 is one entry and a table built a
+        document at a time would file it twice.
+
+        The pass is slow enough to need saying so: on a real book it reads a
+        million characters and writes 1,199 fields, and took 224 seconds. A
+        pass with no progress is indistinguishable from a hang.
+        """
+        if self.session is None or not self.session.documents:
+            self.statusBar().showMessage(
+                "Open a manuscript before building a table of authorities.")
+            return
+
+        prefs = CheckIndexPrefs()          # the standard lives beside the checks
+        system = system_for(self._toa_system())
+        documents = [(path, self.session.backends[path])
+                     for path in self.session.documents
+                     if path in self.session.backends]
+
+        progress = ProgressDialog(0, None, self)
+        progress.setWindowTitle("Reading the manuscripts")
+        progress.show()
+        QApplication.processEvents()
+        try:
+            plan = build_plan(
+                documents, system, sort_rules_from_settings({}),
+                house=house_style_for(self._toa_house()),
+                on_progress=lambda done, total: (
+                    progress.advance(done, total),
+                    QApplication.processEvents()),
+                should_cancel=progress.should_cancel)
+        finally:
+            progress.close()
+
+        if progress.cancelled:
+            self.statusBar().showMessage("Table of authorities cancelled.")
+            return
+        if plan.is_empty:
+            QMessageBox.information(
+                self, "No authorities found",
+                "Nothing in this project parses as a citation, so there is no "
+                "table to build. A subject index reports this, and it is the "
+                "right answer for one.")
+            return
+
+        dialog = ToaReviewDialog(plan, self)
+        if dialog.exec() != ToaReviewDialog.DialogCode.Accepted:
+            self.statusBar().showMessage("No fields were written.")
+            return
+
+        accepted = dialog.accepted_entries()
+        if not accepted:
+            self.statusBar().showMessage("No fields were written.")
+            return
+
+        writing = ProgressDialog(len(accepted), None, self)
+        writing.setWindowTitle("Writing the fields")
+        writing.show()
+        QApplication.processEvents()
+        try:
+            run = apply_plan(
+                _dataclass_replace(plan, entries=accepted),
+                backend_for=self.session.backends.get,
+                on_progress=lambda done, total: (
+                    writing.advance(done, total),
+                    QApplication.processEvents()),
+                should_cancel=writing.should_cancel)
+        finally:
+            writing.close()
+
+        # **One command for the whole run.** 1,199 items on the undo list
+        # would be unusable, and a partial reversal leaves a manuscript with
+        # part of a table of authorities in it and no way to tell which part.
+        if run.edits:
+            self.undo_stack.record(command_for(
+                INSERT, "Build table of authorities", run.edits))
+            self._refresh_undo_actions()
+        self._after_change(str(run))
+        self._toa_index_fields = plan.index_fields
+        self._report_toa(run, plan)
+
+    def _toa_system(self) -> str:
+        """
+        Which citation standard the book is written in.
+
+        Read from preferences rather than asked for here: it is a fact about
+        the book, it belongs beside the other Check Index settings, and asking
+        in a dialog every time would be asking an indexer to answer the same
+        question on every run.
+        """
+        from .preferences import settings
+
+        return str(settings().value("toa/system") or "mcgill")
+
+    def _toa_house(self) -> str:
+        from .preferences import settings
+
+        return str(settings().value("toa/house") or "none")
+
+    def _report_toa(self, run, plan) -> None:
+        """What the run did, and what it could not do."""
+        lines = [str(run)]
+        if run.refused:
+            shown = "\n".join(f"  {display}: {why}"
+                               for display, why in run.refused[:12])
+            lines.append(f"\n{len(run.refused)} were refused:\n{shown}")
+        if plan.struck:
+            lines.append(
+                f"\n{len(plan.struck)} rows were struck as back-matter "
+                f"residue:\n" + "\n".join(f"  {d}" for d in plan.struck[:12]))
+        lines.append(
+            "\nThe table itself is collected by INDEX fields in the index "
+            "document. Write it from Index \u25b8 Write index document.")
+        QMessageBox.information(self, "Table of Authorities",
+                                "\n".join(lines))
+
     def _project_order(self, reference):
         """
         A key putting a reference in the order the book reads in.
@@ -1807,6 +1963,14 @@ class MainWindow(QMainWindow):
         who asked for this once should not confirm it after every save; a
         *failure* still opens a box, since a deliverable that was not written
         is not something to leave in a status line.
+
+        **The tables of authorities go in the same document**, as separate
+        `INDEX` fields with headings above them -- the indexer's decision, 30
+        August 2026. One file the publisher composes, carrying the subject
+        index and the tables side by side. `_toa_index_fields` is empty until
+        a table is built, and a refresh with it empty takes any previous
+        tables back out, so turning the feature off is a thing an indexer can
+        actually do.
         """
         if self.session is None:
             return
@@ -1818,7 +1982,8 @@ class MainWindow(QMainWindow):
                         self.session.project.name))
             result = index_document.write_index_document(
                 root / name, self.session.documents,
-                index_instruction(values), root=root)
+                index_instruction(values), root=root,
+                also=self._toa_index_fields)
         except index_document.IndexDocumentError as refused:
             QMessageBox.warning(self, "The index document was not written",
                                 str(refused))

@@ -148,8 +148,9 @@ class WriteResult:
 
 def write_index_document(target: Path, documents: Sequence[Path],
                          instruction: str, *,
-                         root: Optional[Path] = None) -> WriteResult:
-    """
+                         root: Optional[Path] = None,
+                         also: Sequence[tuple] = ()) -> WriteResult:
+    r"""
     Write, or refresh, the index document at `target`.
 
     Creating it builds the smallest `.docx` that Word will open (D3): no
@@ -158,19 +159,31 @@ def write_index_document(target: Path, documents: Sequence[Path],
 
     Refreshing an existing one **keeps everything the file already holds**,
     including a generated index, and replaces only the `RD` fields and the
-    `INDEX` instruction. A file with no `INDEX` field in it is refused by name:
-    it is somebody else's document, and this is not the moment to find out
-    what was in it.
+    `INDEX` instructions. A file with no `INDEX` field in it is refused by
+    name: it is somebody else's document, and this is not the moment to find
+    out what was in it.
+
+    ``also`` carries **further indexes**, as ``(heading, instruction)`` pairs
+    — the tables of authorities. The indexer's decision, 30 August 2026: this
+    application writes an index document rather than generating an index, so
+    the tables belong in the same file the subject index does, and they stay
+    *separate indexes* within it. Each gets a heading paragraph of its own,
+    because `INDEX \f "c"` and `INDEX \f "s"` produce two lists and a reader
+    meeting them unlabelled cannot tell which is which.
+
+    The subject index comes first and keeps its place, so a document refreshed
+    after the tables are added does not reorder what was already composed in
+    it.
     """
     target = Path(target)
     root = Path(root) if root is not None else target.parent
     instructions = [rd_instruction(document, root) for document in documents]
 
     if target.exists():
-        _refresh(target, instructions, instruction)
+        _refresh(target, instructions, instruction, tuple(also))
         return WriteResult(target, created=False, documents=len(instructions))
 
-    _create(target, instructions, instruction)
+    _create(target, instructions, instruction, tuple(also))
     return WriteResult(target, created=True, documents=len(instructions))
 
 
@@ -279,7 +292,7 @@ def _rewrite_instruction(paragraph, instruction: str) -> None:
 
 
 def _refresh(target: Path, rd_instructions: Sequence[str],
-             index_instruction: str) -> None:
+             index_instruction: str, also: Sequence[tuple] = ()) -> None:
     try:
         with zipfile.ZipFile(target) as archive:
             items = {name: archive.read(name) for name in archive.namelist()}
@@ -306,6 +319,14 @@ def _refresh(target: Path, rd_instructions: Sequence[str],
     index_paragraph = index_paragraphs[0]
     _rewrite_instruction(index_paragraph, index_instruction)
 
+    # **Every other INDEX field goes, and the wanted ones come back.** A
+    # refresh that added without removing would leave a table of authorities
+    # behind after the indexer turned it off, and one that rewrote in place
+    # would have to guess which existing field was which -- the `\f` switch is
+    # the only thing telling them apart and an indexer may have edited it.
+    for paragraph in index_paragraphs[1:]:
+        _remove_with_heading(paragraph)
+
     for paragraph, instruction in existing:
         if instruction.upper().startswith("RD "):
             paragraph.getparent().remove(paragraph)
@@ -316,15 +337,57 @@ def _refresh(target: Path, rd_instructions: Sequence[str],
     for offset, instruction in enumerate(rd_instructions):
         parent.insert(at + offset, _field_paragraph(instruction))
 
+    # After the subject index, in the order given, each with its heading.
+    parent = index_paragraph.getparent()
+    at = list(parent).index(index_paragraph) + 1
+    for offset, (heading, instruction) in enumerate(also):
+        parent.insert(at + offset * 2, _text_paragraph(heading))
+        parent.insert(at + offset * 2 + 1, _field_paragraph(instruction))
+
     items[BODY] = etree.tostring(root, xml_declaration=True,
                                  encoding="UTF-8", standalone=True)
     _repackage(target, items)
 
 
+def _remove_with_heading(paragraph) -> None:
+    """
+    Take out a field paragraph and the heading this application put above it.
+
+    A heading is recognised by being the paragraph immediately before, holding
+    text and no field. **Anything else is left alone**: the document may be one
+    the publisher has been working in, and a refresh that deleted a paragraph
+    of theirs would be the opposite of what this file promises.
+    """
+    parent = paragraph.getparent()
+    if parent is None:
+        return
+    previous = paragraph.getprevious()
+    parent.remove(paragraph)
+    if previous is None:
+        return
+    has_field = previous.find(f".//{_q('instrText')}") is not None
+    has_text = previous.find(f".//{_q('t')}") is not None
+    if has_text and not has_field:
+        parent.remove(previous)
+
+
+def _text_paragraph(text: str):
+    """A plain paragraph of visible text, for an index's heading."""
+    paragraph = etree.Element(_q("p"))
+    run = etree.SubElement(paragraph, _q("r"))
+    node = etree.SubElement(run, _q("t"))
+    node.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    node.text = text
+    return paragraph
+
+
 def _create(target: Path, rd_instructions: Sequence[str],
-            index_instruction: str) -> None:
+            index_instruction: str, also: Sequence[tuple] = ()) -> None:
     body = etree.Element(_q("body"))
     for instruction in list(rd_instructions) + [index_instruction]:
+        body.append(_field_paragraph(instruction))
+    for heading, instruction in also:
+        body.append(_text_paragraph(heading))
         body.append(_field_paragraph(instruction))
     body.append(_section_properties())
 

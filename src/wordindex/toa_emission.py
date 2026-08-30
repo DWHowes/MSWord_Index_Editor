@@ -177,8 +177,15 @@ def xe_instruction(path: Sequence[tuple], index_name: str) -> str:
 
 @dataclass(frozen=True)
 class WordToaEntry:
-    """One ``XE`` field, and where in the visible text it goes."""
+    """
+    One ``XE`` field, and where in the visible text it goes.
 
+    **`document` as well as `container`**, because a project has several and
+    every one of their bodies is called `word/document.xml`. A locator cannot
+    say which document it belongs to, and neither can a container name.
+    """
+
+    document: object
     container: str
     offset: int
     instruction: str
@@ -243,7 +250,18 @@ def _leaf_paths(table):
 
 class ManuscriptSource:
     r"""
-    A ``.docx`` as the three-method source the ToA pipeline reads.
+    **A whole project** as the three-method source the ToA pipeline reads.
+
+    Not one document, and that is the point: an authority cited in chapter 2
+    and again in chapter 9 is **one entry with two occurrences**, and a table
+    built a document at a time would file it twice. The pipeline already
+    merges across every container it is given, so the project is what it has
+    to be given.
+
+    A container is named `<index>:<part>` because two documents both call
+    their body `word/document.xml`, and the pipeline's container names have to
+    be unique or two chapters' offsets become indistinguishable once merged.
+    :meth:`resolve` turns the name back into the document and the part.
 
     **`page_for` returns None for everything, and that is the honest answer
     rather than a stub.** A Word manuscript has no pages until Word composes
@@ -251,30 +269,47 @@ class ManuscriptSource:
     for LaTeX, and the reason this application places `XE` fields and lets
     Word compute the locators instead of printing a table itself.
 
-    Empty containers are dropped, because a header holding two characters is
-    not a part of the book and would only add a coordinate range nothing lives
-    in.
+    Empty containers are dropped: a header holding two characters is not a
+    part of the book and would only add a coordinate range nothing lives in.
     """
 
-    def __init__(self, backend):
-        self._backend = backend
+    def __init__(self, documents):
+        self._parts = {}
+        self._order = []
+        for index, (path, backend) in enumerate(documents):
+            for part in backend.containers():
+                if not backend.read_text(part).strip():
+                    continue
+                name = f"{index}:{part}"
+                self._parts[name] = (path, part, backend)
+                self._order.append(name)
 
     def containers(self) -> Sequence[str]:
-        return [name for name in self._backend.containers()
-                if self._backend.read_text(name).strip()]
+        return list(self._order)
 
     def read_text(self, container: str) -> str:
-        return self._backend.read_text(container)
+        _path, part, backend = self._parts[container]
+        return backend.read_text(part)
 
     def page_for(self, container: str, offset: int) -> Optional[str]:
         return None
 
+    def resolve(self, container: str):
+        """``(document, part)`` for a name this source handed out."""
+        path, part, _backend = self._parts[container]
+        return path, part
 
-def build_plan(backend, system, rules: SortRules, *,
+
+def build_plan(documents, system, rules: SortRules, *,
                house=None, proposer=None,
                on_progress=None, should_cancel=None) -> WordToaPlan:
     """
-    Read a document, find its authorities, and describe the fields to write.
+    Read a project, find its authorities, and describe the fields to write.
+
+    ``documents`` is a sequence of ``(path, backend)`` in the indexer's own
+    reading order — **the project, not one file**, because an authority cited
+    in two chapters is one entry and a table built a document at a time would
+    file it twice.
 
     **The whole of the core's pipeline, not a shortcut through the middle of
     it.** This used to call `CitationParser`, `merge_citations` and `assemble`
@@ -295,7 +330,8 @@ def build_plan(backend, system, rules: SortRules, *,
     they are not visible in the rendered document, so an `XE` this application
     wrote earlier is not read back as prose on a second run.
     """
-    placed = build_table(ManuscriptSource(backend), system, rules,
+    source = ManuscriptSource(documents)
+    placed = build_table(source, system, rules,
                          house=house, proposer=proposer,
                          on_progress=on_progress, should_cancel=should_cancel)
     table = placed.table
@@ -319,13 +355,17 @@ def build_plan(backend, system, rules: SortRules, *,
                 where = placed.container_for(occurrence.end)
                 if where is None:
                     continue
-                container, offset = where
+                name, offset = where
+                document, part = source.resolve(name)
                 entries.append(WordToaEntry(
-                    container=container, offset=offset,
+                    document=document, container=part, offset=offset,
                     instruction=instruction,
                     display=path[-1][1], category=category))
 
-    entries.sort(key=lambda e: (e.container, -e.offset))
+    # **Descending within each part**, so every offset still to be used lies
+    # before everything already inserted: a placement splits a run and adds
+    # five nodes, and doing it forwards would invalidate the rest.
+    entries.sort(key=lambda e: (str(e.document), e.container, -e.offset))
 
     fields = tuple(
         (CATEGORY_LABELS[section.category], index_field_for(section.category))

@@ -5,6 +5,39 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The Table of Authorities, as a gesture
+
+**Index ▸ Build Table of Authorities…**, and it is a *command* — the indexer's
+decision, because thirteen of the fourteen books measured are subject indexes
+and a table of authorities over one of those correctly reports nothing.
+
+It reads **the whole project**, since an authority cited in chapter 2 and
+chapter 9 is one entry and a table built a document at a time would file it
+twice. Then a **review**: the table as it would be, sections and headings and
+the authorities beneath them, every one tickable. *A list of edits would have
+been a thousand rows an indexer cannot read; a list of authorities is a few
+hundred, which is a table they already know how to check.* Design doc §8.17
+called this stage H — *accept this entry into the table*, not *apply this edit
+to a document* — which is why it is not the shared preview.
+
+What is accepted is written as `XE` fields with ``, **one undo for the whole
+run**. A real book writes 1,199 of them: an undo list holding them one at a
+time is one an indexer would give up on, and a partial reversal leaves half a
+table in a manuscript with no way to tell which half.
+
+The `INDEX ` fields go into **the separate index document this application
+already writes** — the indexer's addition to the scope. One file the publisher
+composes, carrying the subject index and the tables of authorities side by
+side as separate indexes. Building no table, or opening another project, takes
+them back out again, so turning the feature off is something an indexer can
+actually do.
+
+Both passes show progress with a cancel, because reading a million characters
+and writing 1,199 fields took 224 seconds on a real book and **a pass with no
+progress is indistinguishable from a hang**. The dialog came from ToA_Builder
+by way of the core, and needed no adapting.
+
+
 ### The Table of Authorities pipeline, wired to the core's whole of it
 
 Scope decision (1). `build_plan` used to call `CitationParser`,

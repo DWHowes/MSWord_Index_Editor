@@ -273,6 +273,27 @@ tests/
                             disabled set arrives switched on in every project,
                             and nothing else would notice
 
+  test_toa_run.py           writing a Table of Authorities plan into the
+                            manuscripts. What is asserted is that ONE RUN IS
+                            ONE COMMAND -- a real book plans 1,199 fields, and
+                            an undo list holding them one at a time is one an
+                            indexer would give up on, while a partial reversal
+                            leaves half a table in a manuscript with no way to
+                            tell which half. Also that a refusal is not a
+                            failure: place_at refuses by name where this
+                            application will not write, and the other 1,198
+                            fields are still wanted
+
+  ui/test_toa_action.py     the gesture, over a real document, and it exists
+                            for the reason the undo action's file does -- the
+                            entries were right throughout while the XML was
+                            not. It drives the command, the review and the
+                            index document: the fields are written, the
+                            visible text does not change, one run is one undo,
+                            unticking everything writes nothing, and turning
+                            the table off takes its INDEX fields back out of
+                            the index document again
+
   ui/test_undo_action.py    step U3 over real documents, and the file exists
                             because the entries were right throughout while
                             the XML was not. Two defects were found by

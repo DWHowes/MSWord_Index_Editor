@@ -12,6 +12,8 @@ was used to prove the phase -- a 1,047,619-character Cambridge manuscript, 11
 parts -- and the numbers are in the design doc.
 """
 
+from pathlib import Path
+
 import pytest
 
 from bookindexcore.authorities import (
@@ -42,6 +44,13 @@ STATUTES = ("Under the Wills Act 1837, s 9, and the Wills Act 1837, s 46, "
 @pytest.fixture
 def rules():
     return sort_rules_from_settings({})
+
+
+#: A stand-in identity for the one document these fixtures hold. The plan
+#: keys a field by its document because a project has several and every
+#: one of their bodies is called `word/document.xml`; nothing here reads
+#: the path, so a name is enough.
+BOOK = Path("book.docx")
 
 
 @pytest.fixture
@@ -205,7 +214,7 @@ class TestTheInstruction:
 class TestThePlan:
     def test_one_field_per_occurrence_one_instruction_per_authority(self, book,
                                                                     rules):
-        plan = build_plan(book, OSCOLA, rules)
+        plan = build_plan([(BOOK, book)], OSCOLA, rules)
         banks = [e for e in plan.entries if "Banks v Goodfellow" in e.display]
 
         assert len(banks) == 2
@@ -216,7 +225,7 @@ class TestThePlan:
         A placement splits a run and adds five nodes. Applying forwards would
         invalidate every later offset in the paragraph.
         """
-        plan = build_plan(book, OSCOLA, rules)
+        plan = build_plan([(BOOK, book)], OSCOLA, rules)
         for container in {e.container for e in plan.entries}:
             offsets = [e.offset for e in plan.entries
                        if e.container == container]
@@ -224,7 +233,7 @@ class TestThePlan:
             assert offsets == sorted(offsets, reverse=True)
 
     def test_an_index_field_per_section(self, book, rules):
-        plan = build_plan(book, OSCOLA, rules)
+        plan = build_plan([(BOOK, book)], OSCOLA, rules)
         labels = [label for label, _field in plan.index_fields]
 
         assert "Cases" in labels
@@ -236,12 +245,12 @@ class TestThePlan:
         backend = OoxmlBackend()
         backend.open(path)
 
-        assert build_plan(backend, OSCOLA, rules).is_empty
+        assert build_plan([(BOOK, backend)], OSCOLA, rules).is_empty
 
 
 class TestAppliedEndToEnd:
     def test_every_planned_field_can_be_placed(self, book, rules):
-        plan = build_plan(book, OSCOLA, rules)
+        plan = build_plan([(BOOK, book)], OSCOLA, rules)
 
         assert plan.entries
         assert all(book.place_at(e.container, e.offset, e.instruction).ok
@@ -249,7 +258,7 @@ class TestAppliedEndToEnd:
 
     def test_and_the_text_still_reads_the_same(self, book, rules):
         before = {c: book.read_text(c) for c in book.containers()}
-        plan = build_plan(book, OSCOLA, rules)
+        plan = build_plan([(BOOK, book)], OSCOLA, rules)
         for entry in plan.entries:
             book.place_at(entry.container, entry.offset, entry.instruction)
 
@@ -260,7 +269,7 @@ class TestAppliedEndToEnd:
         Written so this backend's own scanner finds them -- which is what a
         second run, and Check Index, and the entry table all depend on.
         """
-        plan = build_plan(book, OSCOLA, rules)
+        plan = build_plan([(BOOK, book)], OSCOLA, rules)
         for entry in plan.entries:
             book.place_at(entry.container, entry.offset, entry.instruction)
 
@@ -278,11 +287,11 @@ class TestAppliedEndToEnd:
         found again as prose. LaTeX needed `index` in an opaque-macro list to
         get the same property; here it falls out of what "visible" means.
         """
-        plan = build_plan(book, OSCOLA, rules)
+        plan = build_plan([(BOOK, book)], OSCOLA, rules)
         for entry in plan.entries:
             book.place_at(entry.container, entry.offset, entry.instruction)
 
-        assert len(build_plan(book, OSCOLA, rules).entries) == len(plan.entries)
+        assert len(build_plan([(BOOK, book)], OSCOLA, rules).entries) == len(plan.entries)
 
 class TestThePlanRunsTheWholePipeline:
     """
@@ -312,7 +321,7 @@ class TestThePlanRunsTheWholePipeline:
                                            for line in text.split("\n"))))
         backend = OoxmlBackend()
         backend.open(path)
-        return build_plan(backend, system_for("mcgill"),
+        return build_plan([(path, backend)], system_for("mcgill"),
                           sort_rules_from_settings({}))
 
     def test_a_short_form_reaches_the_authority_it_names(self, tmp_path):
@@ -374,8 +383,8 @@ class TestTheSourceItReadsThrough:
                           document(paragraph(run("Some prose."))))
         backend = OoxmlBackend()
         backend.open(path)
-        source = ManuscriptSource(backend)
-        assert source.page_for("word/document.xml", 0) is None
+        source = ManuscriptSource([(BOOK, backend)])
+        assert source.page_for(source.containers()[0], 0) is None
 
     def test_empty_containers_are_left_out(self, tmp_path):
         """
@@ -389,6 +398,9 @@ class TestTheSourceItReadsThrough:
                           document(paragraph(run("Some prose."))))
         backend = OoxmlBackend()
         backend.open(path)
-        named = ManuscriptSource(backend).containers()
-        assert "word/document.xml" in named
-        assert all(backend.read_text(c).strip() for c in named)
+        named = ManuscriptSource([(BOOK, backend)]).containers()
+        assert any(name.endswith("word/document.xml")
+                   for name in named)
+        source = ManuscriptSource([(BOOK, backend)])
+        assert all(source.read_text(name).strip()
+                   for name in named)
