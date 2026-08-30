@@ -127,6 +127,43 @@ class TestTheRulesRun:
         assert check_project(session) == []
 
 
+class TestTheEmptyHeadingRuleReachesThisHost:
+    """
+    `basic.empty_heading` is the core's, added after a survey of a real book
+    found a lone ``XE ""`` that nothing reported. What matters here is that it
+    arrives **with Word's dialect behind it**, because the two cases it has to
+    catch are spelled in `XE` and in nothing else.
+    """
+
+    def _findings(self, tmp_path, *instructions):
+        from docx_fixtures import document, field_runs, paragraph, text, write_docx
+
+        path = tmp_path / "book.docx"
+        write_docx(path, document(paragraph(
+            text("Prose. "),
+            *[field_runs(instruction) for instruction in instructions])))
+        session = OpenProject(Project(name="one", documents=(path,)))
+        session.open()
+        return [f for f in check_project(session)
+                if f.rule == "basic.empty_heading"]
+
+    def test_an_entry_with_no_heading_is_reported(self, tmp_path):
+        assert len(self._findings(tmp_path, 'XE ""')) == 1
+
+    def test_an_entry_that_is_only_a_sort_key_is_reported(self, tmp_path):
+        r"""
+        ``XE ";filed here"`` displays nothing and prints nothing, whatever the
+        sorting says about it. Only Word's dialect spells a sort key this way,
+        which is why the case is asserted in this suite and not the core's.
+        """
+        assert len(self._findings(tmp_path, 'XE ";filed here"')) == 1
+
+    def test_ordinary_entries_are_left_alone(self, tmp_path):
+        assert self._findings(
+            tmp_path, 'XE "Cats"', 'XE "Cats:feeding"',
+            'XE "Cats;kats"', 'XE "&"') == []
+
+
 class TestThePreferencesReachTheRules:
     """
     **Found by looking at a real report**, not by a test. Check Index over

@@ -5,6 +5,39 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### the manuscript surveyed, and `basic.empty_heading` added to the core
+
+Asked whether the book held any other damaged fields. **It does not.**
+`document.xml` is out by exactly one `fldChar`; footnotes, endnotes, both
+headers and comments balance; no field is left open; **no `XE` field is nested
+inside another field's range** — which would have been swallowed into the
+outer field and discarded as not an entry; all six `separate` characters
+belong to Zotero citation fields; every `\r` names a bookmark that exists.
+`documentation/trade_agreements_field_survey.md`.
+
+Two things looked wrong and are not, and the markup could not settle either —
+generating the index could.
+
+**The eight entries ending `\t"` are a documented technique, and the
+indexer's own**: Howes (2024), *The Indexer* 42(4), adapting Greulich (2020c).
+`;zzz` files the *see also* last under its heading and `\t` suppresses its page
+number. Word treats `\t"` exactly as `\t ""`. *They are also legacy* — Klarso
+have since changed how Index-Manager injects an `XE` field, which broke the
+technique, and the Word macro that manages cross-references is what replaced
+it. **Anything this application does about cross-references should be measured
+against the macro, not against the article.**
+
+**The one `XE ""` prints nothing**: five `XE` fields in a fixture produced four
+index lines, so Word ignores an empty entry entirely. It costs the book
+nothing and costs this application one row with no heading in it.
+
+Nothing reported that row, so `basic.empty_heading` was added **to the core**,
+where an entry with no heading is meaningless in every format. On by default,
+and it catches `XE ";filed here"` — a sort key with nothing to display — which
+only Word's dialect spells that way, so that case is asserted here and the
+format-neutral ones in the core. Check Index over the book now reports 49
+findings rather than 48.
+
 ### Two Check Index rules about the manuscript (option B)
 
 Scoping the paragraph-straddling field found one damaged field in one book and
