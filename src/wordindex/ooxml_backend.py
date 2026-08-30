@@ -404,7 +404,7 @@ class OoxmlBackend(DocumentBackend):
         ``name -> (start, end)`` for every bookmark in a part, in `read_text`
         space.
 
-        **What a Word page range actually is.** ` "name"` on an ``XE`` field
+        **What a Word page range actually is.** `\r "name"` on an ``XE`` field
         names a bookmark, and the bookmark is the range: Word prints the page
         the field sits on through to the page the bookmark ends on. Nothing in
         this application could read that back, so the manuscript view drew a
