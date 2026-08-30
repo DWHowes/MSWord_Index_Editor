@@ -263,7 +263,15 @@ tests/
                             the settings page refuses rather than reporting
                             nothing; and checking leaves the document
                             byte-identical, because this reports and never
-                            repairs
+                            repairs. The damaged-field rule ships ON, changed
+                            by the indexer once the rendering was measured, so
+                            what is asserted is the JOIN: the default each
+                            rule declares is the default an unconfigured
+                            project gets, end to end through the preferences
+                            this application reads. A rule declaring
+                            default_on=False and missing from the stored
+                            disabled set arrives switched on in every project,
+                            and nothing else would notice
 
   ui/test_undo_action.py    step U3 over real documents, and the file exists
                             because the entries were right throughout while

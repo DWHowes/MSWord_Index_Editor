@@ -1,7 +1,8 @@
 # The paragraph-straddling field
 
-> **OPTION B TAKEN, and built 30 August 2026.** Two rules, off by default,
-> under *In the document* in Preferences > Check Index. **And the probe run to
+> **OPTION B TAKEN, and built 30 August 2026.** Two rules under *In the
+> document* in Preferences > Check Index: the damaged-field one **on** by the
+> indexer's decision, the crossing one off. **And the probe run to
 > settle their severity changed what this document says**: a damaged field does
 > not merely go unindexed, **it prints its instruction text in the book** --
 > including on page 25 of a real Cambridge manuscript in this corpus. §4 and §6
@@ -175,10 +176,16 @@ damaged field and a crossing field are two decisions:
 * **`document.field_crosses_paragraph`** — *"an index field crossing a
   paragraph. Word indexes it and this application cannot show it."*
 
-Both **report** and neither repairs. Both are off until switched on, under
-*In the document* in Preferences > Check Index. The detector is
-`OoxmlBackend.field_faults`, beside the walk whose blind spot it describes;
-the rules are `wordindex/document_checks.py`.
+Both **report** and neither repairs, under *In the document* in
+Preferences > Check Index. The detector is `OoxmlBackend.field_faults`, beside
+the walk whose blind spot it describes; the rules are
+`wordindex/document_checks.py`.
+
+**They do not ship the same way.** `document.damaged_field` is **on**; it has
+something to find, in a book already on its way to a publisher.
+`document.field_crosses_paragraph` is **off**: a real fault and a worse one in
+principle, but no manuscript measured contains one, and a rule that has never
+had anything to say does not belong in every run.
 
 *The corpus test said "worth taking only if the indexer has seen this before".
 The rendering probe answered that differently: they have seen it, on page 25,
@@ -216,15 +223,20 @@ detector to notice is now committed and takes seconds to run over a corpus.
   other file in the corpus**: 116 working manuscripts, one finding.
 * It names the document, the paragraph (numbered from 1, for a person looking
   at Word) and the instruction text it recovered.
-* Both rules are off by default, and reach the disabled set an unconfigured
-  project gets.
+* The defaults each rule declares are the defaults an unconfigured project
+  gets, checked end to end through the preferences this application reads:
+  damaged-field on, crossing off.
 * It changes nothing: the parts are byte-identical after a run, and the file on
   disk is untouched. There is a test.
 * All three suites green.
 
-**One thing deliberately left as the indexer decided it.** Both rules ship
-*off*. The core's own runner says a check nobody has switched on has never
-found anything, and a damaged field prints in the book — which argues the first
-rule should be on by default. That is a one-line change (`default_on=True` in
-`document_checks.py`) and it is the indexer's call, not one to take while
-writing the feature.
+**And the default was then changed, by the indexer, on the day.** The scope
+said off, like every other opt-in check; that was written believing the fault
+cost nothing but an entry nobody had. It costs the printed page. *A check
+nobody has switched on has never found anything*, and this one has something
+to find. `document.damaged_field` ships **on**.
+
+The cost of that is worth naming rather than discovering: a rule built for the
+settings page — `document_rules()` with no faults — is now reached by a caller
+running the *defaults*, and refuses there. It refuses by name and says what to
+do about it, and there is a test pinning exactly that.

@@ -29,11 +29,12 @@ off stays off for every project.
 
 ## Two checks about the document, not the index
 
-Both are **off until you turn them on**, under *In the document* in
-**Preferences > Check Index**. They report; they never change anything.
+Both live under *In the document* in **Preferences > Check Index**, and they
+report: neither ever changes anything. The first is **on**; the second is off
+until you ask for it.
 
-**Damaged index fields.** A field whose beginning or end is missing. Word does
-not index it, and its instruction text **prints in the book as ordinary
+**Damaged index fields — on.** A field whose beginning or end is missing. Word
+does not index it, and its instruction text **prints in the book as ordinary
 text** -- measured by asking Word to render the page. One real manuscript
 prints `XE "Some Long Heading" \t "See Other"` in the middle of a
 sentence on page 25.
@@ -43,8 +44,8 @@ instruction is not text. So the fault is invisible in the manuscript view,
 invisible in the index, and visible in the proofs. Fix it in Word, where the
 field is.
 
-**Index fields crossing a paragraph.** A field opening in one paragraph and
-closing in another. Word indexes it and this tool does not, so the entry would
+**Index fields crossing a paragraph — off unless you ask.** A field opening in
+one paragraph and closing in another. Word indexes it and this tool does not, so the entry would
 reach the printed index without ever appearing here. None of the manuscripts
 measured contain one.
 

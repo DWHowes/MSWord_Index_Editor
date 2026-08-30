@@ -26,18 +26,28 @@ it. **A fault invisible in the tool, invisible in the index, and visible in
 the proofs** is worth a check on its own account, and that is what turns
 option B from a tidy-up into the useful half of the day.
 
-Two rules, both **off until switched on**, under *In the document* in
-Preferences > Check Index:
+Two rules, under *In the document* in Preferences > Check Index, and **they
+do not ship the same way**:
 
-- **`document.damaged_field`** — a field whose `begin` or `end` is missing.
-  Word does not index it and its text prints. One finding across the 116
-  working manuscripts of the corpus, and it is a real one.
-- **`document.field_crosses_paragraph`** — a field opening in one paragraph
-  and closing in another. **Word indexes it and this application does not**,
-  measured the same way. None in the corpus. The walk stays per paragraph
-  deliberately — the reset is what stops one unmatched `begin` swallowing the
-  rest of a document — so the answer is to report the first one rather than to
-  widen the walk and buy a whole-document failure mode.
+- **`document.damaged_field`, on** — a field whose `begin` or `end` is
+  missing. Word does not index it and its text prints. One finding across the
+  116 working manuscripts of the corpus, and it is a real one. *The scope said
+  off, like every other opt-in check, and the indexer changed it once the
+  rendering probe was in: a check nobody has switched on has never found
+  anything, and this one has something to find.*
+- **`document.field_crosses_paragraph`, off** — a field opening in one
+  paragraph and closing in another. **Word indexes it and this application
+  does not**, measured the same way. None in the corpus, so leaving it on
+  would add a rule to every run that has never had anything to say. The walk
+  stays per paragraph deliberately — the reset is what stops one unmatched
+  `begin` swallowing the rest of a document — so the answer is to report the
+  first one rather than to widen the walk and buy a whole-document failure
+  mode.
+
+*One cost of shipping a rule on is named rather than left to be found*: a rule
+built for the settings page, with no faults to look at, is now reached by a
+caller running the defaults and **refuses** there. It refuses by name and says
+what to do about it, and a test pins that.
 
 `OoxmlBackend.field_faults` is the detector, beside the walk whose blind spot
 it describes. `document_checks.py` is the two rules. **Both report and neither

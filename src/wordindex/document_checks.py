@@ -128,16 +128,28 @@ def document_rules(faults=None) -> tuple:
     rules for a **settings page**, where only their names are wanted. A rule
     built without faults refuses to run rather than reporting nothing.
 
-    Both are **off by default**, which is what the scope asked for. *It is
-    worth knowing that the argument cuts the other way for the first one*: a
-    damaged field prints in the book, and the core's own runner says a check
-    nobody has switched on has never found anything.
+    **They do not ship the same way, and the difference is deliberate.**
+
+    `document.damaged_field` is **on**, decided by the indexer on 30 August
+    2026 after the rendering probe. The scope had said off, like every other
+    opt-in check, and that was written believing the fault cost nothing but an
+    entry nobody had. It costs the printed page: Word renders a broken field's
+    instruction text as ordinary text, and a manuscript in this indexer's own
+    corpus prints one in the middle of a sentence on page 25. *A check nobody
+    has switched on has never found anything*, and this one has something to
+    find in a book already on its way to a publisher.
+
+    `document.field_crosses_paragraph` stays **off**. It is a real fault and a
+    worse one in principle -- Word indexes such a field and this application
+    cannot show it -- but **no manuscript measured contains one**, so leaving
+    it on would add a rule to every run that has never had anything to say.
+    An indexer who meets a manuscript from unfamiliar tooling can switch it on.
     """
-    def make(rule_id, kinds, wording, label, explanation):
+    def make(rule_id, kinds, wording, label, explanation, default_on):
         run = (_unusable(rule_id) if faults is None
                else _report(kinds, faults, rule_id=rule_id, wording=wording))
         return Rule(id=rule_id, group=DOCUMENT, label=label, run=run,
-                    default_on=False, explanation=explanation)
+                    default_on=default_on, explanation=explanation)
 
     return (
         make(
@@ -149,7 +161,8 @@ def document_rules(faults=None) -> tuple:
             "it, and — measured through Word — its instruction text is "
             "printed on the page as ordinary text. This application cannot "
             "show it either, so it is invisible everywhere until it reaches "
-            "proof.",
+            "proof. On by default: it has something to find.",
+            True,
         ),
         make(
             FIELD_CROSSES_PARAGRAPH, _CROSSING,
@@ -160,6 +173,7 @@ def document_rules(faults=None) -> tuple:
             "indexes it; this application reads fields a paragraph at a time "
             "and does not, so the entry would reach the printed index without "
             "ever appearing here. None of the manuscripts measured contain "
-            "one.",
+            "one, which is why it is off unless you ask for it.",
+            False,
         ),
     )

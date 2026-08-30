@@ -206,21 +206,73 @@ class TestTheRules:
 
 
 class TestHowTheyAreOffered:
+    """
+    They do not ship the same way, and the difference is the whole of what an
+    indexer meets.
+    """
 
-    def test_both_are_off_by_default(self):
-        assert [rule.default_on for rule in document_rules()] == [False, False]
+    def _by_id(self):
+        return {rule.id: rule for rule in document_rules()}
+
+    def test_the_damaged_field_check_is_on(self):
+        """
+        Decided by the indexer after the rendering probe. The scope had said
+        off, written believing the fault cost nothing but an entry nobody had;
+        it costs the printed page, and *a check nobody has switched on has
+        never found anything*.
+        """
+        assert self._by_id()[DAMAGED_FIELD].default_on is True
+
+    def test_the_crossing_check_is_off(self):
+        """A real fault, and no manuscript measured contains one -- so leaving
+        it on would add a rule to every run that has never had anything to
+        say."""
+        assert self._by_id()[FIELD_CROSSES_PARAGRAPH].default_on is False
 
     def test_both_explain_themselves(self):
         assert all(rule.explanation for rule in document_rules())
 
-    def test_they_are_in_this_application_s_disabled_defaults(self):
+    def test_the_defaults_match_what_the_rules_declare(self):
+        """
+        The join that would fail silently. A rule declaring `default_on=False`
+        and missing from the stored disabled set arrives switched **on** in
+        every project; one declaring True and present in it arrives off.
+        """
         from bookindexcore.checks import DISABLED_RULES_KEY
 
         from wordindex.check_prefs import CHECK_INDEX_DEFAULTS
 
         disabled = CHECK_INDEX_DEFAULTS[DISABLED_RULES_KEY]
-        assert DAMAGED_FIELD in disabled
+        assert DAMAGED_FIELD not in disabled
         assert FIELD_CROSSES_PARAGRAPH in disabled
+
+    def test_an_unconfigured_project_runs_the_damaged_field_check(self,
+                                                                  tmp_path):
+        """
+        End to end through the preferences this application actually reads:
+        nobody has switched anything on, and the finding still arrives.
+        """
+        from wordindex.check_prefs import CheckIndexPrefs
+
+        class Empty:
+            @staticmethod
+            def value(_key):
+                return None
+
+        enabled = CheckIndexPrefs(Empty()).enabled_rules()
+        assert DAMAGED_FIELD in enabled
+        assert FIELD_CROSSES_PARAGRAPH not in enabled
+
+        path = tmp_path / "book.docx"
+        backend = OoxmlBackend()
+        backend.open(write_docx(path, document(paragraph(
+            text("Before. "), instr('XE "Unopened"'), END))))
+        faults = faults_in_project(_Session(path, backend))
+        found = check_index([], dialect=XE_DIALECT, grammar=ProjectGrammar(),
+                            enabled=enabled,
+                            extra_rules=document_rules(faults),
+                            skip_unsatisfiable=True)
+        assert [f.rule for f in found] == [DAMAGED_FIELD]
 
     def test_a_rule_built_for_a_settings_page_refuses_to_run(self):
         """
@@ -232,6 +284,22 @@ class TestHowTheyAreOffered:
             check_index([], dialect=XE_DIALECT, grammar=ProjectGrammar(),
                         enabled={DAMAGED_FIELD},
                         extra_rules=document_rules())
+
+    def test_it_refuses_on_the_defaults_too_now_that_it_is_on(self):
+        """
+        The cost of shipping it on, stated so it is not discovered. A
+        display-only rule that is on by default is reached by a caller running
+        the *defaults*, and it refuses there as well. The message says what to
+        do about it.
+        """
+        with pytest.raises(UnsatisfiableRule) as refusal:
+            # An order_key, so the only rule left with anything to refuse
+            # about is this one: the shipped range rules refuse without it and
+            # would answer the question a different way.
+            check_index([], dialect=XE_DIALECT, grammar=ProjectGrammar(),
+                        order_key=lambda _locator: 0,
+                        extra_rules=document_rules())
+        assert "document_rules(faults)" in str(refusal.value)
 
 
 class TestItChangesNothing:
