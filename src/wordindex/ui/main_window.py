@@ -75,6 +75,7 @@ from ..toa_run import apply_plan
 from .toa_review import ToaReviewDialog
 from ..document_checks import document_rules
 from ..presentation_prefs import PresentationPrefs
+from ..sort_prefs import SortPrefs
 from ..undo import CannotReverse, UndoStack, command_for
 from ..xref_run import apply_changes, build_change_set
 from ..entries import all_references, heading_rows
@@ -1496,7 +1497,7 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
         try:
             plan = build_plan(
-                documents, system, sort_rules_from_settings({}),
+                documents, system, SortPrefs().rules(),
                 house=house_style_for(self._toa_house()),
                 on_progress=lambda done, total: (
                     progress.advance(done, total),
@@ -1780,6 +1781,7 @@ class MainWindow(QMainWindow):
             project_name=self.session.project.name if self.session else "")
         dialog.populate_check_index_fields(CheckIndexPrefs().load())
         dialog.populate_presentation_fields(PresentationPrefs().load())
+        dialog.populate_sorting_fields(SortPrefs().load())
         dialog.populate_authorities_fields(ToaPrefs().load())
         dialog.sig_config_accepted.connect(self._save_preferences)
         dialog.exec()
@@ -1801,6 +1803,10 @@ class MainWindow(QMainWindow):
         # page's placement and label settings were collected, handed over, and
         # stored by nothing at all.
         PresentationPrefs().save(payload)
+        # The fourth store, added for N1 when the Sorting page was found to
+        # have been collecting since the shared shell arrived with nothing
+        # keeping a word of it.
+        SortPrefs().save(payload)
 
     def _record_creation(self, result, instruction: str, said: str) -> None:
         """

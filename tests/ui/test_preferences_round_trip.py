@@ -39,6 +39,7 @@ from bookindexcore.checks import DISABLED_RULES_KEY, every_rule
 
 from wordindex.check_prefs import CheckIndexPrefs
 from wordindex.presentation_prefs import PresentationPrefs
+from wordindex.sort_prefs import SortPrefs
 from wordindex.toa_prefs import ToaPrefs
 
 
@@ -130,6 +131,7 @@ class TestEveryStoreThatIsSavedIsAlsoLoaded:
         (CheckIndexPrefs, "populate_check_index_fields"),
         (PresentationPrefs, "populate_presentation_fields"),
         (ToaPrefs, "populate_authorities_fields"),
+        (SortPrefs, "populate_sorting_fields"),
     )
 
     @pytest.mark.parametrize("store,populate", PAIRS,

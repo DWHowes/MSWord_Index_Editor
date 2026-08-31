@@ -5,6 +5,34 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### N1: the Sorting page is kept, and the Table of Authorities reads it
+
+**The fourth "collected and stored by nothing" here, and the first that reached
+a deliverable.** The shared Sorting page has been in this application's
+preferences since the shell arrived and nothing stored a word of it: an indexer
+set alphabetising, hyphen treatment, diacritic folding and the prefix lists,
+pressed OK, and every value went nowhere.
+
+And `build_table_of_authorities` passed `sort_rules_from_settings({})`, an
+empty payload returning bare defaults, so **the table this application writes
+into a publisher's manuscript was filed under rules the indexer could set and
+this application did not read.**
+
+`sort_prefs.py` is the join, in the shape of the three stores beside it, and it
+is saved *and* populated -- `test_preferences_round_trip.py` now has four pairs
+in its table rather than three, so a fifth omission fails by name.
+
+**The order mode matters more here than in the LaTeX editor.** Word sorts the
+generated index itself, so *order as this host will file it* is the only mode
+that shows what the printed index will do; `SortPrefs.rules()` resolves it
+against `WORD_HOST`, which is what E4 measured Word doing. `project_rules()`
+ignores the mode, for the one caller that will need the indexer's own answer
+whatever it says: writing a sort key into a manuscript, where *what Word would
+have done anyway* is not worth writing into somebody's book.
+
+The two mappings go through JSON, because `QSettings` cannot hold a dict and
+writing one lands Python's `repr` in the store and reads back unparseable.
+
 ### Step 10b: it packages, and the first frozen `bookindexcore`
 
 `WordIndexEditor-Setup-0.1.0a0.exe`, 31.6 MB, over a 115 MB frozen

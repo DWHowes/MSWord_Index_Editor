@@ -321,6 +321,22 @@ tests/
                             is what a frozen build without copy_metadata would
                             hit.
 
+  test_sort_prefs.py        N1. The filing rules are kept, and the Table of
+                            Authorities is built with them. This was the
+                            fourth store-and-never-read-back here and the
+                            first that reached a deliverable: the shared
+                            Sorting page had been collecting since the shell
+                            arrived, nothing kept a word of it, and the table
+                            written into a publisher manuscript was filed
+                            under bare defaults. The test that would have
+                            found it reads the command source and refuses an
+                            empty payload -- checked by putting the empty one
+                            back and watching it fail. The rest is the round
+                            trip, the two mappings through JSON because
+                            QSettings cannot hold a dict, and the order mode,
+                            which matters more here than in the LaTeX editor
+                            because Word sorts the generated index itself.
+
   ui/test_preferences_round_trip.py
                             every store the preferences window saves is also
                             loaded back into it. Written after opening
