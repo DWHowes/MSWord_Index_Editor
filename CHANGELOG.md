@@ -30,7 +30,7 @@ read in the hundreds, every one a field written into a manuscript for nothing.
 So the per-entry offer added the same day will almost never fire, which is the
 right outcome, and **4b is worth building only for the systematic settings** --
 where it is not a convenience but the only way to get what was asked for.
- has the table and the method.
+`sort_key_volume_measurements.md` has the table and the method.
 
 ### The entry window offers a sort key where Word would file it elsewhere
 
