@@ -1,6 +1,6 @@
 # Step 8: multi-file projects
 
-Scope §5. Measured against a real 17-chapter book from Palgrave, *Collection
+Scope §5. Measured against a real 17-chapter book from Palgrave, *the Palgrave collection
 Memorial and Feminicide*, opened from the publisher's own filenames.
 
 ---
@@ -12,10 +12,10 @@ The eighteen files in that project folder are named `01_`, `02_`, `03_`…
 number at all, and sorted by name they run:
 
 ```
-   1. Alison Lindqvist_Revised version 2026.docx          (chapter 12)
-   2. Ingrid Halvorsen_September 2025.docx                   (chapter 14)
+   1. Lindqvist_Revised version 2026.docx          (chapter 12)
+   2. Halvorsen_September 2025.docx                   (chapter 14)
    3. Ellery and Voss_Revised version_...docx  (chapter 1)
-   4. Anne Maren K Nordhagen_Revised version 2026.docx    (chapter 17)
+   4. Nordhagen_Revised version 2026.docx    (chapter 17)
 ```
 
 Alphabetical by the author's **first** name. Chapter 12 first, chapter 1

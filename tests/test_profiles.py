@@ -175,8 +175,8 @@ class TestProjects:
         document. Resolving that would file every project under whatever
         folder the application happened to start in.
         """
-        save_profile("project:Collection", profile)
-        assert load_profile("project:Collection") == profile
+        save_profile("project:the Palgrave collection", profile)
+        assert load_profile("project:the Palgrave collection") == profile
 
     def test_documents_that_have_moved_are_still_returned(self, tmp_path):
         """

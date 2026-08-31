@@ -42,7 +42,7 @@ class TestTheShippedDefaults:
         `\h " "` and nothing else.
 
         Not a guess about what most people want: it is what
-        `00_Collection_Index.docx` carries, 22 `IndexHeading` paragraphs each
+        `the collection's index document` carries, 22 `IndexHeading` paragraphs each
         holding one space, in a finished index built before this application
         existed.
         """

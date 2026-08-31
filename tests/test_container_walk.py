@@ -88,7 +88,7 @@ class TestTheWalkDescends:
         assert backend.read_text(PART) == "See Figure 1 for the impact."
 
     def test_a_field_inside_nested_smart_tags_is_found(self, tmp_path):
-        """*Second CUP book and Guardianship* has nested ones, so one level is
+        """the second CUP book has nested ones, so one level is
         not an assumption the walk may make."""
         backend = _open(tmp_path, paragraph(
             container("smartTag",
@@ -301,7 +301,7 @@ class TestWhereTheEntryIsDrawn:
 
     def test_a_nested_smart_tag_entry_is_editable_and_reversible(self, tmp_path):
         """The acceptance asks the same four things of the nested case, and
-        *Second CUP book and Guardianship* is why the nesting is in the fixture
+        the second CUP book is why the nesting is in the fixture
         rather than one level of wrapper."""
         backend = _open(tmp_path, paragraph(
             text("On "),

@@ -20,9 +20,9 @@ from wordindex.ui.file_list import FileList
 # alphabetically by the author's *first* name, which puts chapter 12 first.
 CHAPTERS = [
     Path("/book/Ellery and Voss_Revised version_March 2026.docx"),
-    Path("/book/Kirsten Laura Ellery_Revised version_March 2026.docx"),
+    Path("/book/Kirsten Voss_Revised version_March 2026.docx"),
     Path("/book/Trine Kanter Zerwekh_September 2025.docx"),
-    Path("/book/Alison Lindqvist_Revised version 2026.docx"),
+    Path("/book/Lindqvist_Revised version 2026.docx"),
 ]
 
 
@@ -39,7 +39,7 @@ class TestTheOrderIsShownAsGiven:
 
     def test_the_order_is_the_projects_not_the_alphabet(self, files):
         """
-        Sorting these by name puts *Alison Lindqvist*, which is chapter 12 of
+        Sorting these by name puts *Margarethe Lindqvist*, which is chapter 12 of
         the real book, at the top. The list must not do that.
         """
         assert files.documents() == CHAPTERS

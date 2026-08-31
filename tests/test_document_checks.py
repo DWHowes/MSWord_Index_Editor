@@ -6,9 +6,10 @@ assumed.** Word rendered a two-line fixture to PDF and the page read
 
     Before. XE "Unopened" After.
 
-and page 25 of a real Cambridge manuscript in this indexer's corpus reads
+and a real manuscript in this indexer's corpus prints one mid-sentence on
+page 25, in the shape
 
-    ...under which new design features could workXE "Some Long Heading" \t "See Other". The book is divided into four parts.
+    ...could workXE "Some Heading" \t "See Other". The next sentence follows.
 
 The application cannot show that either -- ``read_text`` counts ``w:t`` and an
 ``instrText`` is not one -- so the fault is invisible in the tool *and* in the

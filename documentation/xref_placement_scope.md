@@ -88,7 +88,7 @@ holds one `RD` field per manuscript and one `INDEX` field, and Word composes
 the index into *that* document when the publisher opens it and updates.
 
 This application already writes that document: `index_document.write_index_document`,
-step 9c, verified against `00_Collection_Index.docx`, an 18-chapter Palgrave
+step 9c, verified against `the collection's index document`, an 18-chapter Palgrave
 collection indexed exactly this way, pages 1 to 238 continuous. So the editor
 starts from a much better position than the macro, and two of the macro's three
 obstacles fall away on their own.

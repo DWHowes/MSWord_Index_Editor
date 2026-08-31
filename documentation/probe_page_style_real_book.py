@@ -22,7 +22,7 @@ from collections import defaultdict
 import win32com.client as win32
 
 SOURCE = (r"<your CUP projects folder>"
-          r"\the CUP monograph\220831 - 9781108497831 - With Index.docx")
+          r"\the CUP monograph\220831 - a CUP monograph - With Index.docx")
 WORKING = r"D:\Temp\word_index_probe\outer_space_copy.docx"
 
 WD_FIELD_EMPTY = -1

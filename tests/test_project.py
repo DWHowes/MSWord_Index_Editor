@@ -2,7 +2,7 @@ r"""
 A project: several documents, in an order the indexer chose. Step 8.
 
 **The order is the point.** A real 17-chapter book arrived from Palgrave with
-the publisher's own filenames, and sorted by name those run *Alison Lindqvist,
+the publisher's own filenames, and sorted by name those run *Margarethe Lindqvist,
 Ingrid Halvorsen, Ellery and Voss* -- alphabetical by the author's first
 name, which puts chapter 12 first and chapter 1 third. The indexer's existing
 tool could only order by filename, so they renamed all eighteen files
@@ -23,7 +23,7 @@ import pytest
 from wordindex.project import OpenProject, Project
 
 CUP = Path(r"<your CUP projects folder>")
-ONE = CUP / "the CUP monograph" / "220831 - 9781108497831 - With Index.docx"
+ONE = CUP / "the CUP monograph" / "220831 - a CUP monograph - With Index.docx"
 TWO = CUP / "Global Policymaking" / "221022 - a second manuscript - With Index Entries.docx"
 
 needs_corpus = pytest.mark.skipif(

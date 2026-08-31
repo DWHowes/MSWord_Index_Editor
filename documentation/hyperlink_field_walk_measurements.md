@@ -65,7 +65,7 @@ saved revisions and one book's backups would otherwise be counted as hundreds
 of books: **24,442 `XE` instructions in the XML and 24,441 found**.
 **Every file the census flags agrees exactly** -- the `w:hyperlink` cases in
 *the CUP monograph?*, *Benign Bigotry* and *Mutiny to Revolt*, and the
-nested `w:smartTag` in *Second CUP book and Guardianship*. Nothing anywhere is
+nested `w:smartTag` in the second CUP book. Nothing anywhere is
 found that is not in the document.
 
 **One file comes out one short, and not for a reason this scope is about.**

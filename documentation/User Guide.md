@@ -370,7 +370,7 @@ Open the first document, then **File > Add document to project** for the rest. T
 Sorting by filename does not give reading order. One real 17-chapter book, sorted by the publisher's own names, ran:
 
 ```
-   1. Alison Lindqvist...        (chapter 12)
+   1. Margarethe Lindqvist...        (chapter 12)
    2. Ingrid Halvorsen...           (chapter 14)
    3. Ellery and Voss (chapter 1)
 ```

@@ -1,6 +1,6 @@
 # Step 11c: what a tab per chapter actually costs
 
-**Measured 2026-08-28** on *the memorial and Feminicide*, the 18-chapter
+**Measured 2026-08-28** on the Palgrave collection, the 18-chapter
 Palgrave collection, offscreen, on the development machine. D5 of the step 11
 scope said the rendering budget was to be **measured rather than assumed**,
 because this application already holds eighteen backends open and what was new

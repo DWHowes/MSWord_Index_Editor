@@ -140,8 +140,8 @@ target document**, not a switch.
 ## VERIFIED, from a book the indexer built: the separate index document works
 
 **Answered 2026-08-25 by the indexer's own file**, not by a probe:
-`<your projects folder>\the memorial and
-Feminicide\00_Collection_Index.docx`. It is the index of an 18-chapter
+`<your projects folder>\<the collection>
+\the collection's index document`. It is the index of an 18-chapter
 Palgrave collection, built exactly the way decision 2(b) proposes, and it is
 better evidence than probe 6 would have been because the book is real and the
 index in it is finished.
@@ -156,9 +156,9 @@ already built.**
 
 ```
 RD "01_Ellery and Voss_Revised version_March 2026.docx" \f
-RD "02_Kirsten Laura Ellery_Revised version_March 2026.docx" \f
+RD "02_Kirsten Voss_Revised version_March 2026.docx" \f
 ...                                                     (18 of them)
-RD "18_Anne Maren K Nordhagen_Revised version 2026.docx"  \f
+RD "18_Nordhagen_Revised version 2026.docx"  \f
 INDEX \h " " \c "1" \z "4105"
 ```
 

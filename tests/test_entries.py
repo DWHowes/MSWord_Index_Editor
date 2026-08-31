@@ -17,7 +17,7 @@ from wordindex.ooxml_backend import OoxmlBackend
 
 CUP = Path(r"<your CUP projects folder>")
 INDEXED = (CUP / "the CUP monograph"
-           / "220831 - 9781108497831 - With Index.docx")
+           / "220831 - a CUP monograph - With Index.docx")
 
 needs_corpus = pytest.mark.skipif(
     not INDEXED.is_file(), reason="the CUP manuscripts are not on this machine")

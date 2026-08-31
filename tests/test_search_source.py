@@ -26,7 +26,7 @@ from wordindex.reader import BODY, HEADING, Paragraph, StyleProfile
 from wordindex.search_source import ProjectSearchSource, project_search_source
 
 CUP = Path(r"<your CUP projects folder>")
-ONE = CUP / "the CUP monograph" / "220831 - 9781108497831 - With Index.docx"
+ONE = CUP / "the CUP monograph" / "220831 - a CUP monograph - With Index.docx"
 TWO = CUP / "Global Policymaking" / "221022 - a second manuscript - With Index Entries.docx"
 
 needs_corpus = pytest.mark.skipif(

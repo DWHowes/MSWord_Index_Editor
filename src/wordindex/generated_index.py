@@ -3,7 +3,7 @@ What the `INDEX` field will say when the publisher composes the book. Step 9c.
 
 **Every value here is a measurement**, from `documentation/
 index_field_measurements.md`: Word 16 through COM, on 25 August 2026, then
-verified against `00_Collection_Index.docx`, an index the indexer built by hand
+verified against `the collection's index document`, an index the indexer built by hand
 before this application could. Nothing is taken from the documentation, which
 describes switches Word accepts and then does not honour.
 

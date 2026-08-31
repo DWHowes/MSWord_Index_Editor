@@ -24,7 +24,7 @@ from wordindex.checking import check_project, project_order_key
 from wordindex.project import OpenProject, Project
 
 CUP = Path(r"<your CUP projects folder>")
-ONE = CUP / "the CUP monograph" / "220831 - 9781108497831 - With Index.docx"
+ONE = CUP / "the CUP monograph" / "220831 - a CUP monograph - With Index.docx"
 TWO = CUP / "Global Policymaking" / "221022 - a second manuscript - With Index Entries.docx"
 
 needs_corpus = pytest.mark.skipif(

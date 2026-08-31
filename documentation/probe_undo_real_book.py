@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 BOOK = Path("<your CUP projects folder>/"
-            "the CUP monograph/9781108497831.docx")
+            "the CUP monograph/a CUP monograph.docx")
 
 BODY = "word/document.xml"
 

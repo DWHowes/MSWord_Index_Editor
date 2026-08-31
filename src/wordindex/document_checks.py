@@ -15,9 +15,10 @@ as ordinary text*. Word's own PDF of a two-line fixture reads
 
     Before. XE "Unopened" After.
 
-and page 25 of a real Cambridge manuscript in this indexer's corpus reads
+and a real manuscript in this indexer's corpus prints one mid-sentence on
+page 25, in the shape
 
-    ...under which new design features could workXE "Some Long Heading" \t "See Other". The book is divided into four parts.
+    ...could workXE "Some Heading" \t "See Other". The next sentence follows.
 
 *This application cannot show that either*, because `read_text` counts only
 ``w:t`` and an ``instrText`` is not one -- so the manuscript view draws the

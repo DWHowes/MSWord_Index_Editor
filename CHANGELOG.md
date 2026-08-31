@@ -256,7 +256,7 @@ headers and comments balance; no field is left open; **no `XE` field is nested
 inside another field's range** — which would have been swallowed into the
 outer field and discarded as not an entry; all six `separate` characters
 belong to Zotero citation fields; every `\r` names a bookmark that exists.
-`documentation/trade_agreements_field_survey.md`.
+`documentation/damaged_field_survey.md`.
 
 Two things looked wrong and are not, and the markup could not settle either —
 generating the index could.
@@ -292,9 +292,10 @@ Word's own PDF reads
 
     Before. XE "Unopened" After.
 
-and page 25 of a real Cambridge manuscript in this indexer's corpus reads
+and a real manuscript in this indexer's corpus prints one mid-sentence on
+page 25, in the shape
 
-    ...under which new design features could workXE "Some Long Heading" \t "See Other". The book is divided into four parts.
+    ...could workXE "Some Heading" \t "See Other". The next sentence follows.
 
 *This application cannot show it either.* `read_text` counts `w:t` and an
 `instrText` is not one, so the manuscript view draws that paragraph without
@@ -560,7 +561,7 @@ rollback and the all-or-nothing law appeared to fail.
 
 ### Two defects found by running it against a real book
 
-the CUP monograph (CUP, 9781108497831), on a copy, with the original's
+the CUP monograph, on a copy, with the original's
 SHA-256 recorded before and checked after. 2,269 entries, 71 carrying a
 cross-reference, 9 headings proposed for consolidation and none refused. The
 largest is **Space**, where 14 references become one.
@@ -1029,7 +1030,7 @@ fields and the `INDEX` instruction are replaced, in place, and a file of that
 name which is not an index document is refused by name and left as it was.
 
 The technique is the indexer's, not this application's invention:
-`00_Collection_Index.docx` is an 18-chapter Palgrave collection indexed exactly
+`the collection's index document` is an 18-chapter Palgrave collection indexed exactly
 this way, pages 1 to 238 continuous, built before anything here could write
 one. *Second time on this project that a measurement was answered by a file the
 indexer had already made.*
@@ -1173,7 +1174,7 @@ the publisher's own filenames.
 **The indexer had already worked around the missing feature.** The eighteen
 files in that project folder are named `01_`..`18_` by hand, because their
 existing tool could only order by filename. The publisher's own names carry no
-number, and sorted they run *Alison Lindqvist* (chapter 12), *Ingrid Halvorsen*
+number, and sorted they run *Margarethe Lindqvist* (chapter 12), *Ingrid Halvorsen*
 (chapter 14), *Ellery and Voss* (chapter 1): alphabetical by the
 author's first name. So the order lives in the project and **the filenames
 stay the publisher's**, which matters beyond convenience, since what goes back

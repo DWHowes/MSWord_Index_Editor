@@ -1,7 +1,7 @@
 r"""
 The index document: `RD` fields plus one `INDEX` field. Step 9c.
 
-The shapes asserted here were read out of `00_Collection_Index.docx`, an index
+The shapes asserted here were read out of a real collection's index document, an index
 the indexer built by hand for an 18-chapter Palgrave collection before this
 application could write one. *Look for the workaround the user has already
 built; it names the requirement* -- this is the second time on this project
@@ -29,7 +29,7 @@ from wordindex.index_document import (
 )
 
 PALGRAVE = Path(r"<your projects folder>"
-                r"\the memorial and Feminicide")
+                r"\the Palgrave collection")
 VERIFIED = PALGRAVE / "00_Collection_Index.docx"
 
 needs_corpus = pytest.mark.skipif(

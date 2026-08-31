@@ -6,7 +6,7 @@ not. What it writes is the *field*, into a `.docx` of its own, which Word turns
 into an index when the publisher opens that document and updates it.
 
 **The technique is the indexer's, not this application's invention.**
-`00_Collection_Index.docx` is an 18-chapter Palgrave collection indexed exactly
+`the collection's index document` is an 18-chapter Palgrave collection indexed exactly
 this way before this module existed: eighteen `RD` fields in reading order,
 then ``INDEX \h " " \c "1" \z "4105"``, with page numbers running 1 to 238
 across the whole book. Every shape below was read out of that file rather than

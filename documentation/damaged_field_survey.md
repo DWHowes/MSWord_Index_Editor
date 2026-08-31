@@ -1,4 +1,4 @@
-# the manuscript, surveyed for damaged fields
+# A manuscript, surveyed for damaged fields
 
 Asked by the indexer on 30 August 2026, after the damaged-field check found one
 fault in `the manuscript`: **is there anything else?**

@@ -132,7 +132,7 @@ file with the most entries:
 | the CUP monograph | 2,087 | **2**, `w:hyperlink` |
 | Benign Bigotry | 1,818 | **1**, `w:hyperlink` |
 | Mutiny to Revolt | 882 | **1**, `w:hyperlink` |
-| Second CUP book and Guardianship | 888 | **1**, nested `w:smartTag` |
+| the second CUP book | 888 | **1**, nested `w:smartTag` |
 | the other ten | 348–2,601 | none |
 
 **Four of fourteen books**, one or two entries each. That is the *reading*
