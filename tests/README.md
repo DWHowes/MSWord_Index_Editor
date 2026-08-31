@@ -308,6 +308,19 @@ tests/
                             the table off takes its INDEX fields back out of
                             the index document again
 
+  test_packaging_version.py three places state which version this is, and
+                            they must agree: pyproject.toml, the installer's
+                            MyAppVersion (Inno cannot read TOML, so it is
+                            hand-kept), and the running application. The third
+                            is the one that catches the ordinary mistake --
+                            __version__ comes from installed metadata, so
+                            changing the number without reinstalling leaves the
+                            application reporting the old one and a frozen
+                            build carries it into the About box. A fourth test
+                            asserts the metadata fallback is not in use, which
+                            is what a frozen build without copy_metadata would
+                            hit.
+
   ui/test_preferences_round_trip.py
                             every store the preferences window saves is also
                             loaded back into it. Written after opening

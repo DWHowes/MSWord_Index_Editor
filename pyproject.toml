@@ -7,7 +7,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wordindexeditor"
-version = "0.0.1.dev0"
+# **0.1.0-alpha, the first packaged build.** Read by `wordindex.__version__`
+# through installed metadata, and pinned to the installer's own MyAppVersion by
+# tests/test_packaging_version.py: two answers to what version this is would be
+# found by a tester and nobody else.
+version = "0.1.0a0"
 description = "Word Index Editor -- indexing tool for Microsoft Word documents, built on bookindexcore"
 readme = "README.md"
 requires-python = ">=3.12"

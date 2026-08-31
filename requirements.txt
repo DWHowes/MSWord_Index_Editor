@@ -1,0 +1,14 @@
+# What a build machine needs, over and above `pip install -e .[qt,dev]`.
+#
+# The application's own dependencies are declared in pyproject.toml, which is
+# the single answer to what it needs to *run*. This file is the packaging
+# toolchain and nothing else.
+#
+# **PySide6-Essentials, never the full PySide6 metapackage.** The application
+# imports QtCore, QtGui and QtWidgets and nothing else; the Addons (WebEngine,
+# Qt3D, Multimedia, Charts, PDF) are dead weight and cost the LaTeX editor
+# 434MB of installed footprint before it measured them. And do not "upgrade"
+# an Essentials venv by installing the metapackage over it: the two share
+# files on disk, pip's uninstall mishandles that, and QtCore then fails to
+# import with a DLL error that says nothing useful.
+pyinstaller>=6.22

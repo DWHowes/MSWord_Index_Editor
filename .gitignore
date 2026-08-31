@@ -5,3 +5,10 @@ __pycache__/
 .vscode
 *.wbk
 documentation/*.rtf
+
+# PyInstaller's working tree and its output. `build/` is analysis state and
+# `dist/` holds a 115MB frozen application and a 32MB installer; both are
+# rebuilt from the spec by the two commands in PACKAGING.md, and neither is
+# something to diff.
+build/
+dist/

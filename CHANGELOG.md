@@ -5,6 +5,57 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 10b: it packages, and the first frozen `bookindexcore`
+
+`WordIndexEditor-Setup-0.1.0a0.exe`, 31.6 MB, over a 115 MB frozen
+application. `PACKAGING.md` holds the procedure and is the record from here on.
+
+**This is the first time the shared package has been frozen**, and it is the
+only part of this that was not the LaTeX editor's recipe repeated. Both this
+application and the core are installed *editable*, as `_editable_impl_*.pth`
+shims pointing at `src` trees outside site-packages, and **PyInstaller's
+analyser walks imports rather than following a `.pth`**. The spec names both
+trees in `pathex` and asserts the core's location rather than hoping for it, so
+a wrong path fails at analysis instead of reaching an indexer as an application
+that will not start. It worked: 118 core modules in the archive, `authorities`
+and `ui` among them, checked in the build's own table of contents.
+
+That finding is not this application's, so it is written into the core's
+host-developer document as §9.6, where `ToA_Builder` and the InDesign editor
+will find it.
+
+**`--diagnostics` is new, and it is what verified the build.** The two things
+most likely to be silently wrong in a packaged application are its version and
+whether it can find its bundled files, and **neither shows up as a crash**: a
+build with no help opens a window, works all day, and answers F1 with nothing.
+So the application reports its version, whether it is frozen, its app root, and
+how many help topics and icons it can actually see. It is also the thing to ask
+an alpha tester to run, because *"which version are you on"* opens every
+support conversation.
+
+The version needed guarding in a way the LaTeX editor's did not.
+`wordindex.__version__` comes from installed metadata and falls back to
+`0.0.0+source`, so a frozen build with no bundled `.dist-info` would have told
+a tester they were running a version that does not exist. `copy_metadata` in
+the spec fixes it and `tests/test_packaging_version.py` pins three places
+rather than two: `pyproject.toml`, the installer's `MyAppVersion`, and the
+running application, which is the one that catches the ordinary mistake of
+changing the number without reinstalling.
+
+Verified against the installed copy rather than the build log: silent install,
+diagnostics, **a real manuscript opened and stayed open**, the icon found byte
+for byte inside all three binaries, silent uninstall, directory gone.
+
+Two traps the LaTeX editor documents **do not apply here**, and `PACKAGING.md`
+says so rather than leaving defensive configuration behind: nothing is written
+beside the executable, so there is no runtime state to sweep out of `dist\`
+before compiling, and there is no `[UninstallDelete]` because an uninstaller
+has no business deleting an indexer's style profiles.
+
+Not done, and left as decisions: **no release is published** (this repository
+is private, and making one public is the indexer's call), and no documentation
+ships with the installer, the guide being inside the application already.
+
 ### Step 10a: the figures, and the three faults photographing them found
 
 The User Guide's figures were rendered on 28 August and **seven interface
