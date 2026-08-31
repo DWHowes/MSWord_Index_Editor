@@ -56,6 +56,12 @@ def window(qt_app, book, monkeypatch, tmp_path):
     monkeypatch.setattr(QMessageBox, "warning",
                         staticmethod(lambda *a, **k: None))
 
+    # **The standard is stated rather than assumed.** These citations are
+    # British, the shipped default is Bluebook, and a test that depended on
+    # an unstated default would fail the day somebody changed it -- which is
+    # exactly what happened when the preferences page arrived.
+    monkeypatch.setattr(MainWindow, "_toa_system", lambda self: "oscola")
+
     made = MainWindow()
     made.open_project(Project(name="one", documents=(book,)))
     return made

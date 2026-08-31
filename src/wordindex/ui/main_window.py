@@ -57,9 +57,6 @@ from PySide6.QtWidgets import (
     QMessageBox, QSplitter,
     QStyle, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
-from .. import __version__
-from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
-from ..check_prefs import CheckIndexPrefs
 from dataclasses import replace as _dataclass_replace
 
 from bookindexcore.authorities import house_style_for
@@ -67,9 +64,13 @@ from bookindexcore.authorities.systems import system_for
 from bookindexcore.sorting import sort_rules_from_settings
 from bookindexcore.ui.progress_dialog import ProgressDialog
 
+from .. import __version__
+from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
+from ..toa_prefs import ToaPrefs
 from ..checking import check_project
 from ..toa_emission import build_plan
+from ..toa_prefs import ToaPrefs
 from ..toa_run import apply_plan
 from .toa_review import ToaReviewDialog
 from ..document_checks import document_rules
@@ -1484,7 +1485,6 @@ class MainWindow(QMainWindow):
                 "Open a manuscript before building a table of authorities.")
             return
 
-        prefs = CheckIndexPrefs()          # the standard lives beside the checks
         system = system_for(self._toa_system())
         documents = [(path, self.session.backends[path])
                      for path in self.session.documents
@@ -1556,19 +1556,16 @@ class MainWindow(QMainWindow):
         """
         Which citation standard the book is written in.
 
-        Read from preferences rather than asked for here: it is a fact about
-        the book, it belongs beside the other Check Index settings, and asking
-        in a dialog every time would be asking an indexer to answer the same
-        question on every run.
+        Read from **the shared Authorities preferences page**, which has asked
+        this question since T5 and which this application now shows. Asking in
+        a dialog on every run would be asking an indexer the same question
+        about the same book every time; asking it nowhere, which is what this
+        did for one commit, means the answer is McGill and nobody said so.
         """
-        from .preferences import settings
-
-        return str(settings().value("toa/system") or "mcgill")
+        return ToaPrefs().system()
 
     def _toa_house(self) -> str:
-        from .preferences import settings
-
-        return str(settings().value("toa/house") or "none")
+        return ToaPrefs().house()
 
     def _report_toa(self, run, plan) -> None:
         """What the run did, and what it could not do."""
@@ -1760,6 +1757,7 @@ class MainWindow(QMainWindow):
             self,
             instructions=self.session.instructions() if self.session else (),
             project_name=self.session.project.name if self.session else "")
+        dialog.populate_authorities_fields(ToaPrefs().load())
         dialog.sig_config_accepted.connect(self._save_preferences)
         dialog.exec()
 
@@ -1775,6 +1773,7 @@ class MainWindow(QMainWindow):
         """
         CheckIndexPrefs().save(payload)
         GeneratedIndexPrefs().save(payload)
+        ToaPrefs().save(payload)
         # The third store, added when the cross-reference work found that this
         # page's placement and label settings were collected, handed over, and
         # stored by nothing at all.

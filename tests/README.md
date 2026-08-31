@@ -284,6 +284,20 @@ tests/
                             application will not write, and the other 1,198
                             fields are still wanted
 
+  ui/test_toa_prefs.py      the citation standard and the house style. The
+                            page is the CORE's -- it has asked both questions
+                            since T5, gated behind a hook whose docstring says
+                            the answer was False because emission was missing,
+                            and emission is not missing here any more. So
+                            nothing new was drawn and what is tested is the
+                            JOIN: the value an indexer picks is the value the
+                            command runs with. That is the failure this suite
+                            keeps finding -- a page collecting a value nothing
+                            stores, or a store nothing reads -- and it
+                            happened again here: for one commit the command
+                            read toa/system, a key nothing wrote, so every
+                            book was parsed under a standard nobody chose
+
   ui/test_toa_action.py     the gesture, over a real document, and it exists
                             for the reason the undo action's file does -- the
                             entries were right throughout while the XML was

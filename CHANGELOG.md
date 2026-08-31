@@ -5,6 +5,35 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The citation standard is asked for, and the guide says how
+
+**The page already existed and this application was not showing it.** The
+core's Authorities preferences page has asked which standard a book is cited
+in, and whose house style it follows, since T5 — gated behind
+`supports_table_of_authorities()`, whose own docstring says the answer was
+False because *"what is missing is emission, which is phase T3, and which is
+the application's."* Emission is not missing here any more, so the gate opens
+and **nothing new was drawn**.
+
+*And it found a silent default in the day-old command.* For one commit that
+command read `toa/system` and `toa/house` — keys invented here while the core
+already had `authorities_citation_system` and `authorities_house_style`.
+Nothing wrote the invented ones, so **every book was parsed under a standard
+nobody had chosen**, and no interface said so. A default nobody chose is not a
+default; it is a silence. `ToaPrefs` is the store behind the core's page, and
+the tests are about the join rather than the widget.
+
+**Also corrected: the shipped default is Bluebook, not McGill.** It has to be
+the core's `DEFAULT_SYSTEM`, or a book would be parsed under one standard
+while the window said another. Getting it wrong is not subtle — a British book
+read as Bluebook finds almost nothing — which is why the guide says so and why
+the UI tests now state the standard rather than leaning on a default.
+
+**§12a of the User Guide, and a fourteenth help topic.** What the command
+does, what to set before running it, how to read the review's three residue
+numbers, and that the whole run is one undo.
+
+
 ### The Table of Authorities, as a gesture
 
 **Index ▸ Build Table of Authorities…**, and it is a *command* — the indexer's

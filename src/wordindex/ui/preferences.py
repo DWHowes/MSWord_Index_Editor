@@ -79,6 +79,34 @@ class WordPreferencesDialog(PreferencesDialog):
         super().__init__(XE_DIALECT, parent)
         self.generated_index_tab.populate(GeneratedIndexPrefs().load())
 
+    def supports_table_of_authorities(self) -> bool:
+        """
+        Yes, since 30 August 2026.
+
+        The hook's own docstring says the answer was False because *"what is
+        missing is emission, which is phase T3, and which is the
+        application's."* Emission is not missing here any more: **Index >
+        Build Table of Authorities** writes `XE` fields with `\f` and the
+        index document collects them. So the page the core has always had is
+        shown, and this application asks the two questions it already knew how
+        to ask rather than growing a second page that asks them again.
+        """
+        return True
+
+    def supports_table_of_authorities(self) -> bool:
+        """
+        Yes, since 30 August 2026.
+
+        The hook's own docstring says the answer was False because *"what is
+        missing is emission, which is phase T3, and which is the
+        application's."* Emission is not missing here any more: **Index >
+        Build Table of Authorities** writes `XE` fields with `\f` and the
+        index document collects them. So the page the core has always had is
+        shown, and this application asks the two questions it already knew how
+        to ask rather than growing a second page that asks them again.
+        """
+        return True
+
     def host_check_rules(self):
         """
         The two Check Index rules only this application can run.
