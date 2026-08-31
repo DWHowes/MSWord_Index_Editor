@@ -15,6 +15,10 @@ notes, an extract, a caption, and real `XE` fields already in it, so that the
 index panel, the entry table, the markers and Check Index all have something
 true to show.
 
+Chapter two closes with **notes carrying real legal citations**, so that the
+Table of Authorities has a table to build. See the comment above them for why
+they are there and why one short form is left unresolved.
+
 Run it directly to write the three files somewhere:
 
     python documentation/sample_book.py D:\\Temp\\sample_book
@@ -248,6 +252,72 @@ CHAPTER_TWO = [
      ((_anchor("heyde"),
         'XE "van der Heyde, Gertrud;Heyde, Gertrud van der"'),
       (_anchor("shortweight"), 'XE "short weight, complaints of"'))),
+    (STYLE_B_HEAD, "The vocabulary since", ()),
+    (STYLE_TEXT,
+     "It would be wrong to end without saying what became of the duty the "
+     "Kontor was describing. It did not disappear into the archives; it was "
+     "restated, in a different language, by courts that had never heard of "
+     "Bergen, and the notes below set the two side by side.",
+     ((_anchor("goodfaith"), 'XE "good faith:modern doctrine"'),)),
+    # -- Notes ---------------------------------------------------------------
+    #
+    # **These carry the citations the Table of Authorities is built from.**
+    # Chapter one's notes are archival and parse as nothing, which is correct
+    # for an economic history and left section 12a of the guide with no
+    # figure: a table of authorities cannot be photographed over a book with
+    # no authorities in it. A legal-history chapter drawing the comparison
+    # forward is the natural place for them.
+    #
+    # **The cases are invented, like the book.** The first draft used real
+    # ones -- *Hadley v. Baxendale*, *Wood v. Lucy, Lady Duff-Gordon* -- and
+    # they were wrong here for two separate reasons. A guide figure asserting
+    # a volume and page for a real case is asserting something a reader may
+    # rely on, and the citation would have to be right; and mixing real cases
+    # with an invented book, an invented author and an invented publisher is
+    # worse than either alone, because nothing tells a reader which half is
+    # which. Everything in this book is made up, and its citations now are
+    # too.
+    #
+    # **The reporters, though, are real, and were chosen by measurement.**
+    # This package's Bluebook tables carry thirty-two reporters: the federal
+    # set plus Massachusetts, which is the corpus the secondary-source work
+    # was built on. The first draft's `N.Y.` and `Eng. Rep.` are not among
+    # them, so three of four cases came back flagged as *"abbreviations no
+    # citation table recognises"* -- true, and no picture of a normal book.
+    # F.2d, Mass., U.S. and F. Supp. are all recognised.
+    #
+    # Deliberately **no statute section**: the Uniform Commercial Code is a
+    # uniform act, Bluebook files it under secondary sources, and forcing a
+    # third section into an invented book to make a tidier picture would be
+    # putting the figure ahead of the truth.
+    #
+    # `supra note 4` in the last note is left **unresolved on purpose**. The
+    # guide tells an indexer that the count of unresolved short forms is how
+    # far to trust the table, and a figure showing nothing but zeroes would
+    # illustrate that sentence with an example of it never happening.
+    (STYLE_NOTE,
+     "3. The comparison is not idle. The duty the Kontor was describing is "
+     "close to the implied covenant a modern court reads into a bargain: "
+     "see Sundberg v. Hanseatic Trading Co., 412 F.2d 118 (2d Cir. 1969), "
+     "and the fuller treatment in Ellery v. Marsh & Cutler, Inc., 388 Mass. "
+     "214 (1983).",
+     ()),
+    (STYLE_NOTE,
+     "4. On the measure of damages the Hanse courts did not have, see "
+     "Voss v. Continental Salt Corp., 501 U.S. 342 (1991), and on a "
+     "seller's silence, Nordhagen v. Baltic Freight Lines, 733 F. Supp. 91 "
+     "(D. Mass. 1990).",
+     ()),
+    (STYLE_NOTE,
+     "5. U.C.C. § 1-304 imposes the obligation of good faith on every "
+     "contract within its scope, and U.C.C. § 2-103 defines it. Compare "
+     "Restatement (Second) of Contracts § 205 (1981), which states the "
+     "same duty for contracts generally.",
+     ()),
+    (STYLE_NOTE,
+     "6. Sundberg, 412 F.2d at 121. The point is made again in "
+     "Voss v. Continental Salt Corp., supra note 4.",
+     ()),
 ]
 
 

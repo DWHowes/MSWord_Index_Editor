@@ -19,6 +19,24 @@ renders its text as empty boxes: the layout is right and the picture is
 useless. This was found the hard way in the LaTeX editor and is the standing
 recipe for anything headless in this suite.
 
+#### It must not touch the indexer's own settings
+
+**It did, and it cost something.** `_set_font_size` goes through
+`_store_typography` into `Preferences().settings`, which is the real registry
+key, and since step 11b `_restore_typography` reads it back at launch. So
+building the guide changed the reading font of the person building it, and
+figure 3.1 -- shot before the script sets anything -- rendered at whatever
+size happened to be stored. It was drawn at 13pt on 31 August 2026 and no line
+of this file asks for 13.
+
+`isolate_settings()` below redirects the store to a temporary INI file for the
+run. Nothing in the application had to change: every caller of `settings()`
+resolves it at call time, so replacing the module attribute is enough.
+
+**Typography is set explicitly before the first figure**, for the same reason.
+A figure that changes with the developer's local state is a figure nobody can
+check against the caption.
+
 #### Why an invented book
 
 Every real manuscript this application has been measured against is a
@@ -49,6 +67,32 @@ from PySide6.QtWidgets import QApplication                     # noqa: E402
 from sample_book import write_book                             # noqa: E402
 
 
+def isolate_settings() -> Path:
+    """
+    Point this application's preferences at a scratch file for the run.
+
+    Returns the directory, so a caller can look at what the run wrote.
+
+    **A temporary INI rather than `QSettings.setDefaultFormat`**, which was
+    tried first and does nothing here: on Windows the two-argument
+    `QSettings(organisation, application)` constructor resolves to the
+    registry whatever the default format says, so the redirection has to
+    happen where the object is made.
+    """
+    from PySide6.QtCore import QSettings
+
+    from wordindex.ui import preferences
+
+    folder = Path(tempfile.mkdtemp(prefix="wordindex_guide_settings_"))
+    store = folder / "preferences.ini"
+
+    def scratch() -> QSettings:
+        return QSettings(str(store), QSettings.Format.IniFormat)
+
+    preferences.settings = scratch
+    return folder
+
+
 def settle(seconds: float = 0.4) -> None:
     """Let Qt lay out and paint before the picture is taken."""
     deadline = time.monotonic() + seconds
@@ -69,6 +113,8 @@ def shoot(widget, name: str) -> Path:
 def main() -> int:
     app = QApplication.instance() or QApplication([])
 
+    settings_folder = isolate_settings()
+
     folder = Path(tempfile.mkdtemp(prefix="wordindex_guide_"))
     chapters = write_book(folder)
 
@@ -81,6 +127,20 @@ def main() -> int:
     window.show()
     window.open_project(Project(name="Salt, Cloth and Credit",
                                 documents=tuple(chapters)))
+
+    # **Stated, not inherited.** Naming these here is what makes every figure
+    # below reproducible on a machine whose owner reads at a different size.
+    #
+    # Driven through the toolbar's own widgets rather than through
+    # `_set_font_size` and `_set_line_spacing` directly. Those two are the
+    # *slots* the pickers are wired to: calling them styles the manuscript and
+    # leaves the pickers showing what they showed before, so the first figure
+    # came back with its paragraphs spaced six points and its picker reading
+    # `0 pt`. **A figure whose control disagrees with the thing it controls is
+    # worse than a figure of the default.**
+    window.tool_bar.size_picker.setValue(12)
+    if window.tool_bar.spacing_picker is not None:
+        window.tool_bar.spacing_picker.setValue(6)
     settle()
 
     print("rendering:")
@@ -177,8 +237,43 @@ def main() -> int:
     shoot(prefs, "guide_10_generated_index.png")
     prefs.close()
 
+    # 12a.1 -- the Table of Authorities, as it is offered for acceptance.
+    #
+    # Built through the same three calls the Index menu makes, rather than by
+    # invoking the command: the command opens a progress dialog and then a
+    # modal `exec()`, and a modal dialog in an offscreen run never returns.
+    from bookindexcore.authorities import (                     # noqa: E402
+        DEFAULT_SYSTEM, house_style_for, system_for)
+    from bookindexcore.sorting import sort_rules_from_settings  # noqa: E402
+
+    from wordindex.toa_emission import build_plan               # noqa: E402
+    from wordindex.toa_prefs import ToaPrefs                    # noqa: E402
+    from wordindex.ui.toa_review import ToaReviewDialog         # noqa: E402
+
+    prefs = ToaPrefs()
+    documents = [(path, window.session.backends[path])
+                 for path in window.session.documents
+                 if path in window.session.backends]
+    plan = build_plan(documents, system_for(prefs.system()),
+                      sort_rules_from_settings({}),
+                      house=house_style_for(prefs.house()))
+    if plan.is_empty:
+        # A guide figure that silently became a picture of an empty dialog
+        # would be worse than no figure, and this has an obvious cause: the
+        # sample book's notes are what carry the citations.
+        raise SystemExit(
+            "the sample book parses as no authorities at all; figure 12a.1 "
+            "cannot be rendered. See the note above chapter two's notes in "
+            "sample_book.py.")
+    review = ToaReviewDialog(plan, window)
+    review.resize(820, 620)
+    review.show()
+    shoot(review, "guide_11_toa_review.png")
+    review.close()
+
     window.close()
     print(f"\nsample book left in {folder}")
+    print(f"scratch settings in {settings_folder}")
     return 0
 
 

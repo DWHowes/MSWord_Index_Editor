@@ -28,8 +28,8 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPushButton, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout)
+    QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QPushButton,
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout)
 
 __all__ = ["ToaReviewDialog"]
 
@@ -73,6 +73,7 @@ class ToaReviewDialog(QDialog):
         self.tree.setUniformRowHeights(True)
         self.tree.setAlternatingRowColors(True)
         self._populate()
+        self._size_columns()
         layout.addWidget(self.tree, 1)
 
         controls = QHBoxLayout()
@@ -97,6 +98,28 @@ class ToaReviewDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _size_columns(self) -> None:
+        """
+        Give the whole width to the authority, and only what it needs to the
+        count.
+
+        **Found by photographing it for the User Guide.** The tree was left on
+        Qt's default column width, which is about eight characters, and a
+        citation is fifty: every row in the dialog read `Kirke L…`, `Laidla…`,
+        `U.C.C. …`. The figure was useless, and so was the dialog, because the
+        one question it asks is *which of these authorities belong in the
+        table* and it was showing nobody enough to answer.
+
+        `Stretch` on the authority rather than `ResizeToContents`, because a
+        long citation should be given the window and then elided, not push a
+        horizontal scroll bar under a list somebody is ticking.
+        """
+        header = self.tree.header()
+        header.setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents)
 
     def _populate(self) -> None:
         """
@@ -134,17 +157,34 @@ class ToaReviewDialog(QDialog):
         self.tree.expandAll()
 
     def _residue_sentence(self) -> str:
+        """
+        The three numbers that say how far to trust the table.
+
+        **Each counts singular properly.** All three read *"1 short forms"*,
+        *"1 abbreviations"*, *"1 rows"* until a User Guide figure was taken of
+        a table with exactly one of the first, and a book with one unresolved
+        short form is not a rare book. The count is the sentence's whole
+        content, so getting its agreement wrong is the one typo here that
+        reads as carelessness about the number itself.
+        """
         parts = []
         if self._plan.unresolved:
-            parts.append(f"{len(self._plan.unresolved)} short forms were not "
-                         f"resolved — each is a place missing from an entry, "
-                         f"not a wrong one")
+            count = len(self._plan.unresolved)
+            parts.append(
+                f"{count} short form{'' if count == 1 else 's'} "
+                f"{'was' if count == 1 else 'were'} not resolved: "
+                f"{'it is' if count == 1 else 'each is'} a place missing from "
+                f"an entry, not a wrong one")
         if self._plan.unknown:
-            parts.append(f"{len(self._plan.unknown)} abbreviations no citation "
-                         f"table recognises")
+            count = len(self._plan.unknown)
+            parts.append(
+                f"{count} abbreviation{'' if count == 1 else 's'} no citation "
+                f"table recognises")
         if self._plan.struck:
-            parts.append(f"{len(self._plan.struck)} rows struck as back-matter "
-                         f"residue")
+            count = len(self._plan.struck)
+            parts.append(
+                f"{count} row{'' if count == 1 else 's'} struck as back-matter "
+                f"residue")
         if not parts:
             return "Nothing was left unresolved."
         return "Also: " + "; ".join(parts) + "."

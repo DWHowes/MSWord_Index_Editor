@@ -5,6 +5,67 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Step 10a: the figures, and the three faults photographing them found
+
+The User Guide's figures were rendered on 28 August and **seven interface
+commits landed after them**. Six of the ten changed on a straight re-run: the
+Edit menu and the spacing picker had appeared in the window, the entry window
+had gained a title bar, and the preferences window opens 119px taller now that
+Check Index carries the `DOCUMENT` family. A new figure joins them, **12a.1,
+the Table of Authorities offered for acceptance**, which was the largest
+feature in the application and the only chapter with no picture.
+
+Nothing below was in the plan. All three were found by looking at a figure.
+
+**Opening Preferences and pressing OK switched off every Check Index rule.**
+`_save_preferences` writes four stores; `edit_preferences` populated two of
+them. A page nobody populates holds its construction defaults, and
+`collect_project_payload` reports them faithfully, so an unticked Check Index
+page collects as **all forty-six rules disabled** and that is what got saved.
+It is the third *"stored and never read back"* here, after the reading font at
+step 11b and the cross-reference placement settings, and the first that
+destroyed something rather than ignoring it. `tests/ui/test_preferences_round_trip.py`
+guards the shape as well as the case: a store saved and not loaded fails by
+name, and the guard was checked by removing the fix and watching it go red.
+
+**The review dialog truncated every authority to about eight characters.** Its
+tree was left on Qt's default column width and a citation is fifty, so every
+row read `Kirke L…`, `U.C.C. …`. The figure was useless and so was the dialog,
+whose one question is *which of these belong in the table*. The authority
+column stretches now and the count sizes to its content.
+
+**And it counted one of anything as a plural**: *"1 short forms were not
+resolved"*. The count is that sentence's whole content, so the agreement being
+wrong reads as carelessness about the number itself.
+
+Two guide corrections, both places where the picture had moved and the prose
+had not. Section 7 said an entry shows as an **underlined** word; it has been
+contrasting ink since 29 August, and a range now shows how far it reaches,
+which was undocumented and is not cosmetic: a range that overlaps or encloses
+another was invisible before it. Section 3 listed a toolbar without the
+spacing picker. Figure 8.1's caption described *Lübeck/Lubeck* while the
+renderer had always selected the *van der Heyde* entry, so that caption was
+wrong from the day it was written.
+
+**The renderer no longer writes to the indexer's own settings.** It called
+`_set_font_size`, which goes through `_store_typography` into the real
+registry key, and since step 11b that value is read back at launch: building
+the guide changed the reading font of whoever built it, and figure 3.1
+rendered at whatever size happened to be stored rather than anything the
+script asked for. It runs against a temporary INI now and states the
+typography before the first figure. No application code had to change; every
+caller of `settings()` resolves it at call time.
+
+The sample book gained notes carrying citations, because a table of
+authorities cannot be photographed over a book with no authorities in it. **The
+cases are invented, like the book**, after a first draft used real ones: a
+guide figure asserting a volume and page for a real case is asserting
+something a reader may rely on. The reporters are real and were chosen by
+measurement, the first draft's `N.Y.` and `Eng. Rep.` not being among the
+thirty-two this package's Bluebook tables carry.
+
+Suite 777.
+
 ### The citation standard is asked for, and the guide says how
 
 **The page already existed and this application was not showing it.** The

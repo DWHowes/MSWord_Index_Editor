@@ -308,6 +308,19 @@ tests/
                             the table off takes its INDEX fields back out of
                             the index document again
 
+  ui/test_preferences_round_trip.py
+                            every store the preferences window saves is also
+                            loaded back into it. Written after opening
+                            Preferences and pressing OK was found to switch
+                            off all forty-six Check Index rules: two of the
+                            four stores were never populated, an unticked
+                            page collects as everything disabled, and that
+                            was saved. Two tests are the case and three are
+                            the *shape* -- a store saved and not loaded fails
+                            by name -- because this is the third
+                            store-and-never-read-back here. The guard was
+                            checked by removing the fix and watching it fail.
+
   ui/test_undo_action.py    step U3 over real documents, and the file exists
                             because the entries were right throughout while
                             the XML was not. Two defects were found by

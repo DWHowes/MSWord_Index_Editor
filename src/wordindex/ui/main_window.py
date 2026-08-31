@@ -1752,11 +1752,34 @@ class MainWindow(QMainWindow):
         which index types the book's entries carry, and an `INDEX` field with
         no `\\f` excludes every one of them. That report is the whole reason
         the page can say something Word's own dialog cannot.
+
+        **Every store this window saves is also loaded, and that has not
+        always been true.** `_save_preferences` writes four stores; two of
+        them, Check Index and Presentation, were never read back into the
+        dialog. A page nobody populates holds its construction defaults, and
+        `collect_project_payload` faithfully reports them, so **opening this
+        window and pressing OK switched off all forty-six Check Index rules**
+        -- not one of them ticked, therefore all of them disabled, therefore
+        saved that way. Found on 31 August 2026 while photographing the
+        preferences window for the User Guide, which is the only reason
+        anybody was looking at the General tab at all.
+
+        It is the third *"stored and never read back"* in this application,
+        after the reading font at step 11b and the cross-reference placement
+        and label settings. The shape is always the same: a save path added
+        with its load path assumed. **If a store is written here, load it
+        here, on the line above.**
+
+        General and Sorting are deliberately not populated: this application
+        has no store for either, and `_save_preferences` drops their keys
+        rather than writing them, so they are consistent as they stand.
         """
         dialog = WordPreferencesDialog(
             self,
             instructions=self.session.instructions() if self.session else (),
             project_name=self.session.project.name if self.session else "")
+        dialog.populate_check_index_fields(CheckIndexPrefs().load())
+        dialog.populate_presentation_fields(PresentationPrefs().load())
         dialog.populate_authorities_fields(ToaPrefs().load())
         dialog.sig_config_accepted.connect(self._save_preferences)
         dialog.exec()

@@ -138,7 +138,7 @@ This is the same frame as the LaTeX Indexing Editor's, deliberately, down to the
 
 ### The toolbar
 
-Left to right: **dark mode**, the three sidebar panes, and the **font and size** the manuscript is read in. The font is a reading preference and nothing to do with the manuscript: it changes what you see and never what the file says. Both settings are remembered, and they are this application's own, so they are not the LaTeX editor's.
+Left to right: **dark mode**, the three sidebar panes, and the **font**, **size** and **spacing** the manuscript is read in. All three are reading preferences and nothing to do with the manuscript: they change what you see and never what the file says. **Spacing** adds air between paragraphs, and it is added to whatever gap a paragraph already has, so a heading keeps standing out from the text under it. All three are remembered between sessions, and they are this application's own, so they are not the LaTeX editor's.
 
 The **View** menu holds the same things with their shortcuts, plus `Ctrl+\` for the entry window and `Ctrl+Shift+D` for dark mode.
 
@@ -268,9 +268,11 @@ If your manuscript already carries entries inside links, they are listed, checke
 
 ![Entry markers over the manuscript](images/guide_04_markers.png)
 
-**Figure 7.1** Entry markers in the manuscript: the underlined words are where entries sit. Hovering one names the entries at it, which a still picture cannot show.
+**Figure 7.1** Entry markers in the manuscript: the words in contrasting ink are where entries sit. Hovering one names the entries at it, which a still picture cannot show.
 
-Every entry shows as an underlined word in the manuscript. Several entries at one place are one marker; hover it to see which entries are there and how many.
+Every entry shows as a word drawn in **contrasting ink**. Several entries at one place are one marker; hover it to see which entries are there and how many.
+
+**A page range shows how far it reaches**, not just where it starts. This matters more than it sounds: a range in Word is one field naming a bookmark, and the extent lives in the bookmark rather than in the field, so a tool that drew only the field would show you a range's opening word and nothing else. A range that overlaps another, or sits entirely inside one, would then be invisible until the generated index came out wrong. A bookmark with no end is left unmarked rather than given an invented extent.
 
 The marked word is the one nearest the entry's anchor and is **not necessarily the term you indexed**. Word entries sit at a point between words, and the tool that wrote an imported book may have put its fields before or after the phrase.
 
@@ -305,11 +307,17 @@ writes what you then have.
 
 ## 8. The entry window
 
-Shows whichever entry is current, and creates new ones.
+Shows whichever entry is current, and creates new ones. It is a pane rather
+than a separate window, so **closing it hides it** and `Ctrl+\` brings it
+back; nothing you have typed is thrown away by closing it.
+
+**With no manuscript open it is unavailable**, and says so if you reach for
+the shortcut. That is worth stating because it used not to be: the window
+would open over an empty tab and quietly discard whatever was typed into it.
 
 ![The entry window](images/guide_05_entry_window.png)
 
-**Figure 8.1** The entry window, with a sort key on the main level: *Lübeck* is displayed and *Lubeck* is what it files under.
+**Figure 8.1** The entry window, with a sort key on the main level: *van der Heyde, Gertrud* is displayed and *Heyde, Gertrud van der* is what it files under. The title bar is the window's own; closing it hides the pane.
 
 ### The heading
 
@@ -595,6 +603,13 @@ if they are not listed, you can record one under *Publishers*.
 almost nothing, because the shapes it is looking for are not there.
 
 ### The review
+
+![The table of authorities, offered for acceptance](images/guide_11_toa_review.png)
+
+**Figure 12a.1** The review, on a two-chapter sample. Seven authorities in
+eight places: *Sundberg* shows two because a short form later in the notes was
+followed back to it. The line under the table is the one to read before
+accepting.
 
 You are shown the table as it would be: sections, and the authorities under
 each with the number of places every one was found. Untick anything that does
