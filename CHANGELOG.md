@@ -15,10 +15,19 @@ derived it, so the filing rules were available only by typing every key by
 hand, which is the work the rules exist to remove.
 
 Now a level suggests the key that makes Word file the heading your way, **and
-only where Word would not do it anyway**. `Churchill, Winston` and `salt trade`
-get nothing; `The Beatles`, `St Andrews` and `al-Turabi, Hassan` get a key.
-That last one is worth knowing about: Word deletes hyphens of its own accord,
-so a project that keeps them disagrees with Word on every hyphenated heading.
+only where writing one would actually change what Word does**. `The Beatles`
+and `St Andrews` get a key; `Churchill, Winston` and `salt trade` get nothing.
+
+**So does `al-Turabi, Hassan`, and that took a probe to establish.** Word
+deletes hyphens of its own accord, so a project that keeps them really does
+disagree with Word on every hyphenated heading -- and Word deletes the hyphen
+from the *sort key* too, so writing one changes nothing. The same is true of
+accents: asked to build an index over the keys `a`, `å` and `b`, Word filed
+`å` under **A**.
+
+A key is not free text handed to a comparator. What it can ask for is only
+what survives Word's own collation of it, which is why the offer is quieter
+than the rule sets disagreeing would suggest.
 
 **Offered, never written.** It appears in a field you can see, edit and empty
 before anything is applied, and the first keystroke takes the field over
