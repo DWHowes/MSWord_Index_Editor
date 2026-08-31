@@ -63,6 +63,7 @@ from ..generated_index import (
     validate_letter_heading,
 )
 from ..index_document import default_document_name
+from ..xe_dialect import XE_DIALECT
 
 #: What the columns spin box shows at zero. Off has to be a real value rather
 #: than "1 column", because `\c "1"` still inserts the two section breaks.
@@ -100,6 +101,7 @@ class GeneratedIndexTab(QWidget):
         inner = QWidget()
         inside = QVBoxLayout(inner)
         inside.setContentsMargins(0, 0, 0, 0)
+        inside.addWidget(self._build_filing_group())
         inside.addWidget(self._build_layout_group())
         inside.addWidget(self._build_headings_group())
         inside.addWidget(self._build_numbers_group())
@@ -114,6 +116,86 @@ class GeneratedIndexTab(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(scroller)
+
+    def _build_filing_group(self) -> QGroupBox:
+        """
+        Whether Word will file this index the way the Sorting page says.
+
+        **Word sorts the generated index itself**, and the only lever on that
+        is a per-level sort key inside each `XE`. So an indexer can set a
+        filing rule, see the tree obey it, and receive a printed index that
+        does not -- having checked the one and delivered the other.
+
+        The count is what makes it real rather than a caution. Measured over
+        five indexed books, 16,780 heading levels: a project filing
+        **letter-by-letter disagrees with Word about 67.5% of them**, and
+        ignoring punctuation about 32%. Those are not edge cases in a book,
+        they are the book.
+
+        *And it says which part a sort key could fix.* Word deletes hyphens
+        and folds accents inside the key as readily as in the heading
+        (`probe_word_sort_key_folding.py`), so those disagreements cannot be
+        repaired at all; a substitution or a dropped word can. Saying "some of
+        this is fixable" without saying which half would be worse than saying
+        nothing.
+        """
+        group = QGroupBox("How Word will file this index")
+        form = QVBoxLayout(group)
+
+        self.lbl_filing = QLabel()
+        self.lbl_filing.setWordWrap(True)
+        form.addWidget(self.lbl_filing)
+        self._refresh_filing()
+        return group
+
+    def _refresh_filing(self) -> None:
+        """
+        The sentence, recomputed from the project's own entries.
+
+        Silent when the rules agree with Word's, which is the ordinary case
+        and the one this must not nag about: a page that warns when there is
+        nothing to warn about is a page an indexer learns to skip.
+        """
+        from bookindexcore.sorting import WORD_HOST, disagreements
+
+        from ..sort_prefs import SortPrefs
+
+        rules = SortPrefs().project_rules()
+        levels = [
+            (index, XE_DIALECT.display_of(level).strip())
+            for instruction in self._instructions
+            for index, level in enumerate(
+                XE_DIALECT.split_levels(XE_DIALECT.entry_text_of(instruction)))
+            if XE_DIALECT.display_of(level).strip()
+        ]
+        if not levels:
+            self.lbl_filing.setText(
+                "Word files the generated index itself, word by word, with "
+                "hyphens deleted and accents folded. Open a project to see "
+                "whether your sorting rules agree with it.")
+            return
+
+        differing = [
+            (text, index) for index, text in levels
+            if disagreements([text], rules, WORD_HOST, level=index)
+        ]
+        if not differing:
+            self.lbl_filing.setText(
+                f"Word files this index itself, and it agrees with your "
+                f"sorting rules on all {len(levels)} entries. What you see in "
+                f"the tree is what will print.")
+            return
+
+        share = len(differing) / len(levels) * 100
+        self.lbl_filing.setText(
+            f"<b>Word files this index itself, and it will not match your "
+            f"sorting rules.</b> {len(differing)} of {len(levels)} entries "
+            f"({share:.0f}%) would file somewhere else than the tree shows. "
+            f"Word sorts word by word, deletes hyphens and folds accents, and "
+            f"the only way to overrule it is a sort key on each entry. "
+            f"It deletes hyphens and folds accents in those too, so some "
+            f"of this cannot be fixed at all. Check the printed index "
+            f"against the tree before you deliver.")
 
     def _build_layout_group(self) -> QGroupBox:
         group = QGroupBox("Layout")

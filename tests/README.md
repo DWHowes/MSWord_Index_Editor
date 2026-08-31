@@ -321,6 +321,18 @@ tests/
                             is what a frozen build without copy_metadata would
                             hit.
 
+  ui/test_filing_warning.py the Generated index page says when Word will not
+                            file the way the Sorting page asks. This is what
+                            survived item 4b, which the indexer struck: they
+                            file word-by-word for Word because they know its
+                            limits, and switch only when a publisher requires
+                            otherwise. Half the file asserts the page stays
+                            SILENT when the rules agree, because a page that
+                            warns needlessly is one an indexer learns to skip,
+                            and then the once it matters it is skipped too.
+                            One test guards the sentence against an em-dash:
+                            it is prose the indexer reads.
+
   test_sort_prefs.py        N1. The filing rules are kept, and the Table of
                             Authorities is built with them. This was the
                             fourth store-and-never-read-back here and the

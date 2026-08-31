@@ -5,6 +5,41 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Item 4b is struck, and the page says what Word will do instead
+
+**The indexer's answer struck it**, and it is the right answer: *"For Word, the
+answer is no, simply because I understand the limitations of the Word indexing
+module."* They file word-by-word where they can control it, and switch only
+when a publisher requires otherwise. So the two-thousand-field write nobody
+needs is not built.
+
+**But the switch does happen**, and that is the case worth serving. A publisher
+asks for letter-by-letter, the tree obeys, Word does not, and a book goes out
+whose printed index disagrees with the one that was checked. Measured over five
+real books, that disagreement runs to **67.5% of heading levels**.
+
+So the **Generated index** page opens with what Word will actually do:
+
+> Word files this index itself, and it agrees with your sorting rules on all
+> 2,076 entries. What you see in the tree is what will print.
+
+or, when it does not:
+
+> **Word files this index itself, and it will not match your sorting rules.**
+> 1,847 of 2,076 entries (89%) would file somewhere else than the tree shows.
+> [...] the only way to overrule it is a sort key on each entry. It deletes
+> hyphens and folds accents in those too, so some of this cannot be fixed at
+> all.
+
+**It is silent when the rules agree with Word**, which is the ordinary case and
+the one it must not nag about: a page that warns when there is nothing to warn
+about is a page an indexer learns to skip, and then the once it matters it is
+skipped too. That is asserted rather than intended.
+
+And it says which half a sort key could repair, because Word deletes hyphens
+and folds accents inside the key as readily as in the heading. Offering a
+remedy without that sentence would be promising a repair that does not exist.
+
 ### How many sort keys a real book would take, measured
 
 Item 4b, the bulk half, was held pending a count on a real manuscript rather
