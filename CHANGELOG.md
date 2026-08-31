@@ -5,6 +5,33 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### How many sort keys a real book would take, measured
+
+Item 4b, the bulk half, was held pending a count on a real manuscript rather
+than an estimate. Measured over **five indexed books, 16,780 heading levels**,
+read-only and counted rather than quoted.
+
+**Letter-by-letter needs 11,330 keys, 67.5% of every level**, ranging from 40%
+of one book to 88% of another. Ignore punctuation needs 31.6%, evaluate numbers
+13.1%.
+
+**And the sparse cases are far sparser than the scope guessed.** A few
+substitutions touch 1.3%. Dropping leading articles fired **twice in 10,140
+top-level headings**, for a reason that is about the trade rather than the
+code: a professional index does not carry *The* at the front of a heading,
+because the indexer has already dealt with it.
+
+**Keeping hyphens needs zero keys across all 16,780**, which is the corrected
+engine showing its work. Word deletes a hyphen from the key as readily as from
+the heading, so the disagreement is real and unfixable. Before the engine
+learned to ask whether writing a key changes anything, that column would have
+read in the hundreds, every one a field written into a manuscript for nothing.
+
+So the per-entry offer added the same day will almost never fire, which is the
+right outcome, and **4b is worth building only for the systematic settings** --
+where it is not a convenience but the only way to get what was asked for.
+ has the table and the method.
+
 ### The entry window offers a sort key where Word would file it elsewhere
 
 **Word sorts its own generated index**, so the tree ordering items 1 to 3
