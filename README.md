@@ -5,14 +5,7 @@ Design of record: `documentation/word_index_manager_hld.rtf`.
 
 ## For indexers: downloading and running it
 
-> **On this repository's name.** It is `MSWord_Index_Editor-public` for the
-> moment and will become `MSWord_Index_Editor`. The original repository was
-> published before its history had been checked, and the history was rewritten
-> to take client material out of it; orphaned copies of the old commits stay
-> readable on GitHub until the repository itself is deleted, so this is a clean
-> repository rather than a cleaned one. Nothing is missing from it.
-
-**[Download the installer](https://github.com/DWHowes/MSWord_Index_Editor-public/releases/download/v0.1.0-alpha/WordIndexEditor-Setup-0.1.0a0.exe)**
+**[Download the installer](https://github.com/DWHowes/MSWord_Index_Editor/releases/download/v0.1.0-alpha/WordIndexEditor-Setup-0.1.0a0.exe)**
 (0.1.0-alpha, 32 MB, Windows). Everything below this section is for people
 working on the source and you can ignore it.
 
@@ -38,7 +31,7 @@ before they need asking:
 
 The same report is written to `%TEMP%\WordIndexEditor-diagnostics.txt`.
 
-Then **[open an issue](https://github.com/DWHowes/MSWord_Index_Editor-public/issues/new)**.
+Then **[open an issue](https://github.com/DWHowes/MSWord_Index_Editor/issues/new)**.
 You need a free GitHub account to do it. Say what you were doing, what you
 expected, and what happened instead; paste the diagnostics output; and if it
 involves a particular manuscript, describe it rather than attaching it, since
