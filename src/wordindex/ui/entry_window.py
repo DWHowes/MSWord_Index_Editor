@@ -49,6 +49,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from bookindexcore.sorting import WORD_HOST
+
+from ..sort_prefs import SortPrefs
 from ..xe_dialect import BOLD, BOLD_ITALIC, ITALIC, XE_DIALECT
 
 #: What the strip across the top says. Named here rather than inline so the
@@ -91,8 +94,16 @@ class EntryWindow(IndexEntryWindow):
         # only be closed from a menu two levels down. Shared since it moved
         # into bookindexcore; the close gesture is resolved below, because
         # this window is a pane in a splitter rather than a dock.
+        # **The indexer's own rules, not the resolved ones.** Under *order as
+        # this host will file it* the project's rules and Word's are the same
+        # answer, so the offer would correctly never fire -- and a key saying
+        # what Word was going to do anyway is a field written into somebody
+        # else's manuscript for nothing. `WORD_HOST` is the other side of the
+        # comparison: what E4 measured Word doing when left alone.
+        prefs = SortPrefs()
         super().__init__(dialect, level_names=LEVEL_NAMES,
                          sort_fields=SORT_ALWAYS, settings=settings,
+                         rules=prefs.project_rules(), host_rules=WORD_HOST,
                          title=WINDOW_TITLE, parent=parent)
         # Return on the deepest level means "make it", which is what an
         # indexer expects of a form they have just filled in.

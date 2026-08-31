@@ -5,6 +5,30 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The entry window offers a sort key where Word would file it elsewhere
+
+**Word sorts its own generated index**, so the tree ordering items 1 to 3
+delivered is a preview: what reaches the printed page is decided by the
+per-level sort key inside each `XE` field. This application could already
+carry one -- the *Sort as* field has been there since step 6 -- and nothing
+derived it, so the filing rules were available only by typing every key by
+hand, which is the work the rules exist to remove.
+
+Now a level suggests the key that makes Word file the heading your way, **and
+only where Word would not do it anyway**. `Churchill, Winston` and `salt trade`
+get nothing; `The Beatles`, `St Andrews` and `al-Turabi, Hassan` get a key.
+That last one is worth knowing about: Word deletes hyphens of its own accord,
+so a project that keeps them disagrees with Word on every hyphenated heading.
+
+**Offered, never written.** It appears in a field you can see, edit and empty
+before anything is applied, and the first keystroke takes the field over
+exactly as it always did. The tooltip says where a filled-in key came from.
+
+It reads your **own** rules rather than the resolved ones: under *order as this
+host will file it* the two are the same answer, so the offer correctly never
+fires, and a key saying what Word was going to do anyway is a field written
+into a publisher's manuscript for nothing.
+
 ### N1: the Sorting page is kept, and the Table of Authorities reads it
 
 **The fourth "collected and stored by nothing" here, and the first that reached
