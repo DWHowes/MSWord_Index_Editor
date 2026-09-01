@@ -124,6 +124,16 @@ class NameDesk:
         """The multi-word family names the rules know about."""
         return tuple(PresentationPrefs().names().compound_surnames)
 
+    def cased_filing_prefixes(self) -> tuple:
+        """
+        The prefixes whose **case** decides where a heading files.
+
+        For the inversion dialog's note about the authority's capitalisation:
+        the list is a project's own, so a note built from the package
+        defaults could disagree with the rules that will file the heading.
+        """
+        return tuple(PresentationPrefs().names().cased_filing_prefixes)
+
     def remember_compound_surname(self, surname: str) -> None:
         """
         Add a multi-word family name to the table, if it is not there already.

@@ -5,6 +5,22 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The inversion dialog is told which prefixes are read for their case
+
+The core's N3 finding I puts a note under the authority's value saying that
+its capital letter is not evidence: LC capitalises the first word of every
+heading by rule, so its records cannot show whether a person preferred a
+lowercase letter, and that case is exactly what tells `Al Thani`, the word
+for clan filed under A, from `al Turabi`, the article filed under T.
+
+The note fires only where the project's own `cased_filing_prefixes` says the
+case decides the filing, so the dialog takes the list rather than reaching
+for it. `NameDesk.cased_filing_prefixes` is the accessor, beside
+`compound_surnames`, and `TestWhatTheDialogIsTold` pins that the window
+passes it: **a host that never passed it would show the note on nothing,
+which looks exactly like a project with nothing to warn about.** That is the
+failure mode this application's wiring sweep exists for.
+
 ### Index statistics, and the Presentation page in the guide
 
 **Index ▸ Index statistics…** shows what the index is made of: headings per

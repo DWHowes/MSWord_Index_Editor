@@ -1559,6 +1559,7 @@ class MainWindow(QMainWindow):
             resuggest=lambda name, language: self._names.service.rule_only(
                 name, language).rule_suggestion,
             compound_surnames=self._names.compound_surnames(),
+            cased_prefixes=self._names.cased_filing_prefixes(),
             language_from_authority=getattr(result, "authority_language", ""),
             # One table here, so the question of *this index or every index*
             # has one answer and is not asked.

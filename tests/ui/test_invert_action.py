@@ -238,6 +238,12 @@ class TestWhatTheDialogIsTold:
         assert kwargs["language"] == "de"
         assert kwargs["offers_surname_scope"] is False
         assert kwargs["compound_surnames"]
+        # The core's N3 finding I: the note under the authority's value fires
+        # only where the project's own list says the case decides the filing,
+        # so a host that never passes the list shows the note on nothing --
+        # which looks exactly like a project with nothing to warn about.
+        assert kwargs["cased_prefixes"] ==             opened._names.cased_filing_prefixes()
+        assert kwargs["cased_prefixes"]
 
     def test_a_stated_language_is_recorded_in_both_places(self, opened,
                                                           monkeypatch):
