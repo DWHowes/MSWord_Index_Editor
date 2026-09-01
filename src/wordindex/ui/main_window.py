@@ -72,7 +72,7 @@ from ..checking import check_project
 from ..toa_emission import build_plan
 from ..toa_prefs import ToaPrefs
 from ..toa_run import apply_plan
-from .toa_review import ToaReviewDialog
+from bookindexcore.ui.dialogs.toa_review import ToaReviewDialog
 from ..document_checks import document_rules
 from ..presentation_prefs import PresentationPrefs
 from ..sort_prefs import SortPrefs

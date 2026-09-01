@@ -5,6 +5,20 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The Table of Authorities review dialog moved to the core
+
+`ui/toa_review.py` is gone and `bookindexcore.ui.dialogs.toa_review` is the
+same dialog, because the LaTeX editor needs the surface too and a second
+caller fixes rather than catalogues. Nothing here changed but the import and
+the accept verb, which is now a parameter this application passes: it writes
+fields where LaTeX writes macros.
+
+`TestTheReviewDialog` went with it. It built a plan from the `.docx` fixture
+to test a tree widget, so a change to the citation parser could fail a test
+about check boxes; the core version uses a stub plan and asserts the five
+attributes the dialog actually reads. What stays here is the half that is this
+application's: the action, the undo, and the fields that reach the manuscript.
+
 ### A Spanish or Portuguese name with two given names inverts correctly
 
 No code here changed. The core's N3 finding O replaced a guess in the Iberian

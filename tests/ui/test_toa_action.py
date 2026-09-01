@@ -27,7 +27,7 @@ import pytest
 from wordindex.ooxml_backend import OoxmlBackend
 from wordindex.project import Project
 from wordindex.toa_emission import build_plan
-from wordindex.ui.toa_review import ToaReviewDialog
+from bookindexcore.ui.dialogs.toa_review import ToaReviewDialog
 
 from docx_fixtures import document, paragraph, text, write_docx
 
@@ -173,40 +173,10 @@ class TestTheIndexDocument:
         assert not [i for i in instructions if "INDEX" in i and "\\f" in i]
 
 
-class TestTheReviewDialog:
-
-    def _plan(self, book):
-        from bookindexcore.authorities.systems import OSCOLA
-        from bookindexcore.sorting import sort_rules_from_settings
-
-        backend = OoxmlBackend()
-        backend.open(book)
-        return build_plan([(book, backend)], OSCOLA,
-                          sort_rules_from_settings({}))
-
-    def test_it_lists_the_authorities_rather_than_the_fields(self, qt_app,
-                                                             book):
-        """
-        A book plans over a thousand fields for a few hundred authorities. A
-        list of edits would be a thousand rows an indexer cannot read.
-        """
-        plan = self._plan(book)
-        dialog = ToaReviewDialog(plan)
-        rows = sum(dialog.tree.topLevelItem(i).childCount()
-                   for i in range(dialog.tree.topLevelItemCount()))
-        assert rows < len(plan.entries) or len(plan.entries) == rows
-        assert rows
-
-    def test_everything_is_ticked_to_begin_with(self, qt_app, book):
-        plan = self._plan(book)
-        dialog = ToaReviewDialog(plan)
-        assert dialog.accepted_entries() == plan.entries
-
-    def test_unticking_all_keeps_nothing(self, qt_app, book):
-        dialog = ToaReviewDialog(self._plan(book))
-        dialog._set_all(False)
-        assert dialog.accepted_entries() == ()
-
-    def test_it_says_what_was_left_unresolved(self, qt_app, book):
-        dialog = ToaReviewDialog(self._plan(book))
-        assert dialog.lbl_residue.text()
+# `TestTheReviewDialog` was here and is now
+# `bookindexcore/tests/ui/test_toa_review.py`, with the dialog itself. It built
+# a plan from the `.docx` fixture to test a tree widget, so a change to the
+# citation parser could fail a test about check boxes; the core version uses a
+# stub plan and asserts the contract the dialog actually reads. What stays here
+# is the half that is this application's: the action, the undo, and the fields
+# that reach the manuscript.
