@@ -254,7 +254,8 @@ STORES = (
 #: style profile at all. Storing them here would be theatre, which is what
 #: `presentation_prefs` exists to stop. See finding 2(c) of
 #: `core_wiring_sweep.md`.
-_NO_READER = "no application anywhere reads it; a core finding, not a gap here"
+_NO_READER = ("no application anywhere reads it, and the shared page now says "
+              "so in its own top group; a core finding, not a gap here")
 UNSTORED_ON_PURPOSE = {
     "heading_capitalisation": _NO_READER,
     "subheading_order": _NO_READER,

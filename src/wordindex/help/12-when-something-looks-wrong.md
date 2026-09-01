@@ -41,3 +41,15 @@ reverse. See [Marking an entry](04-marking-an-entry.md).
 
 It should not. If it does, something outside this application edited the file.
 Reopen it and compare.
+
+## How many entries is this index, actually
+
+**Index ▸ Index statistics** counts the terms at each level, the entries and
+the cross-references. Two things it says that surprise people:
+
+- **A differing sort key is a differing term.** `Kant` and `Kant` with a sort
+  key on it are two headings here, in the tree, and in what Word will print,
+  because they file in different places. Check Index reports the
+  inconsistency.
+- **A cross-reference is not counted as a reference.** An entry is one or the
+  other.

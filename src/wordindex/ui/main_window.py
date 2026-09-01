@@ -88,7 +88,9 @@ from ..profiles import (
 from ..project import OpenProject, Project
 from ..search_source import project_search_source
 from ..xe_dialect import XE_DIALECT
+from bookindexcore.model.statistics import statistics_from_references
 from bookindexcore.ui.dialogs.heading_language_dialog import HeadingLanguageDialog
+from bookindexcore.ui.dialogs.statistics_dialog import IndexStatisticsDialog
 from bookindexcore.ui.dialogs.name_inversion_dialog import NameInversionDialog
 
 from .. import profiles
@@ -338,6 +340,9 @@ class MainWindow(QMainWindow):
         self.toa_action = index_menu.addAction(
             "Build &Table of Authorities…", self.build_table_of_authorities)
         self.toa_action.setEnabled(False)
+        self.statistics_action = index_menu.addAction(
+            "Index &statistics…", self.show_statistics)
+        self.statistics_action.setEnabled(False)
         self.check_action = index_menu.addAction(
             "&Check index…", self.check_index)
         self.check_action.setEnabled(False)
@@ -456,7 +461,8 @@ class MainWindow(QMainWindow):
                        self.index_document_action, self.close_project_action,
                        self.reopen_action, self.entry_window_action,
                        self.consolidate_action, self.toa_action,
-                       self.invert_action, self.language_action):
+                       self.invert_action, self.language_action,
+                       self.statistics_action):
             action.setEnabled(False)
         self.setWindowTitle("Word Index Editor")
         self.statusBar().showMessage("Open a Word manuscript to begin.")
@@ -1075,6 +1081,7 @@ class MainWindow(QMainWindow):
         self.consolidate_action.setEnabled(True)
         self.toa_action.setEnabled(True)
         self.invert_action.setEnabled(True)
+        self.statistics_action.setEnabled(True)
         self.language_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
@@ -1455,6 +1462,32 @@ class MainWindow(QMainWindow):
         if new_id is not None:
             self.index_panel.select_entry(new_id)
             self._show_in_entry_window(new_id)
+
+    def show_statistics(self) -> None:
+        """
+        What this index is made of: headings per level, entries, references.
+
+        **The dialog is the core's and was shipped before this application
+        could fill it in**, because it is fed there by
+        `IndexRepository.fetch_index_statistics` and there is no repository
+        here. `statistics_from_references` is the same counting over records,
+        which is what this application has, so the numbers mean what they mean
+        in the other editor rather than what a second implementation happened
+        to count.
+
+        Found by the wiring sweep: a dialog the package offers and this window
+        never showed.
+        """
+        if self.session is None:
+            self.statusBar().showMessage(
+                "Open a document before asking for statistics.", 4000)
+            return
+        dialog = IndexStatisticsDialog(self)
+        dialog.set_statistics(
+            statistics_from_references(self._references, XE_DIALECT))
+        dialog.apply_theme_configuration(bool(
+            AppStyleConfiguration.event_broker().get_property("is_dark_mode")))
+        dialog.exec()
 
     # -- names: N2 ---------------------------------------------------------
 

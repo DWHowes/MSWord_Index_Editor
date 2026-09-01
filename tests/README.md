@@ -446,3 +446,9 @@ pointing at it, all rewritten together, surviving a save and a reopen, and
 reversed by one Ctrl+Z. The window's name desk is given a stub service, so
 there is no network anywhere and the offline case -- a rules-only answer -- is
 the one being exercised.
+
+`ui/test_invert_action.py` also carries **Index statistics**, since it is the
+same window and the same fixtures: the action is gated like every other, and
+the counts over the sample project are asserted against the core's
+`statistics_from_references` rather than against numbers written out here, so
+the two cannot drift.

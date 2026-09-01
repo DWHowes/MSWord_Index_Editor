@@ -264,7 +264,19 @@ def main() -> int:
     prefs.show()
     shoot(prefs, "guide_09_preferences.png")
 
+    # 12.3 -- the Presentation page, which is where the name tables live.
+    #
+    # **Rendered tall on purpose.** The page scrolls, and the two groups this
+    # figure exists for are the last two on it; a figure cut off above the
+    # thing its caption names is a figure that has to be explained away.
     tabs = prefs.findChild(QTabWidget)
+    for index in range(tabs.count()):
+        if tabs.tabText(index) == "Presentation":
+            tabs.setCurrentIndex(index)
+            break
+    prefs.resize(880, 1180)
+    shoot(prefs, "guide_13_presentation.png")
+
     for index in range(tabs.count()):
         if tabs.tabText(index) == "Generated index":
             tabs.setCurrentIndex(index)

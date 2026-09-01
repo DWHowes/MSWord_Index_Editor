@@ -5,6 +5,20 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Index statistics, and the Presentation page in the guide
+
+**Index ▸ Index statistics…** shows what the index is made of: headings per
+level, entries, cross-references. It is the core's dialog, which this window
+had never shown because it is fed there by a repository this application does
+not have; the counting is the core's too, so the numbers mean here what they
+mean in the other editor. The last of the three items the wiring sweep left
+open as decisions.
+
+The User Guide gained **§12.3, the Presentation page**, with a figure: that is
+where the name tables live and it was described in prose only. The figure also
+shows the *Recorded, not yet applied* note the core added to the page's top
+group.
+
 ### N2: this application can invert a name
 
 It could not, at all. There were forty-two references to the inversion cascade

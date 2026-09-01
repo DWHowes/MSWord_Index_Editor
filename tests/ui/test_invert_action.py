@@ -281,3 +281,39 @@ class TestStatingALanguageOnItsOwn:
         assert [r.heading_raw for r in opened._references] == before
         assert not opened.undo_stack.can_undo
         assert opened._names.service.languages["Johann Wittenborg"] == "de"
+
+
+class TestIndexStatistics:
+    """
+    The dialog the core has always shipped and this window never showed.
+
+    Found by the wiring sweep. The counting is the core's too
+    (`statistics_from_references`), so the numbers mean here what they mean in
+    the other editor rather than what a second implementation happened to
+    count.
+    """
+
+    def test_it_is_gated_like_every_other_action(self, window):
+        assert not window.statistics_action.isEnabled()
+
+    def test_it_refuses_with_nothing_open_and_says_why(self, window):
+        window.show_statistics()
+        assert "Open a document" in window.statusBar().currentMessage()
+
+    def test_it_counts_this_book(self, opened, monkeypatch):
+        from bookindexcore.model.statistics import statistics_from_references
+
+        from wordindex.xe_dialect import XE_DIALECT
+
+        stats = statistics_from_references(opened._references, XE_DIALECT)
+
+        # Three entries under one name and one under Lübeck, which is the
+        # one carrying the cross-reference.
+        assert stats["total_references"] == 3
+        assert stats["total_cross_references"] == 1
+        # **Three headings, not two**, and the third is `Johann
+        # Wittenborg;wittenborg`: a level is compared as stored, so a
+        # differing sort key is a differing heading. That is what the tree
+        # beside it groups by and what the term count already reports, and
+        # the two really do file in different places.
+        assert stats["level_headings"][0] == 3

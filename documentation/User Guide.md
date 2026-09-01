@@ -570,6 +570,22 @@ a British book read as Bluebook finds almost nothing.
 
 ---
 
+### 12.3 The Presentation page
+
+![The Presentation preferences page](images/guide_13_presentation.png)
+
+**Figure 12.3** The Presentation page. The name tables are the lower two thirds of it, and the Arabic group says what it needs before it can do anything.
+
+The tables here are what section 12b's rules consult, and they are yours: a name added to **Direct order** stops being inverted, a family name added to **Compound surnames** makes every later bearer of it right, and emptying **Particles** switches the particle walk off rather than falling back to a default.
+
+**Two lists, not one, and the distinction is the whole of it.** *Particles* are absorbed into the family name when inverting, so *Ludwig van Beethoven* becomes *van Beethoven, Ludwig*. *Not filed on* is what is skipped when deciding where that heading files, so it goes under B. A preposition belongs in the second list and an article does not: *La Bruyère* files under L and *Du Bellay* under D.
+
+**The Arabic tables are closed lists of spellings rather than patterns**, and that is deliberate: *al-Turabi* has exactly the shape of *al-Din* and must not be glued into one word, so only a written-out list separates them. If your book uses a transliteration this one has not met, add it.
+
+The top group says **"Recorded, not yet applied"**, and it means it: capitalisation, subheading order, the depth warning and the passim settings are kept with the project and read by nothing yet. Everything below them acts.
+
+---
+
 ## 12a. A Table of Authorities
 
 **Only if your book needs one.** Most books do not: a table of authorities is

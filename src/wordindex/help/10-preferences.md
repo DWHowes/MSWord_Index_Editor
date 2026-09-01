@@ -79,3 +79,13 @@ Nothing about the `XE` fields themselves. The three things that make Word's
 index grammar unusual are decisions per entry rather than settings: the sort
 key on each level, the single-character index type, and the bookmark a page
 range needs. They live in [the entry window](05-the-entry-window.md).
+
+## What the Presentation page records but does not act on
+
+The top group of that page says **"Recorded, not yet applied"**, and it means
+it: the capitalisation, subheading order, depth warning and passim settings
+are kept with the project and read by nothing yet. Everything below them acts,
+including every name table.
+
+A setting that records rather than acts is worth having, and it is worth being
+told which of the two it is.

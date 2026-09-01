@@ -177,7 +177,29 @@ be written down somewhere a person will meet it again: *deliberate* and
 *overlooked* look identical from outside, which is exactly how the Arabic
 tables sat unreachable through nine defects fixed against them.
 
-## The three that are left, and what each needs from the indexer
+## Closed the same day, 1 September 2026
+
+Two of the three below were answered as soon as they were reported.
+
+- **The statistics dialog is wired.** *Index ▸ Index statistics…*, fed by
+  `bookindexcore.model.statistics.statistics_from_references`, which is the
+  repository's counting done over records so that the two implementations
+  cannot drift.
+- **The six presentation settings now say what they are.** The page's top
+  group reads *Recorded, not yet applied*, and a test in the core fails the
+  day one of them acquires a reader. That is the language control's rule
+  applied to a second place: a setting that records rather than acts is worth
+  having, and letting it look like a setting that acted is the one thing it
+  must not do.
+
+**The index-kind join stays open, and the indexer sharpened it**: `\f` is
+already how a Table of Authorities is emitted and collected, six categories at
+one character each. So the join is not about `\f` existing, it is about
+nothing mapping a class to an `IndexKind` and seeding the filing rules from
+it. The ToA does not need it; a **name** index would. Worth knowing before
+anyone designs one: `n` is taken by the constitutional category.
+
+## The three that were left, and what each needs from the indexer
 
 - **`structure.kinds`.** E9's index kinds seed filing behaviour, and in this
   format the kind is the `\f` class, which is per entry rather than per
