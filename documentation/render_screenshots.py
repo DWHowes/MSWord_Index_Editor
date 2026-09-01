@@ -90,6 +90,13 @@ def isolate_settings() -> Path:
         return QSettings(str(store), QSettings.Format.IniFormat)
 
     preferences.settings = scratch
+
+    # **And the name database, for the same reason.** It is the one store
+    # `bookindexcore` resolves for itself, deliberately shared by every
+    # application on the machine, and it holds the real corrections this
+    # indexer has settled over real books. Rendering a guide has no business
+    # opening it.
+    os.environ["BOOKINDEXCORE_NAME_DB"] = str(folder / "names.db")
     return folder
 
 
@@ -221,6 +228,38 @@ def main() -> int:
     prefs = WordPreferencesDialog(window,
                                   instructions=window.session.instructions(),
                                   project_name=window.session.project.name)
+    # **Filled in the way the menu fills it in.** A page nobody populates
+    # shows its construction defaults, and a figure of that is a figure of
+    # something no indexer will ever see: the first render after N2 showed an
+    # empty *Location* box on a page whose whole subject is where the shared
+    # name database lives. The same fault the wiring sweep was called in for,
+    # arriving in the documentation instead of the application.
+    from wordindex.check_prefs import CheckIndexPrefs
+    from wordindex.general_prefs import GeneralPrefs
+    from wordindex.presentation_prefs import PresentationPrefs
+    from wordindex.sort_prefs import SortPrefs
+    from wordindex.toa_prefs import ToaPrefs
+
+    prefs.populate_check_index_fields(CheckIndexPrefs().load())
+    prefs.populate_presentation_fields(PresentationPrefs().load())
+    prefs.populate_sorting_fields(SortPrefs().load())
+    prefs.populate_authorities_fields(ToaPrefs().load())
+
+    # **The path in this box is where the figure would say too much.** The
+    # General page displays the real location of the shared name database, and
+    # this repository is public: rendered as it stands, figure 12.1 publishes
+    # whoever built the guide, in their own home directory. So the page is
+    # filled in with a placeholder that is plainly a placeholder, which is
+    # also what a reader needs -- their own path will not be this one either
+    # way. Restored immediately, because everything else in the run uses the
+    # scratch database.
+    real = os.environ.get("BOOKINDEXCORE_NAME_DB", "")
+    os.environ["BOOKINDEXCORE_NAME_DB"] = (
+        r"C:\Users\<your name>\AppData\Local\DH Indexing\name_database\names.db")
+    try:
+        prefs.populate_general_fields(GeneralPrefs().load())
+    finally:
+        os.environ["BOOKINDEXCORE_NAME_DB"] = real
     prefs.resize(820, 640)
     prefs.show()
     shoot(prefs, "guide_09_preferences.png")
@@ -270,6 +309,38 @@ def main() -> int:
     review.show()
     shoot(review, "guide_11_toa_review.png")
     review.close()
+
+    # 12b.1 -- inverting a name, which is the three-voice dialog.
+    #
+    # **The authority line is empty on purpose**, and that is the honest
+    # figure rather than a limitation of rendering one: a picture claiming
+    # that VIAF returns a particular heading for a particular person is a
+    # picture a reader may rely on, and it would be asserted from a machine
+    # that may have had no network at the time. What the figure is *for* is
+    # the shape -- three answers and a box that overrules them -- and the
+    # empty line is also the commonest real case, the one the help calls
+    # "when the network is not there".
+    from bookindexcore.ui.dialogs.name_inversion_dialog import (  # noqa: E402
+        NameInversionDialog)
+
+    from wordindex.names import NameDesk                          # noqa: E402
+
+    desk = NameDesk(project_key=lambda: window.session.project.key,
+                    viaf_enabled=False)
+    invert = NameInversionDialog(
+        original_name="Johann Wittenborg",
+        authority_value="",
+        rule_value=desk.service.rule_only(
+            "Johann Wittenborg").rule_suggestion,
+        parent=window,
+        compound_surnames=desk.compound_surnames(),
+        offers_surname_scope=False,
+    )
+    invert.resize(560, 260)
+    invert.show()
+    shoot(invert, "guide_12_invert_name.png")
+    invert.close()
+    desk.close()
 
     window.close()
     print(f"\nsample book left in {folder}")

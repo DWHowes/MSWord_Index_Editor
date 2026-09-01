@@ -50,7 +50,7 @@ from bookindexcore.ui.theme.config_model import ThemeConfigModel
 from bookindexcore.ui.theme.controller import ThemeConfigController
 from bookindexcore.ui.window import (
     MainStatusBar, MainToolBar, PanelButton, WindowLayoutState)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QTextCursor, QTextDocument
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QInputDialog, QLabel, QMainWindow,
@@ -67,7 +67,7 @@ from bookindexcore.ui.progress_dialog import ProgressDialog
 from .. import __version__
 from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
-from ..toa_prefs import ToaPrefs
+from ..general_prefs import GeneralPrefs
 from ..checking import check_project
 from ..toa_emission import build_plan
 from ..toa_prefs import ToaPrefs
@@ -88,6 +88,11 @@ from ..profiles import (
 from ..project import OpenProject, Project
 from ..search_source import project_search_source
 from ..xe_dialect import XE_DIALECT
+from bookindexcore.ui.dialogs.heading_language_dialog import HeadingLanguageDialog
+from bookindexcore.ui.dialogs.name_inversion_dialog import NameInversionDialog
+
+from .. import profiles
+from ..names import NameDesk, rewrite_heading
 from ..reader import (
     HEADING, UNKNOWN, outline, unprofiled)
 from .entry_window import EntryWindow
@@ -97,6 +102,7 @@ from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
 from .preferences import Preferences, WordPreferencesDialog
 from .profile_editor import ProfileEditor
+from .tree_menu import IndexTreeContextMenu
 
 BODY_PART = "word/document.xml"
 
@@ -144,6 +150,12 @@ SIDEBAR_PANELS = (
 class MainWindow(QMainWindow):
     """One manuscript, shown."""
 
+    #: ``(heading, level, result)`` from a finished name lookup. The lookup
+    #: runs off the GUI thread and this is how its answer crosses back:
+    #: touching a widget from the worker is a crash, and a queued signal is
+    #: the one arrangement Qt guarantees.
+    name_lookup_finished = Signal(str, int, object)
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Word Index Editor")
@@ -178,6 +190,18 @@ class MainWindow(QMainWindow):
         self.index_panel = IndexPanel()
         self.index_panel.entry_selected.connect(self._go_to_entry)
         self.index_panel.entry_selected.connect(self._show_in_entry_window)
+
+        #: Personal names: the cascade, the language, the tables. N2, and
+        #: until it this application had no way to invert a name at all.
+        self._names = NameDesk(project_key=self._project_key)
+        #: This application's first context menu, on the terms.
+        self._tree_menu = IndexTreeContextMenu(self.index_panel.tree, self)
+        self._tree_menu.invert_name_requested.connect(self.invert_name)
+        self._tree_menu.set_language_requested.connect(self.set_name_language)
+        #: A lookup answers on a worker thread. **Emitted rather than acted
+        #: on**, because everything that happens next is a widget.
+        self.name_lookup_finished.connect(self._offer_inversion)
+        self._name_lookup_in_flight = False
 
         #: One tab per open manuscript (11c). Before this the window showed
         #: one document at a time and replaced it when another was chosen, so
@@ -215,6 +239,10 @@ class MainWindow(QMainWindow):
             backend_for=lambda entry_id: (
                 self.session.backend_of(entry_id) if self.session else None),
             after_change=self._after_change,
+            # The indexer's answer, not the default argument. The General
+            # page has asked how deep undo goes since step 9 and nothing here
+            # read it until the wiring sweep of 1 September 2026.
+            limit=GeneralPrefs().undo_stack_size(),
         )
 
         self.entry_window = EntryWindow()
@@ -288,6 +316,16 @@ class MainWindow(QMainWindow):
         self.reopen_action = index_menu.addAction(
             "&Reopen changed documents…", self.reopen_changed_documents)
         self.reopen_action.setEnabled(False)
+        index_menu.addSeparator()
+        # **On the term the tree is showing**, so the two name operations are
+        # reachable without a mouse as well as from the right-click menu that
+        # is their natural home.
+        self.invert_action = index_menu.addAction(
+            "&Invert name…", self.invert_name_from_menu)
+        self.invert_action.setEnabled(False)
+        self.language_action = index_menu.addAction(
+            "&Language of this name…", self.set_name_language_from_menu)
+        self.language_action.setEnabled(False)
         index_menu.addSeparator()
         self.consolidate_action = index_menu.addAction(
             "Consolidate c&ross-references…", self.consolidate_xrefs)
@@ -417,7 +455,8 @@ class MainWindow(QMainWindow):
                        self.search_action, self.save_action,
                        self.index_document_action, self.close_project_action,
                        self.reopen_action, self.entry_window_action,
-                       self.consolidate_action, self.toa_action):
+                       self.consolidate_action, self.toa_action,
+                       self.invert_action, self.language_action):
             action.setEnabled(False)
         self.setWindowTitle("Word Index Editor")
         self.statusBar().showMessage("Open a Word manuscript to begin.")
@@ -585,8 +624,14 @@ class MainWindow(QMainWindow):
         Only the layout: entries are the indexer's to save, and a window that
         quietly wrote a manuscript because it was closing would be the one
         thing this application is built not to do.
+
+        **The name desk is closed here and the order inside it matters**: the
+        lookup pool stops before the database connection does, or a correction
+        still in flight is written into a closed connection and vanishes with
+        nothing reported anywhere.
         """
         self._layout_state.save(self, self._splitters())
+        self._names.close()
         super().closeEvent(event)
 
     def _apply_proportions(self) -> None:
@@ -1029,6 +1074,8 @@ class MainWindow(QMainWindow):
         self.entry_window_action.setEnabled(True)
         self.consolidate_action.setEnabled(True)
         self.toa_action.setEnabled(True)
+        self.invert_action.setEnabled(True)
+        self.language_action.setEnabled(True)
         self._dirty = False
         self.save_action.setEnabled(False)
         self.entry_window.show_entry(None)
@@ -1409,6 +1456,192 @@ class MainWindow(QMainWindow):
             self.index_panel.select_entry(new_id)
             self._show_in_entry_window(new_id)
 
+    # -- names: N2 ---------------------------------------------------------
+
+    def _project_key(self) -> str:
+        """What the language map is filed under, or ``""`` with nothing open."""
+        return self.session.project.key if self.session else ""
+
+    def _current_term(self) -> tuple:
+        """
+        ``(heading, level)`` for the term the tree is on, or ``("", -1)``.
+
+        What the menu item uses. The context menu answers from the node that
+        was right-clicked; this answers from the selection, so the same
+        operation is reachable without a mouse.
+        """
+        return IndexTreeContextMenu.target_of(
+            self.index_panel.tree.currentIndex())
+
+    def invert_name_from_menu(self) -> None:
+        heading, level = self._current_term()
+        if not heading:
+            self.statusBar().showMessage(
+                "Choose an index term first.", 4000)
+            return
+        self.invert_name(heading, level)
+
+    def invert_name(self, heading: str, level: int) -> None:
+        """
+        Look a name up, offer the three voices, and rewrite what it decides.
+
+        The lookup makes several network calls in sequence, so it runs off the
+        GUI thread; the answer comes back through `name_lookup_finished`.
+        One at a time, because two dialogs proposing two headings for two
+        names is a way to accept the wrong one.
+        """
+        if self.session is None or not heading:
+            return
+        if self._name_lookup_in_flight:
+            self.statusBar().showMessage(
+                "A name lookup is already running.", 3000)
+            return
+
+        self._name_lookup_in_flight = True
+        self.statusBar().showMessage(f"Looking up {heading!r}...")
+
+        def done(result) -> None:
+            # Still on a worker thread: emit, never touch a widget.
+            self.name_lookup_finished.emit(heading, level, result)
+
+        self._names.service.invert_async(
+            heading, done, language=self._names.heading_language(heading),
+            prefer_authority=True)
+
+    def _offer_inversion(self, heading: str, level: int, result) -> None:
+        """The finished lookup, offered for review. On the GUI thread."""
+        self._name_lookup_in_flight = False
+        self.statusBar().clearMessage()
+        if self.session is None:
+            return
+
+        dialog = NameInversionDialog(
+            original_name=heading,
+            authority_value=result.authority_term or "",
+            rule_value=result.rule_suggestion or result.display_value,
+            parent=self,
+            language=self._names.heading_language(heading),
+            # Rule-based only. A language change is a reason to re-ask the
+            # rules and no reason at all to go back to the network.
+            resuggest=lambda name, language: self._names.service.rule_only(
+                name, language).rule_suggestion,
+            compound_surnames=self._names.compound_surnames(),
+            language_from_authority=getattr(result, "authority_language", ""),
+            # One table here, so the question of *this index or every index*
+            # has one answer and is not asked.
+            offers_surname_scope=False,
+        )
+        if dialog.exec() != NameInversionDialog.DialogCode.Accepted:
+            self.statusBar().showMessage("Nothing was changed.", 3000)
+            return
+
+        final = dialog.result_value()
+        language = dialog.language()
+
+        if final.strip() and final.strip() != heading.strip():
+            self._names.service.remember_heading(
+                heading, final, reason=dialog.correction_reason() or "",
+                language=language)
+        # Unconditionally, unlike the correction above: stating a language and
+        # accepting the suggestion unaltered is a complete answer, and the
+        # whole point of asking is that it be there in the next book.
+        self._names.set_heading_language(heading, language)
+        self._names.remember_compound_surname(
+            dialog.compound_surname_to_remember())
+
+        self.apply_heading_rewrite(heading, final, level, said="Invert name")
+
+    def apply_heading_rewrite(self, old: str, new: str, level: int, *,
+                              said: str) -> None:
+        """
+        Rewrite one heading everywhere it occurs, as a single operation.
+
+        **This is the difference between this application and the LaTeX
+        editor**, and it is not a detail: there a heading is a table row and
+        an inversion sets one cell, here it is the level *n* text of every
+        `XE` field carrying it. Rewriting one of twelve would put both
+        spellings in the generated index, filed in two places, and neither
+        would be wrong enough to notice.
+
+        Counted and confirmed first, because *twelve entries* is what makes
+        this different from editing one.
+        """
+        if not new.strip() or new.strip() == old.strip():
+            self.statusBar().showMessage("The heading was left as it was.",
+                                         3000)
+            return
+
+        plan = rewrite_heading(self._references, old, new, level)
+        if plan.is_empty:
+            self.statusBar().showMessage(
+                f"Nothing is filed under {old!r} any more.", 4000)
+            return
+
+        if QMessageBox.question(
+                self, "Rewrite this heading?",
+                f"Change\n\n    {old}\n\nto\n\n    {new}\n\n"
+                f"in {plan}?") != QMessageBox.StandardButton.Yes:
+            self.statusBar().showMessage("Nothing was changed.", 3000)
+            return
+
+        applied, refused = [], []
+        for edit in plan.edits:
+            backend = self.session.backend_of(edit.entry_id)
+            if backend is None:
+                refused.append(edit)
+                continue
+            outcome = backend.apply(edit)
+            (applied if outcome.ok else refused).append(edit)
+
+        if applied:
+            # **One command for the whole run**, as the consolidation and the
+            # table of authorities already are: a rewrite an indexer asked for
+            # once comes back once.
+            self.undo_stack.record(command_for(EDIT, said, applied))
+            self._refresh_undo_actions()
+            self._after_change(f"{said}: {plan}")
+
+        if refused:
+            QMessageBox.warning(
+                self, "Some entries were not changed",
+                f"{len(refused)} of {len(plan.edits)} entries would not take "
+                f"the change and were left as they were.")
+        elif applied:
+            self.statusBar().showMessage(f"{said}: {plan} changed.", 5000)
+
+    def set_name_language_from_menu(self) -> None:
+        heading, level = self._current_term()
+        if not heading:
+            self.statusBar().showMessage("Choose an index term first.", 4000)
+            return
+        self.set_name_language(heading, level)
+
+    def set_name_language(self, heading: str, _level: int = 0) -> None:
+        """
+        Say what language a name is, without looking anything up.
+
+        The gap N2 recorded beside the missing inversion surface: an indexer
+        who knows a name is Arabic had to run an authority lookup to say so.
+        Nothing about the manuscript changes here. What changes is how the
+        filing and inversion rules read the name, from now on and in the next
+        book, which is why the dialog says which of those two things the
+        chosen language does.
+        """
+        if not heading:
+            return
+        current = self._names.heading_language(heading)
+        dialog = HeadingLanguageDialog(
+            heading, current, self,
+            sources=("Recorded for this project." if current
+                     and profiles.heading_language(self._project_key(), heading)
+                     else "Remembered from the shared name database."
+                     if current else ""))
+        if dialog.exec() != HeadingLanguageDialog.DialogCode.Accepted:
+            return
+        self._names.set_heading_language(heading, dialog.language())
+        self.statusBar().showMessage(
+            f"{heading}: language recorded as {dialog.language()}.", 4000)
+
     # -- assembly: step 9 -------------------------------------------------
 
     def consolidate_xrefs(self) -> None:
@@ -1771,9 +2004,13 @@ class MainWindow(QMainWindow):
         with its load path assumed. **If a store is written here, load it
         here, on the line above.**
 
-        General and Sorting are deliberately not populated: this application
-        has no store for either, and `_save_preferences` drops their keys
-        rather than writing them, so they are consistent as they stand.
+        **The wiring sweep of 1 September 2026 found two more of exactly
+        this.** The Theme page was never populated and its colours were
+        dropped on OK, so an indexer could set colours, press OK, and both
+        lose the edit and find the page showing defaults next time; and the
+        General page was neither populated nor stored, which is finding 2(b)
+        of `documentation/core_wiring_sweep.md`. Both are fixed here, and the
+        probe that found them is what will find the next one.
         """
         dialog = WordPreferencesDialog(
             self,
@@ -1783,10 +2020,15 @@ class MainWindow(QMainWindow):
         dialog.populate_presentation_fields(PresentationPrefs().load())
         dialog.populate_sorting_fields(SortPrefs().load())
         dialog.populate_authorities_fields(ToaPrefs().load())
+        dialog.populate_general_fields(GeneralPrefs().load())
+        dialog.populate_theme_fields(self._theme.model.serialize_dark(),
+                                     self._theme.model.serialize_light())
         dialog.sig_config_accepted.connect(self._save_preferences)
+        dialog.sig_general_accepted.connect(self._save_general_preferences)
+        dialog.sig_name_database_relocated.connect(self._name_database_moved)
         dialog.exec()
 
-    def _save_preferences(self, payload, _dark, _light) -> None:
+    def _save_preferences(self, payload, dark, light) -> None:
         """
         Both stores read the one payload, each taking only its own keys.
 
@@ -1807,6 +2049,39 @@ class MainWindow(QMainWindow):
         # have been collecting since the shared shell arrived with nothing
         # keeping a word of it.
         SortPrefs().save(payload)
+        # **The colours are not in the payload**, they are the other two
+        # arguments, and this method used to name them `_dark` and `_light`
+        # and throw them away. The controller is the core's and does the
+        # whole job: store them, then repaint what is on the screen.
+        self._theme.handle_accepted(dark, light)
+
+    def _save_general_preferences(self, payload) -> None:
+        """
+        The General page, which this application collected and dropped.
+
+        Stored first and applied second, so a failure to apply still leaves
+        the setting saved for next time. Only two of its settings mean
+        anything here and the page no longer offers the rest: see
+        `GeneralPrefs` for which, and why the others are declined rather than
+        stored.
+        """
+        GeneralPrefs().save(payload)
+        self.undo_stack.set_limit(GeneralPrefs().undo_stack_size())
+
+    def _name_database_moved(self, path: str) -> None:
+        """
+        The name database has been moved, so reopen it where it now is.
+
+        The path is reported rather than obeyed: `bookindexcore` resolves
+        where the database lives, through a pointer every application reads.
+        All this does is let the open connection be replaced, because sqlite
+        keeps a deleted file open quite happily and every correction made
+        afterwards would go into a file nothing will ever read again.
+        """
+        self._names.reopen()
+        self.statusBar().showMessage(
+            f"Name database reopened at {path}." if path
+            else "Name database reopened.", 4000)
 
     def _record_creation(self, result, instruction: str, said: str) -> None:
         """

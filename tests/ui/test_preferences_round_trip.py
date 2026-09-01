@@ -26,9 +26,18 @@ added later, saved here and not loaded here, is the same bug again. So the
 test below is written against the set of stores `_save_preferences` writes,
 and a new one joins it by being added there.
 
-General and Sorting are deliberately absent from that set: this application
-has no store for either, and the payload's keys for them are dropped rather
-than written.
+#### The sweep of 1 September 2026 found two more, and they are here too
+
+`documentation/probe_core_wiring.py` compares the window's own payload against
+the union of this application's stores. It reported the **Theme** page as
+never populated and its colours dropped on OK -- so an indexer set colours,
+lost the edit, and found the page showing defaults the next time -- and the
+**General** page as neither populated nor stored. Both are asserted below,
+and the probe is what will find the third.
+
+The General page's other four keys are absent by declaration rather than by
+neglect: `build_general_tab` refuses the auto-save and recent-project groups
+here, so the shared page leaves those keys out of its payload entirely.
 """
 
 from __future__ import annotations
@@ -38,6 +47,7 @@ import pytest
 from bookindexcore.checks import DISABLED_RULES_KEY, every_rule
 
 from wordindex.check_prefs import CheckIndexPrefs
+from wordindex.general_prefs import GeneralPrefs
 from wordindex.presentation_prefs import PresentationPrefs
 from wordindex.sort_prefs import SortPrefs
 from wordindex.toa_prefs import ToaPrefs
@@ -132,6 +142,7 @@ class TestEveryStoreThatIsSavedIsAlsoLoaded:
         (PresentationPrefs, "populate_presentation_fields"),
         (ToaPrefs, "populate_authorities_fields"),
         (SortPrefs, "populate_sorting_fields"),
+        (GeneralPrefs, "populate_general_fields"),
     )
 
     @pytest.mark.parametrize("store,populate", PAIRS,
@@ -142,7 +153,12 @@ class TestEveryStoreThatIsSavedIsAlsoLoaded:
         from wordindex.ui.main_window import MainWindow
 
         opens = inspect.getsource(MainWindow.edit_preferences)
-        saves = inspect.getsource(MainWindow._save_preferences)
+        # **Both save paths.** The General page travels on its own signal --
+        # it is installation-scoped where the rest is the project's -- so its
+        # store is written in `_save_general_preferences`, and a guard that
+        # read only the other one would report a wired store as missing.
+        saves = (inspect.getsource(MainWindow._save_preferences)
+                 + inspect.getsource(MainWindow._save_general_preferences))
 
         assert f"{store.__name__}()" in saves, (
             f"{store.__name__} is no longer saved; update this test with it")
@@ -150,3 +166,86 @@ class TestEveryStoreThatIsSavedIsAlsoLoaded:
             f"{store.__name__} is saved by _save_preferences and "
             f"{populate} is not called by edit_preferences, so an indexer's "
             f"stored choices are replaced by an unpopulated page's defaults")
+
+
+class TestTheThemePageIsFilledInAndKept:
+    """
+    The colours are not in the payload: they are the other two arguments of
+    `sig_config_accepted`, which this window named `_dark` and `_light` and
+    threw away.
+
+    11b made the *stored* theme apply at startup and stopped there, so the
+    half an indexer actually touches -- choosing a colour on the page -- was
+    never wired at either end. The page opened on construction defaults, and
+    OK discarded whatever was chosen.
+    """
+
+    def test_the_page_is_populated_from_the_theme_controller(self):
+        import inspect
+
+        from wordindex.ui.main_window import MainWindow
+
+        opens = inspect.getsource(MainWindow.edit_preferences)
+        assert "populate_theme_fields" in opens
+
+    def test_the_colours_reach_the_controller_on_ok(self):
+        import inspect
+
+        from wordindex.ui.main_window import MainWindow
+
+        saves = inspect.getsource(MainWindow._save_preferences)
+        assert "handle_accepted" in saves, (
+            "the two colour payloads are dropped, so every edit on the Theme "
+            "page is lost when the window closes")
+
+    def test_the_arguments_are_not_named_as_unused(self):
+        """
+        `_dark` and `_light` were the signature, and the underscores were the
+        only record that a feature had been left unfinished.
+        """
+        import inspect
+
+        from wordindex.ui.main_window import MainWindow
+
+        signature = inspect.signature(MainWindow._save_preferences)
+        assert list(signature.parameters) == ["self", "payload", "dark", "light"]
+
+
+class TestTheGeneralPageOffersOnlyWhatThisApplicationCanDo:
+    """
+    A control the host cannot honour is worse than no control, which is the
+    argument the shared page already makes about an encap vocabulary that
+    cannot be extended.
+    """
+
+    def test_auto_save_and_recent_projects_are_not_offered(self, qt_app, dialog):
+        module, _ini = dialog
+        window = module.WordPreferencesDialog(None, instructions=(),
+                                              project_name="Sample")
+        collected = window.general_tab.collect()
+
+        assert "autosave_enabled" not in collected
+        assert "recent_projects_max" not in collected
+
+    def test_what_is_offered_is_what_is_stored(self, qt_app, dialog):
+        """
+        The property the whole sweep is about, stated for one page: every key
+        the window hands over is a key some store here keeps.
+        """
+        module, _ini = dialog
+        window = module.WordPreferencesDialog(None, instructions=(),
+                                              project_name="Sample")
+
+        from wordindex.general_prefs import GENERAL_DEFAULTS
+
+        assert set(window.general_tab.collect()) == set(GENERAL_DEFAULTS)
+
+    def test_the_undo_depth_round_trips(self, qt_app, dialog):
+        module, _ini = dialog
+        GeneralPrefs().save({"undo_stack_size": 12})
+
+        window = module.WordPreferencesDialog(None, instructions=(),
+                                              project_name="Sample")
+        window.populate_general_fields(GeneralPrefs().load())
+
+        assert window.general_tab.collect()["undo_stack_size"] == 12

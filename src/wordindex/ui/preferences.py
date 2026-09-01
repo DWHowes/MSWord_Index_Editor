@@ -22,13 +22,6 @@ decisions only an indexer can make, and nowhere to make them.
 `GeneralPreferencesTab` and the sorting and check pages already read and
 write. The style-profile store beside this keeps *project* data; preferences
 are the indexer's, and follow them from book to book.
-
-#### Where the settings go
-
-`QSettings` under this application's own organisation and name, which is what
-`GeneralPreferencesTab` and the sorting and check pages already read and
-write. The style-profile store beside this keeps *project* data; preferences
-are the indexer's, and follow them from book to book.
 """
 
 from __future__ import annotations
@@ -36,6 +29,7 @@ from __future__ import annotations
 from typing import Sequence
 
 from bookindexcore.ui.preferences import PreferencesDialog
+from bookindexcore.ui.preferences.general_tab import GeneralPreferencesTab
 from PySide6.QtCore import QSettings
 
 from ..generated_index import GeneratedIndexPrefs
@@ -93,19 +87,30 @@ class WordPreferencesDialog(PreferencesDialog):
         """
         return True
 
-    def supports_table_of_authorities(self) -> bool:
+    def build_general_tab(self) -> GeneralPreferencesTab:
         """
-        Yes, since 30 August 2026.
+        The General page, without the two groups this application cannot
+        honour.
 
-        The hook's own docstring says the answer was False because *"what is
-        missing is emission, which is phase T3, and which is the
-        application's."* Emission is not missing here any more: **Index >
-        Build Table of Authorities** writes `XE` fields with `\f` and the
-        index document collects them. So the page the core has always had is
-        shown, and this application asks the two questions it already knew how
-        to ask rather than growing a second page that asks them again.
+        **Auto-save**: nothing here reaches disk before Save, which is the
+        scope's second section rather than an omission, so an interval that
+        can never fire is a control an indexer would one day rely on.
+
+        **Recent projects**: there is no most-recently-used list.
+        `profiles.known_projects` is every project ever named, so a maximum
+        limits nothing and *Clear List Now* would delete project records
+        rather than forget an ordering.
+
+        The log location is stated too, because it differs by host: the shared
+        tooltip said *the open project's own directory*, which is the LaTeX
+        editor's answer and would be the publisher's folder here. See step
+        11e.
         """
-        return True
+        return GeneralPreferencesTab(
+            self._dialect, self,
+            offers_autosave=False,
+            offers_recent_projects=False,
+            log_location="this application's own data folder")
 
     def host_check_rules(self):
         """

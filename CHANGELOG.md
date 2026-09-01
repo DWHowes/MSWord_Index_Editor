@@ -5,6 +5,70 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### N2: this application can invert a name
+
+It could not, at all. There were forty-two references to the inversion cascade
+in the LaTeX editor and **zero** here, while 95% of this indexer's embedded
+work is Word. Right-click a term: **Invert name...** and **Language of this
+name...**, also on the Index menu for the term the tree is on.
+
+**A heading here is not a row, and that is the whole difference.** In the
+LaTeX editor an inversion sets one table cell; here a heading is the level *n*
+text of every `XE` field carrying it, so `names.rewrite_heading` finds all of
+them and the window applies them as **one undoable command**. Rewriting one of
+twelve would put `Churchill, Winston` and `Winston Churchill` in the generated
+index as two terms filed in two places, and neither would be wrong enough for
+anybody to notice.
+
+What survives a rewrite, and each is a test: a sort key typed on that level;
+every switch the entry carries, through the surgical composer; a colon the
+indexer typed, escaped rather than turned into a second level; and the
+**cross-references that point at the old heading**, brought with it inside the
+same command and named in the confirmation. Check Index would otherwise report
+every one of them afterwards, which is correct and makes the indexer clean up
+after a gesture that was meant to be one decision.
+
+A language reaches **both** stores: this project's own record, in the profile
+store, and the shared name database, which outlives the book. An indexer
+classifying a name has answered both questions at once.
+
+`documentation/n2_inversion_reaches_word_scope.md` is the scope, approved
+1 September 2026.
+
+### The wiring sweep, and the five things it found
+
+Asked for by the indexer, in these words: *there is a recurring problem that
+abilities were added to the Word editor without being wired in*. They are
+right, and `documentation/probe_core_wiring.py` now measures it in four
+shapes -- a core module with no caller, a preferences key collected and stored
+by nothing, a store written and never read back, a signal or page the window
+offers and nothing here takes. `documentation/core_wiring_sweep.md` is the
+report. It found **twenty keys collected and kept nowhere, three signals with
+no receiver and two pages never populated**, and is down to a declared list.
+
+- **The Theme page was never populated and its colours were dropped on OK.**
+  So an indexer set colours, lost the edit, and found the page showing
+  defaults next time. 11b made the *stored* theme apply at startup and stopped
+  there; both ends are wired now.
+- **The General page was neither populated nor stored.** `general_prefs.py` is
+  the fifth store: the undo depth (which was the default argument, 200,
+  whatever the page said) and the session-log folder name (which was a
+  constant).
+- **Auto-save and recent projects are no longer offered here.** Nothing
+  reaches disk before Save, so an interval could never fire; and this
+  application's project list is every project ever named, so a maximum limits
+  nothing and *Clear List Now* would delete project records. Declined at the
+  page, through the core's new host declarations, so the keys are not even
+  collected.
+- **The Presentation page's eight name settings were collected and dropped.**
+  `PRESENTATION_KEYS` was three keys long. It now takes the whole of
+  `NAME_DEFAULTS`, deliberately wholesale, so a control added to the shared
+  page later is stored the day it appears.
+- **Reported, not built**: the index-kind join (`\f` classes are index kinds
+  and nothing here reads one), an *Index statistics* dialog the core ships and
+  this application does not show, and six presentation settings that **no
+  application anywhere reads**.
+
 ### Item 4b is struck, and the page says what Word will do instead
 
 **The indexer's answer struck it**, and it is the right answer: *"For Word, the

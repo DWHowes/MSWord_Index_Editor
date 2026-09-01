@@ -471,10 +471,10 @@ Anything that needs page numbers. Nothing here can tell you whether a range is t
 
 **Figure 12.1** The preferences window, with its pages down the left-hand edge.
 
-- **General** covers recent projects and the shared name database.
+- **General** covers how far Undo steps back, what the session-log folder is called, and where the shared name database lives. It is shorter here than in the LaTeX editor on purpose: this application has no auto-save, because nothing reaches disk before you save, and no recent-projects list, because it remembers every project you have named rather than the last few.
 - **Check Index** turns individual checking rules on and off, and holds the vocabulary of section 11.
 - **Sorting** sets how headings are compared: letter-by-letter or word-by-word, and what to do with hyphens and other punctuation.
-- **Presentation** covers how headings and cross-references are shown.
+- **Presentation** covers how headings and cross-references are shown, and holds the **name tables**: direct-order names, compound surnames, particles, what is not filed on, the Arabic tables, epithets and places of origin, and the generational suffixes. These are what the rules in section 12b consult.
 - **UI Themes** sets the colours, light or dark.
 - **Generated index** is this application's own page, below.
 
@@ -642,6 +642,80 @@ takes those fields back out again.
 thousand fields takes a few minutes on a real book, so both passes show
 progress and both can be cancelled. A cancelled run keeps what it wrote, and
 that is still one undo.
+
+---
+
+## 12b. Personal names
+
+Most index entries are the words you typed. A person's name is not: it arrives
+as *Winston Churchill* and files as *Churchill, Winston*.
+
+Right-click any term in the **Index terms** panel, or use the **Index** menu
+for the term you have selected:
+
+- **Invert name…** — turn a name round, everywhere it occurs.
+- **Language of this name…** — say what language a name is, and nothing else.
+
+### The three answers
+
+![Inverting a name](images/guide_12_invert_name.png)
+
+**Figure 12b.1** Inverting a name. Three answers and a box that overrules
+them; here the authority found nothing, which is the ordinary case for a
+medieval merchant and the only case when you are working without a network.
+
+Inverting shows you three and asks you to choose: what an **authority** says
+(the Virtual International Authority File, and the Library of Congress behind
+it); what the **rules** say, from the particle lists and tables under **Index ▸
+Preferences ▸ Presentation**; and a **final value** box you can type in, which
+wins.
+
+Change the suggestion and you are asked why in a word. The correction is
+remembered **for every book**, not just this one: the name database sits
+outside any project, and the LaTeX editor shares it.
+
+Where your correction produces a family name of more than one word, take the
+offer to remember it. *Vargas Llosa* entered once makes every later bearer of
+it right without being corrected again, and no rule could have worked it out —
+*Gabriel García Márquez* and *Winston Spencer Churchill* are the same shape
+and take opposite answers.
+
+### Everywhere it occurs
+
+**This is the part to read before you use it.** A term here is not one entry.
+*Winston Churchill* may be marked in twelve places, and Word's generated index
+gathers them under one heading. So an inversion rewrites all twelve, and you
+are told the count before anything happens:
+
+> Change *Winston Churchill* to *Churchill, Winston* in 12 entries and 2
+> cross-references that point at it?
+
+Rewriting one would leave the book with two headings filed under two letters,
+each holding part of the entry, and nothing would look wrong until it was
+printed. Cross-references pointing at the old heading come with it.
+
+It is **one undo**, and anything you never wrote is left alone: a sort key you
+typed, a page-range bookmark, a page style, an index type.
+
+### The language of a name
+
+A name's language is a fact about the name, not the language of the book, and
+a manuscript usually carries several. It matters because some rules cannot
+work without it: *Bin Laden* and *bin Sulman* differ by a capital letter and
+file differently, and the rule that knows this applies only to a name marked
+Arabic.
+
+The dialog says which of two things your choice does — the rules for that
+language apply, or the language is recorded and nothing changes yet. Recording
+one that has no rules is worth doing: it is your own note of something true,
+and it is what any future rule would be written against.
+
+What you say is kept in two places: this project, because a book is entitled
+to read a name differently from the last one, and the shared name database, so
+the next book starts with the answer.
+
+**Without a network** you still get the rule-based answer and everything else
+works as usual.
 
 ---
 

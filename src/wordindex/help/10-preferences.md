@@ -3,11 +3,18 @@
 **Index > Preferences**. These follow you from book to book; the style profile
 and the reading order belong to the project instead.
 
-- **General** covers recent projects and the shared name database.
+- **General** covers how far Undo steps back, what the session-log folder is
+  called, and where the shared name database lives. It is shorter here than in
+  the LaTeX editor on purpose: there is no auto-save, because nothing reaches
+  disk before you save, and no recent-projects list, because this application
+  remembers every project you have named rather than the last few.
 - **Check Index** turns individual checking rules on and off.
 - **Sorting** sets how headings are compared: letter-by-letter or
   word-by-word, and what to do with hyphens and other punctuation.
-- **Presentation** covers how headings and cross-references are shown.
+- **Presentation** covers how headings and cross-references are shown, and
+  holds the **name tables** section 14 consults: direct-order names, compound
+  surnames, particles, what is not filed on, the Arabic tables, epithets and
+  places of origin, and the generational suffixes.
 - **UI Themes** sets the colours, light or dark.
 - **Generated index** is this application's own page, below.
 

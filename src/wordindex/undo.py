@@ -90,6 +90,21 @@ class UndoStack:
     def record(self, command: IndexCommand) -> None:
         self._stack.push(command)
 
+    def set_limit(self, limit: int) -> None:
+        """
+        How many operations the stack keeps, from the General preferences.
+
+        **The page has asked this question since step 9 and nothing answered
+        it**: the depth was the default argument above and an indexer's choice
+        was collected, handed over and dropped. Found by the wiring sweep of
+        1 September 2026.
+
+        Lowering it discards the oldest steps immediately, which is the
+        tooltip's own promise and the core stack's behaviour, not something
+        added here.
+        """
+        self._stack.set_limit(max(1, int(limit)))
+
     def clear(self) -> None:
         self._stack.clear()
 

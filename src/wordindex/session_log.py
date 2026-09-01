@@ -27,15 +27,35 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-__all__ = ["LOG_ENV", "LOG_FOLDER_NAME", "log_root", "start_logging"]
+__all__ = ["LOG_ENV", "LOG_FOLDER_NAME", "folder_name", "log_root",
+           "start_logging"]
 
 #: Point the log somewhere else. Tests use it, and so does anyone who wants
 #: their logs on a different drive.
 LOG_ENV = "WORDINDEX_LOG_DIR"
 
-#: The folder's name, said once. The LaTeX editor's default, so an indexer
-#: looking for one application's logs recognises the other's.
+#: The folder's name when nobody has said otherwise. The LaTeX editor's
+#: default, so an indexer looking for one application's logs recognises the
+#: other's. **The indexer can rename it**, on the General preferences page,
+#: which is what `folder_name` below reads: until 1 September 2026 that
+#: control was collected and dropped, and this constant was the only answer.
 LOG_FOLDER_NAME = "session_logs"
+
+
+def folder_name() -> str:
+    """
+    What the log folder is called, the indexer's answer if they gave one.
+
+    Guarded, and it falls back rather than raising: logging is the thing that
+    reports a failure, so a failure *inside* it must leave the application
+    running and logging somewhere rather than not at all.
+    """
+    try:
+        from .general_prefs import GeneralPrefs
+
+        return GeneralPrefs().log_directory_name()
+    except Exception:                                         # noqa: BLE001
+        return LOG_FOLDER_NAME
 
 
 def log_root() -> Path:
@@ -45,6 +65,10 @@ def log_root() -> Path:
     The same user-data directory the style-profile store uses, so this
     application keeps its own working files in one place, and **its own**: per
     D10, nothing here is shared with the other editors in the suite.
+
+    *The name* is the indexer's and *the place* is not: a Word project's own
+    directory is the publisher's, so a folder of ours in it would be part of
+    what goes back to them.
     """
     override = os.environ.get(LOG_ENV)
     if override:
@@ -52,7 +76,7 @@ def log_root() -> Path:
 
     from .profiles import store_path
 
-    return store_path().parent / LOG_FOLDER_NAME
+    return store_path().parent / folder_name()
 
 
 def start_logging():
@@ -71,7 +95,7 @@ def start_logging():
         from bookindexcore.session.logger import SessionLogger
 
         logger = SessionLogger(target_directory=str(log_root()),
-                               folder_name=LOG_FOLDER_NAME)
+                               folder_name=folder_name())
         logger.start_intercept()
         return logger
     except Exception as failure:                              # noqa: BLE001

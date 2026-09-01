@@ -375,3 +375,74 @@ tests/
                             undone, with both bodies byte-identical to what
                             they were.
 ```
+
+## N2 — inverting a name, and the sweep that came with it
+
+```
+  test_names.py             what a heading rewrite reaches, which is the one
+                            thing this application does differently from the
+                            LaTeX editor: there a heading is a table row and
+                            an inversion sets one cell, here it is the level
+                            n text of every XE field carrying it. So the
+                            assertions are about reach -- every entry under
+                            the heading, only that level, two spellings
+                            grouped as the tree groups them -- and about what
+                            survives: a sort key typed on that level, every
+                            switch the entry carries, a typed colon escaped
+                            rather than made into a second level, and the
+                            cross-references that point at the old heading.
+                            One of these found a real defect while it was
+                            being written: `sort_key_of` answers with the
+                            *display* text where there is no key, so reading
+                            it instead of `split_sort_key` wrote the old
+                            heading back as a sort key on every entry.
+
+  test_name_desk.py         where a heading's language comes from and where
+                            it goes. The precedence is the design: this
+                            project's own record first, because a book is
+                            entitled to read a name differently from the last
+                            one; then the shared name database, which
+                            outlives the book. Stating one writes **both**,
+                            and the two writes are guarded separately,
+                            because the stores fail for unrelated reasons and
+                            one being unavailable is no reason to withhold
+                            the decision from the other.
+
+  ui/test_tree_menu.py      which term and which level, from a right-click.
+                            The level is what matters: the same word is a
+                            main entry in one place and a sub-entry in
+                            another, and an inversion started from the wrong
+                            one rewrites the wrong entries. Also that the
+                            sort key is not part of the name -- the node
+                            holds `Churchill;chur` and the tree paints the
+                            half in front of the semicolon.
+```
+
+`ui/test_preferences_round_trip.py` grew two classes from the wiring sweep of
+1 September 2026. **The Theme page was never populated and its colours were
+dropped on OK**, so an indexer set colours, lost the edit, and found the page
+showing defaults next time; the tests assert both ends, including that
+`_save_preferences` no longer names its arguments `_dark` and `_light`, since
+those underscores were the only record that a feature had been left
+unfinished. The General page tests assert the property the whole sweep is
+about, for one page: **every key the window hands over is a key some store
+here keeps.**
+
+The guard that lists the stores now reads *both* save paths. The General page
+travels on its own signal, so its store is written in
+`_save_general_preferences`, and a guard reading only the other one reported a
+wired store as missing.
+
+**`documentation/probe_core_wiring.py` is the sweep itself**, and it is not a
+test: it reports rather than asserts, because a core module with no caller
+here is usually the right answer. What makes it useful is that the right
+answers are *declared* -- fifteen modules, six preference keys and one signal,
+each with its reason -- so the list that is left is short enough to read.
+
+`ui/test_invert_action.py` is the gesture through the real window and into a
+real `.docx`, which is where the property that matters actually shows: **four
+fields across two documents**, three holding the name as their heading and one
+pointing at it, all rewritten together, surviving a save and a reopen, and
+reversed by one Ctrl+Z. The window's name desk is given a stub service, so
+there is no network anywhere and the offline case -- a rules-only answer -- is
+the one being exercised.

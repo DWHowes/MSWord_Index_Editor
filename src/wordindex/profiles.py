@@ -48,6 +48,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from bookindexcore.style.names import fold_for_matching
+
 from .reader import KINDS, StyleProfile
 
 #: Set this to put the store somewhere else. Tests use it, and so does anyone
@@ -275,3 +277,73 @@ def forget_project(name: str) -> None:
 
 def known_projects() -> tuple:
     return tuple(sorted(_projects()))
+
+
+# ---------------------------------------------------------------------------
+# What language a heading's name is, for this project
+# ---------------------------------------------------------------------------
+#
+# N2, and the third thing this store keeps. **It is a fact about a name and a
+# fact about a book at the same time**, which is why it is written in two
+# places and not one: the shared name database carries the decision into every
+# book after this one, and this map is what lets *this* book disagree with it.
+# A word can be a different person in a different volume.
+#
+# The LaTeX editor keeps its half in `project_headings.language`, a column of
+# a project database this application declined at step 4 and has not needed
+# since. A map here is the same answer at this application's scale: thirty
+# names in a book, not thirty thousand.
+#
+# Keyed by the heading's text, folded, because that is the only identity a
+# heading has here -- an entry id is a bookmark anchor and is minted afresh on
+# every open, so a language filed under one would be lost the next morning.
+
+
+def _languages() -> dict:
+    raw = _read_raw().get("languages")
+    return raw if isinstance(raw, dict) else {}
+
+
+def heading_language(project_key: str, heading: str) -> str:
+    """
+    The language recorded against this heading in this project, or ``""``.
+
+    Empty means *nobody said here*, which is not the same as *not stated*: the
+    caller asks the name database next. Returning a string rather than raising
+    on an unknown project keeps this a question, and a question must not
+    create what it asks about.
+    """
+    stored = _languages().get(str(project_key))
+    if not isinstance(stored, dict):
+        return ""
+    return str(stored.get(fold_for_matching(heading), "") or "")
+
+
+def set_heading_language(project_key: str, heading: str, language: str) -> None:
+    """
+    Record a language against a heading for this project.
+
+    An empty language **removes** the record rather than storing a blank: the
+    three states here are *this book says X*, *this book has not said*, and
+    the name database's answer, and a stored empty string would be a fourth
+    that reads as the second and behaves as a decision.
+    """
+    key = fold_for_matching(heading)
+    if not key:
+        return
+    raw = _read_raw()
+    languages = {name: dict(rows) for name, rows in _languages().items()
+                 if isinstance(rows, dict)}
+    rows = languages.setdefault(str(project_key), {})
+    if str(language or "").strip():
+        rows[key] = str(language).strip()
+    else:
+        rows.pop(key, None)
+    raw["languages"] = languages
+    _write_raw(raw)
+
+
+def project_languages(project_key: str) -> dict:
+    """Every heading this project has a language for. For tests and reports."""
+    stored = _languages().get(str(project_key))
+    return dict(stored) if isinstance(stored, dict) else {}

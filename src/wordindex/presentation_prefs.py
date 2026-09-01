@@ -28,23 +28,39 @@ through a wrong import.
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict
 
-from bookindexcore.style import STYLE_DEFAULTS, StyleProfile, style_from_settings
+from bookindexcore.style import (
+    NAME_DEFAULTS, STYLE_DEFAULTS, NameRules, StyleProfile, names_from_settings,
+    style_from_settings,
+)
 
 #: Where these sit inside `QSettings`. One prefix, so nothing lands loose in
 #: the root beside the window geometry.
 PREF_PREFIX = "presentation"
 
-#: The keys this store owns. **A subset of the Presentation page's**, and
-#: named rather than taken wholesale: the page also collects capitalisation,
-#: subheading order and the passim settings, and nothing in this application
-#: reads those yet. Storing a value nothing reads is what this module exists to
-#: stop, so it would be an odd thing to start doing here.
+#: The style keys this store owns. **A subset of the Presentation page's**,
+#: and named rather than taken wholesale: the page also collects
+#: capitalisation, subheading order, the depth warning and the passim
+#: settings, and **nothing in any of the four applications reads any of
+#: those** -- measured 1 September 2026, `StyleProfile.capitalisation_applies`,
+#: `passim_applies` and `order_for` have no caller anywhere. Storing a value
+#: nothing reads is what this module exists to stop.
 PRESENTATION_KEYS = ("xref_placement", "see_label", "see_also_label")
+
+#: The name keys, taken **wholesale** and deliberately, which is the opposite
+#: decision from the one above and for the opposite reason: every one of them
+#: reaches `NameRules`, `NameRules` reaches the inversion cascade and the
+#: filing key, and both now run in this application. Taking the whole record
+#: also means a control added to the shared page later -- the Arabic tables
+#: are next -- is stored here the day it appears rather than the day somebody
+#: notices it is not.
+NAME_KEYS = tuple(NAME_DEFAULTS)
 
 PRESENTATION_DEFAULTS: Dict[str, Any] = dict(
     {key: STYLE_DEFAULTS[key] for key in PRESENTATION_KEYS},
+    **{key: NAME_DEFAULTS[key] for key in NAME_KEYS},
     # **Capitalised, where the shared default is not, and that is Word.**
     # An `INDEX` field renders a cross-reference as `Heading. <payload>`, so
     # the label begins after a full stop and a lower-case one reads as a
@@ -74,13 +90,36 @@ class PresentationPrefs:
     # -- reading ------------------------------------------------------------
 
     def load(self) -> Dict[str, Any]:
+        """
+        Every key this store owns, defaults where nothing was stored.
+
+        **An empty list is a value here, not an absence**, which is why the
+        guard below tests `None` alone: a project that has deliberately
+        emptied `particles` wants the particle walk switched off, and treating
+        that as "nothing stored" would quietly reinstate the behaviour it
+        removed. `names_from_settings` documents the same rule from the other
+        end.
+        """
         values = dict(PRESENTATION_DEFAULTS)
         for key, default in PRESENTATION_DEFAULTS.items():
             stored = self._settings.value(f"{PREF_PREFIX}/{key}")
-            if stored in (None, ""):
+            if stored is None or (stored == "" and not isinstance(default, str)):
                 continue
-            values[key] = str(stored)
+            values[key] = self._coerce(stored, default)
         return values
+
+    def names(self) -> NameRules:
+        """
+        The name rules in force: inversion, filing prefixes, the tables.
+
+        **Read at the point of use and never held.** The cascade is handed
+        these before every run, because a record built once at startup keeps
+        the package defaults for the session and every table an indexer edits
+        goes into something nothing reads. That is a defect this suite has
+        already had, in the LaTeX editor, found during Part 5 of the name
+        work; the note is here so this application does not repeat it.
+        """
+        return names_from_settings(self.load())
 
     def profile(self) -> StyleProfile:
         """
@@ -101,6 +140,45 @@ class PresentationPrefs:
     def save(self, values: Dict[str, Any]) -> None:
         """Store the keys this owns and ignore anything else handed over."""
         for key, value in values.items():
-            if key in PRESENTATION_DEFAULTS:
-                self._settings.setValue(f"{PREF_PREFIX}/{key}", value)
+            if key not in PRESENTATION_DEFAULTS:
+                continue
+            if isinstance(PRESENTATION_DEFAULTS[key], dict):
+                # `cataloguing_codes` is a mapping, and `QSettings` cannot
+                # keep one: it reaches the store as Python's `repr` and comes
+                # back unparseable, silently. The same JSON treatment
+                # `SortPrefs` gives `substitutions`, and for the same reason.
+                value = json.dumps(value or {}, ensure_ascii=False)
+            self._settings.setValue(f"{PREF_PREFIX}/{key}", value)
         self._settings.sync()
+
+    # -- odds and ends ------------------------------------------------------
+
+    @staticmethod
+    def _coerce(stored, default):
+        """
+        `QSettings` returns strings for most things and a list for some.
+
+        A single-element list comes back as a bare string on some platforms,
+        which is the classic way a one-word particle list turns into several
+        one-letter ones.
+        """
+        if isinstance(default, dict):
+            if isinstance(stored, dict):
+                return stored
+            try:
+                parsed = json.loads(stored)
+            except (TypeError, ValueError):
+                return dict(default)
+            return parsed if isinstance(parsed, dict) else dict(default)
+        if isinstance(default, (list, tuple)):
+            if isinstance(stored, str):
+                return [stored] if stored else []
+            return list(stored)
+        if isinstance(default, bool):
+            return str(stored).lower() in ("true", "1", "yes")
+        if isinstance(default, int):
+            try:
+                return int(stored)
+            except (TypeError, ValueError):
+                return default
+        return stored
