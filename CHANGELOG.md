@@ -5,6 +5,28 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The index kind is stored, so the filing rules can be seeded
+
+`sort_prefs.py`, one key. The core grew a *What kind of index is this?*
+control on the Sorting page, and declaring a name index seeds the filing
+settings from it — the mechanism E9 built in August and that nothing had ever
+called.
+
+`INDEX_KIND_KEY` travels in the Sorting page's payload exactly as the order
+mode does, and is stored for one reason: without it, reopening the window
+shows *Subject index* for a project that declared a name index, and the
+indexer either wonders or declares it again. Nothing here reads it back
+except the page that wrote it.
+
+**What it unlocks in this application** was already written and already
+unreachable: the name-index prefix drop, the cased Arabic list, the `Al-e`
+retained list, and the per-language lists for Flemish, Dutch, German and
+Afrikaans. `documentation/probe_index_kind_seeding.py` declares a name index
+through this application's own `SortPrefs` and files eleven headings with the
+rules it hands back — **11 of 11**, where before the declaration existed
+`ignored_heading_prefixes` was empty and no per-language list was reachable
+at all.
+
 ### The Table of Authorities review dialog moved to the core
 
 `ui/toa_review.py` is gone and `bookindexcore.ui.dialogs.toa_review` is the

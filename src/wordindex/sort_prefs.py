@@ -44,6 +44,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
+from bookindexcore.structure.kinds import INDEX_KIND_KEY, KIND_SUBJECT
 from bookindexcore.sorting import (
     ORDER_BY_PROJECT,
     ORDER_MODE_KEY,
@@ -62,10 +63,17 @@ __all__ = ["SORT_PREF_DEFAULTS", "SortPrefs", "PREF_PREFIX"]
 #: geometry.
 PREF_PREFIX = "sorting"
 
-#: What the page owns: every `SortRules` field, plus the order mode that
-#: travels with them and is not one.
+#: What the page owns: every `SortRules` field, plus the two keys that travel
+#: with them and are not fields -- the order mode, and the index kind.
+#:
+#: **The kind is a declaration, not a rule.** It is what the filing settings
+#: were seeded *from*, once, and storing it matters for one reason: without
+#: it, opening the preferences window shows *Subject index* for a project
+#: that declared a name index, and the indexer either wonders or declares it
+#: again. Nothing reads it back except the page that wrote it.
 SORT_PREF_DEFAULTS: Dict[str, Any] = dict(SORT_DEFAULTS)
 SORT_PREF_DEFAULTS[ORDER_MODE_KEY] = ORDER_BY_PROJECT
+SORT_PREF_DEFAULTS[INDEX_KIND_KEY] = KIND_SUBJECT
 
 
 class SortPrefs:

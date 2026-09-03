@@ -452,3 +452,20 @@ same window and the same fixtures: the action is gated like every other, and
 the counts over the sample project are asserted against the core's
 `statistics_from_references` rather than against numbers written out here, so
 the two cannot drift.
+
+## The index kind, which this application only stores
+
+There is no test here for declaring a kind, and that is correct: the control,
+the seeding and every property worth pinning live in the core, with
+`bookindexcore/tests/ui/test_check_index_and_sorting_tabs.py::TestDeclaringAKind`.
+What this application does is store one more key, which
+`test_sort_prefs.py`'s existing round trip already covers by construction —
+it asserts that every key in `SORT_PREF_DEFAULTS` survives a save and a load,
+so the kind arrived covered.
+
+The measurement that matters is a probe rather than a test:
+`documentation/probe_index_kind_seeding.py` declares a name index through
+this application's own `SortPrefs` and files eleven headings with the rules
+it hands back. **A test that seeds for itself proves nothing here** — that is
+exactly how the per-language filing table came to be built, tested and
+unreachable for a month.
