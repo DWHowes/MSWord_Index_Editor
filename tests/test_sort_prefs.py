@@ -141,3 +141,58 @@ class TestTheTableIsBuiltWithThem:
             "the Table of Authorities is built under bare defaults, so the "
             "indexer's filing rules do not reach the table this application "
             "writes into a manuscript")
+
+
+class TestAnAlphabetTheIndexerWrote:
+    """
+    The alphabet-editor phase's acceptance test, taken through **this
+    application's own store** rather than through a payload built in a test.
+
+    That is the rule the index-kind phase established: a setting only counts
+    as reaching an indexer when it survives the store the window writes to.
+    The store here is `QSettings`, which cannot hold a mapping, so the record
+    goes through JSON both ways -- and a record of records is where that
+    would break if it were going to.
+    """
+
+    CORNISH = {"cornish": {"label": "Cornish (SWF)",
+                           "source": "Standard Written Form, 2013",
+                           "letters": ["a", "b", "c", "ch", "d", "dh", "e"]}}
+
+    def test_the_record_survives_qsettings(self):
+        store = Store()
+        SortPrefs(store).save({"authored_alphabets": self.CORNISH})
+
+        assert SortPrefs(store).load()["authored_alphabets"] == self.CORNISH
+
+    def test_it_files_a_heading_in_the_language_it_was_written_for(self):
+        """
+        `ch` is a letter of Cornish following `c`, so every ch- word files
+        after every c- word. The package has never heard of Cornish.
+        """
+        from bookindexcore.sorting import filing_key
+
+        store = Store()
+        SortPrefs(store).save({"authored_alphabets": self.CORNISH,
+                               "language_alphabets": {"kw": "cornish"}})
+        rules = SortPrefs(store).rules()
+
+        assert sorted(["chy", "cy", "dhe", "dy"],
+                      key=lambda word: filing_key(word, rules,
+                                                  language="kw")) == \
+            ["cy", "chy", "dy", "dhe"]
+
+    def test_and_leaves_the_headings_beside_it_alone(self):
+        """
+        Welsh is why an alphabet is per language: a substitution is
+        `str.replace` and would otherwise reorder the English headings in the
+        same index.
+        """
+        from bookindexcore.sorting import filing_key
+
+        store = Store()
+        SortPrefs(store).save({"authored_alphabets": self.CORNISH,
+                               "language_alphabets": {"kw": "cornish"}})
+        rules = SortPrefs(store).rules()
+
+        assert filing_key("chapter", rules) == "chapter"

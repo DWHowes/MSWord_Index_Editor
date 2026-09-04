@@ -5,6 +5,15 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### An alphabet you write yourself reaches the filing here
+
+The core grew an editor on the Sorting page: type the letters of a language in
+the order its authority prints them, and it works out the filing and says which
+letters, if any, it cannot place. **This application needed no change to carry
+it**, because its settings store is built from the core's own list, and the
+test that says so drives a written alphabet through this window's `QSettings`
+rather than through a payload assembled in a test.
+
 ### The review now says what your publisher's style asks for and the table does not do
 
 Choose Irwin Law on the Authorities preferences page and build a table of
