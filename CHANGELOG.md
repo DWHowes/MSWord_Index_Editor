@@ -5,6 +5,21 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### An alphabet you write is the machine's, and so is a publisher you set up elsewhere
+
+Two changes, both about where things are kept.
+
+**An alphabet you write on the Sorting page** was stored in this application's
+own settings, so the same alphabet had to be written again in the LaTeX editor.
+It goes to the shared store now, beside your name decisions, and one written in
+either editor is offered in both. An alphabet already in this application's
+settings is taken in the next time the page opens.
+
+**A publisher's house profile authored in ToA_Builder** can be chosen here for
+the first time. This application knew the two profiles that ship and raised for
+anything else, so a profile you had written was unreachable; the Authorities
+page offers it now.
+
 ### An alphabet you write yourself reaches the filing here
 
 The core grew an editor on the Sorting page: type the letters of a language in

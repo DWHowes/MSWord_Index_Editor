@@ -44,6 +44,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
+from bookindexcore import store
 from bookindexcore.structure.kinds import INDEX_KIND_KEY, KIND_SUBJECT
 from bookindexcore.sorting import (
     ORDER_BY_PROJECT,
@@ -101,6 +102,8 @@ class SortPrefs:
             if stored is None:
                 continue
             values[key] = self._coerce(stored, default)
+        values["authored_alphabets"] = self._alphabets(
+            values.get("authored_alphabets"))
         return values
 
     def order_mode(self) -> str:
@@ -132,8 +135,50 @@ class SortPrefs:
 
     # -- writing ------------------------------------------------------------
 
+    def _alphabets(self, from_settings) -> Dict[str, Any]:
+        """
+        The alphabets in force: the shared store's, plus anything this
+        application still holds in its own settings.
+
+        ***The settings copy is adopted and then stops being the source.***
+        Alphabets were written into each application's `QSettings` on
+        3 September 2026, so one written here was invisible in the LaTeX
+        editor -- the fault the shared store exists to remove, reproduced a
+        month after the module explaining it was written.
+
+        A store that cannot be read is reported and stood down from: filing
+        by this project's own rules is workable and a window that will not
+        open is not.
+        """
+        mine = dict(from_settings or {})
+        try:
+            store.adopt_alphabets(mine)
+            shared = store.alphabets()
+        except Exception as failure:            # sqlite, a locked file, disk
+            print(f"[SORT PREFS] Could not read the shared store: {failure}")
+            return mine
+        merged = dict(shared)
+        merged.update(mine)
+        return merged
+
     def save(self, values: Dict[str, Any]) -> None:
-        """Store the keys this owns and ignore anything else handed over."""
+        """
+        Store the keys this owns and ignore anything else handed over.
+
+        **An alphabet goes to the shared store rather than here**, because it
+        is an indexer's answer about a language and not this application's
+        preference. What stays in `QSettings` is the empty mapping, so that a
+        build older than the store still finds the key it expects.
+        """
+        written = values.get("authored_alphabets")
+        if written:
+            try:
+                for name, record in written.items():
+                    store.save_alphabet(name, record)
+            except Exception as failure:
+                print(f"[SORT PREFS] Could not write the shared store: "
+                      f"{failure}")
+            values = dict(values, authored_alphabets={})
         for key, value in values.items():
             if key not in SORT_PREF_DEFAULTS:
                 continue

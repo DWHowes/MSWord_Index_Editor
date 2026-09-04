@@ -28,3 +28,19 @@ def qt_app():
 
     app = QApplication.instance() or QApplication([])
     yield app
+
+
+@pytest.fixture(autouse=True)
+def a_store_of_its_own(tmp_path, monkeypatch):
+    """
+    One shared store per test, and per test because it is genuinely shared.
+
+    `bookindexcore.store` holds the name decisions, the house profiles, the
+    alphabets and the model assessments in **one file for the whole machine**,
+    which is the point of it. Without this the suite writes to the indexer's
+    own store, and one test's alphabet is the next test's surprise.
+    """
+    disposable = str(tmp_path / "store" / "indexing.db")
+    monkeypatch.setenv("BOOKINDEXCORE_STORE", disposable)
+    monkeypatch.setenv("BOOKINDEXCORE_NAME_DB", disposable)
+    return disposable

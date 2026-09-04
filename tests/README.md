@@ -489,3 +489,19 @@ The negative half matters as much: `test_the_standard_s_own_conventions_show_
 nothing` fixes the default at silence. `HOUSE_NONE` is the standard's own
 conventions and this application carries them out, so a heading over an empty
 list would read as a warning about a profile with nothing wrong with it.
+
+## The alphabets are the machine's, and the fixture that keeps the suite off yours
+
+`test_sort_prefs.py::TestTheAlphabetsAreTheMachinesRatherThanThisApplications`
+pins a fault that was one day old: alphabets went into this application's own
+`QSettings` on 3 September, so one written here was invisible in the LaTeX
+editor, which is the fault `bookindexcore.store` was written to remove.
+
+The one to read is `test_one_left_in_this_applications_settings_is_adopted`. An
+indexer who wrote an alphabet before the store existed must not lose it, so the
+settings copy is taken in on the next read and **what the store already holds
+wins**.
+
+`conftest.py` gives each test its own store. Without it the suite writes to the
+indexer's real one, which now holds their name decisions, their publishers and
+their alphabets rather than a cache.

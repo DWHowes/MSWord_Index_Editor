@@ -196,3 +196,67 @@ class TestAnAlphabetTheIndexerWrote:
         rules = SortPrefs(store).rules()
 
         assert filing_key("chapter", rules) == "chapter"
+
+
+class TestTheAlphabetsAreTheMachinesRatherThanThisApplications:
+    """
+    The fault this fixes was one day old and mine.
+
+    Alphabets went into each application's own `QSettings` on 3 September, so
+    an alphabet written in this editor was invisible in the LaTeX one --
+    exactly the fault `bookindexcore.store` was written to remove, reproduced
+    a month after the module explaining it.
+    """
+
+    CORNISH = {"label": "Cornish (SWF)", "source": "SWF, 2013",
+               "letters": ["a", "b", "c", "ch"]}
+
+    def test_saving_one_puts_it_in_the_shared_store(self):
+        from bookindexcore import store
+
+        SortPrefs(Store()).save({"authored_alphabets": {"cornish": self.CORNISH}})
+
+        assert store.alphabets() == {"cornish": self.CORNISH}
+
+    def test_the_shared_store_is_what_is_read_back(self):
+        from bookindexcore import store
+
+        store.save_alphabet("cornish", self.CORNISH)
+
+        assert SortPrefs(Store()).load()["authored_alphabets"] == \
+            {"cornish": self.CORNISH}
+
+    def test_one_left_in_this_applications_settings_is_adopted(self):
+        """
+        An indexer who wrote an alphabet before the store existed must not
+        lose it. It is taken in on the next read, and what the store already
+        holds wins.
+        """
+        from bookindexcore import store
+
+        store_of_settings = Store()
+        SortPrefs(store_of_settings)._settings.setValue(
+            "sorting/authored_alphabets",
+            '{"cornish": {"label": "Cornish (SWF)", "source": "SWF, 2013", '
+            '"letters": ["a", "b", "c", "ch"]}}')
+
+        held = SortPrefs(store_of_settings).load()["authored_alphabets"]
+
+        assert held == {"cornish": self.CORNISH}
+        assert store.alphabets() == {"cornish": self.CORNISH}
+
+    def test_an_unreadable_store_leaves_the_window_openable(self, monkeypatch):
+        """
+        Filing by this project's own rules is workable; a preferences page
+        that will not open is not.
+        """
+        from bookindexcore import store as store_module
+
+        def refuse():
+            raise RuntimeError("the disk is on fire")
+
+        monkeypatch.setattr(store_module, "alphabets", refuse)
+        monkeypatch.setattr(store_module, "adopt_alphabets",
+                            lambda *args: refuse())
+
+        assert SortPrefs(Store()).load()["authored_alphabets"] == {}
