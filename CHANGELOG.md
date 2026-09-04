@@ -5,6 +5,25 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The review now says what your publisher's style asks for and the table does not do
+
+Choose Irwin Law on the Authorities preferences page and build a table of
+authorities: the review window, before a single field is written, names the
+three rules that specification records and this application does not carry
+out. The citation order of parallel cites, the pinpoint paragraphs, the
+parallel cites a legal editor adds afterwards. Nothing is applied differently;
+what changes is that a rule you recorded is no longer dropped in silence.
+
+The same three are now shown on the **Authorities preferences page** itself,
+under the profile you pick, so they reach you before a pass that takes
+minutes rather than after it.
+
+**And a defect on that page, fixed with it**: its notes were refreshed when
+the page opened and when the citation standard changed, and not when you
+chose a publisher. Picking Irwin Law showed you the notes for whatever had
+been selected when the page opened until you closed the window and opened it
+again.
+
 ### The index kind is stored, so the filing rules can be seeded
 
 `sort_prefs.py`, one key. The core grew a *What kind of index is this?*

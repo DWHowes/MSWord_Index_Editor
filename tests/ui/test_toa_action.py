@@ -180,3 +180,42 @@ class TestTheIndexDocument:
 # stub plan and asserts the contract the dialog actually reads. What stays here
 # is the half that is this application's: the action, the undo, and the fields
 # that reach the manuscript.
+
+
+class TestTheProfileReachesTheReview:
+    """
+    **The guard against the argument nobody passes.** The dialog says nothing
+    when it is handed no profile, which is right for a host that has none and
+    silent for a host that forgot; the wiring probe finds a signal nothing
+    takes and cannot find this shape, so the call site is asserted here.
+
+    Choosing Irwin Law here produced a table with three recorded rules
+    unhonoured and no notice until 4 September, while ToA_Builder's command
+    line had named them since the field existed.
+    """
+
+    def _reviewed(self, window, monkeypatch, house):
+        from wordindex.ui.main_window import MainWindow
+
+        seen = {}
+
+        def exec_(dialog):
+            seen["said"] = dialog.lbl_unapplied.text()
+            return ToaReviewDialog.DialogCode.Rejected
+
+        monkeypatch.setattr(MainWindow, "_toa_house", lambda self: house)
+        monkeypatch.setattr(ToaReviewDialog, "exec", exec_)
+        window.build_table_of_authorities()
+        return seen["said"]
+
+    def test_the_chosen_publisher_s_unapplied_rules_are_shown(
+            self, window, monkeypatch):
+        said = self._reviewed(window, monkeypatch, "irwin")
+
+        assert "Irwin Law" in said
+        assert "3 rules" in said
+        assert "pinpoint" in said.lower()
+
+    def test_the_standard_s_own_conventions_show_nothing(self, window,
+                                                         monkeypatch):
+        assert self._reviewed(window, monkeypatch, "none") == ""

@@ -469,3 +469,23 @@ this application's own `SortPrefs` and files eleven headings with the rules
 it hands back. **A test that seeds for itself proves nothing here** — that is
 exactly how the per-language filing table came to be built, tested and
 unreachable for a month.
+
+## The profile reaches the review, and why that is tested here at all
+
+`ui/test_toa_action.py::TestTheProfileReachesTheReview` drives the window with
+Irwin Law chosen and reads the dialog's own label. The dialog itself is the
+core's and is tested there; what this file pins is that **this call site hands
+it the profile**.
+
+That distinction is the whole reason the class exists. The dialog says nothing
+when it is given no house style, which is right for a host that has none and
+indistinguishable from a host that forgot to pass one -- and
+`documentation/probe_core_wiring.py` cannot tell them apart either: its four
+shapes are a module nobody imports, a key nobody stores, a store nobody reads
+back and a signal nobody takes, and *an argument nobody passes* looks like
+working code from all four.
+
+The negative half matters as much: `test_the_standard_s_own_conventions_show_
+nothing` fixes the default at silence. `HOUSE_NONE` is the standard's own
+conventions and this application carries them out, so a heading over an empty
+list would read as a warning about a profile with nothing wrong with it.

@@ -1758,6 +1758,12 @@ class MainWindow(QMainWindow):
                      for path in self.session.documents
                      if path in self.session.backends]
 
+        # **Held in a name because the review dialog needs it too.** The plan
+        # does not carry the profile, and the notice of what the profile
+        # records and this table does not do is said in front of the indexer
+        # before any field is written.
+        house = house_style_for(self._toa_house())
+
         progress = ProgressDialog(0, None, self)
         progress.setWindowTitle("Reading the manuscripts")
         progress.show()
@@ -1765,7 +1771,7 @@ class MainWindow(QMainWindow):
         try:
             plan = build_plan(
                 documents, system, SortPrefs().rules(),
-                house=house_style_for(self._toa_house()),
+                house=house,
                 on_progress=lambda done, total: (
                     progress.advance(done, total),
                     QApplication.processEvents()),
@@ -1784,7 +1790,7 @@ class MainWindow(QMainWindow):
                 "right answer for one.")
             return
 
-        dialog = ToaReviewDialog(plan, self)
+        dialog = ToaReviewDialog(plan, self, house=house)
         if dialog.exec() != ToaReviewDialog.DialogCode.Accepted:
             self.statusBar().showMessage("No fields were written.")
             return
