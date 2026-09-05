@@ -5,6 +5,18 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Two Preferences tabs are named more briefly
+
+**Check Index** is now **Checks** and **Table of Authorities** is
+**Authorities**. Nothing about either page changed; the tab bar is vertical,
+so its height is the sum of its labels' widths, and spelling those two out put
+the window's minimum height past what a 1366x768 laptop can show. This
+application has fewer tabs than the LaTeX editor and was not itself at the
+limit, but the pages are the shared ones and the labels come with them.
+
+The help topics that name a tab were corrected. *Check Index* still names the
+tool and its rules; only the tab is shorter.
+
 ### An alphabet you write is the machine's, and so is a publisher you set up elsewhere
 
 Two changes, both about where things are kept.

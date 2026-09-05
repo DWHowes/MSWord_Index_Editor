@@ -22,7 +22,7 @@ for the same reason: this tool never invents a page.
 ## Before you run it
 
 Tell it which standard the book is cited in, under **Index ▸ Preferences ▸
-Table of Authorities**. There are three — Bluebook, McGill and OSCOLA — and the
+Authorities**. There are three — Bluebook, McGill and OSCOLA — and the
 choice decides which citation shapes exist, so it changes what is found. If
 your publisher departs from the standard, choose their house style beside it;
 if they are not listed, you can record one under *Publishers*.

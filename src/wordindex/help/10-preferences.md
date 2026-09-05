@@ -8,7 +8,7 @@ and the reading order belong to the project instead.
   the LaTeX editor on purpose: there is no auto-save, because nothing reaches
   disk before you save, and no recent-projects list, because this application
   remembers every project you have named rather than the last few.
-- **Check Index** turns individual checking rules on and off.
+- **Checks** turns the individual rules section 7 runs on and off.
 - **Sorting** sets how headings are compared: letter-by-letter or
   word-by-word, and what to do with hyphens and other punctuation.
 - **Presentation** covers how headings and cross-references are shown, and

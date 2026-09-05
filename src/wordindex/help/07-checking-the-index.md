@@ -24,12 +24,12 @@ message, nothing to notice.
 
 ## Choosing which checks run
 
-**Preferences > Check Index** turns individual rules on and off. A rule turned
+**Preferences > Checks** turns individual rules on and off. A rule turned
 off stays off for every project.
 
 ## Two checks about the document, not the index
 
-Both live under *In the document* in **Preferences > Check Index**, and they
+Both live under *In the document* in **Preferences > Checks**, and they
 report: neither ever changes anything. The first is **on**; the second is off
 until you ask for it.
 

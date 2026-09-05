@@ -32,7 +32,7 @@ class TestPreferencesAreEntirelyBorrowed:
         dialog = WordPreferencesDialog()
         tabs = dialog.findChild(QTabWidget)
         titles = {tabs.tabText(i) for i in range(tabs.count())}
-        assert {"General", "Check Index", "Sorting"} <= titles
+        assert {"General", "Checks", "Sorting"} <= titles
 
     def test_this_application_adds_one_page_of_its_own(self, qt_app):
         """
