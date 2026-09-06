@@ -7,8 +7,8 @@ it.
 
 Right-click any term in the **Index terms** panel:
 
-- **Invert name…** — turn a name round, everywhere it occurs.
-- **Language of this name…** — say what language a name is, and nothing else.
+- **Invert name…**: turn a name round, everywhere it occurs.
+- **Language of this name…**: say what language a name is, and nothing else.
 
 Both are also on the **Index** menu, acting on whichever term is selected.
 
@@ -16,15 +16,14 @@ Both are also on the **Index** menu, acting on whichever term is selected.
 
 You are shown three answers and asked to choose:
 
-- what an **authority** says — the Virtual International Authority File, and
+- what an **authority** says: the Virtual International Authority File, and
   the Library of Congress behind it;
-- what the **rules** say — the particle lists, the compound surnames, the
+- what the **rules** say: the particle lists, the compound surnames, the
   direct-order names, all of them yours to edit under
   **Index ▸ Preferences ▸ Presentation**;
 - and the **final value**, which is a box you can type in. What you type wins.
 
-If you change the suggestion, you are asked why in one word — a particle, a
-patronymic, the wrong person — and the correction is remembered. **It is
+If you change the suggestion, you are asked why in one word, a particle or a patronymic or the wrong person, and the correction is remembered. **It is
 remembered for every book, not just this one**: the name database sits outside
 any project and is shared with the LaTeX editor, so a name settled once is
 settled.
@@ -71,7 +70,7 @@ Sulman* differ by a capital letter and file differently, and only for a name
 marked Arabic does the rule that knows this apply at all.
 
 **The dialog says which of two things your choice does.** Either the rules for
-that language apply, or the language is recorded and nothing changes yet — six
+that language apply, or the language is recorded and nothing changes yet; six
 languages have rules and the list offered is much longer. Marking a name Māori
 is worth doing: it is your own note of something true, kept where the next
 person to open the entry will see it, and the control says plainly that
@@ -119,11 +118,11 @@ one family can end up in three places in an index.
 There are two published conventions and **Preferences → Presentation** asks
 which one this project follows.
 
-- **On the prefix** — *Ó Súilleabháin, Seán*, filed under **Ó**. This is what
+- **On the prefix**: *Ó Súilleabháin, Seán*, filed under **Ó**. This is what
   AACR2 and *Chicago* require, what most Irish libraries do, and what this
   application does unless you say otherwise. It is also what you already do
   with *O'Brien* and *MacDonald*.
-- **On the main word** — *Súilleabháin, Seán Ó*, filed under **S**. A real
+- **On the main word**: *Súilleabháin, Seán Ó*, filed under **S**. A real
   minority convention: MacLysaght's *Surnames of Ireland* files this way, and
   it spreads out the pile of entries under O and Mac.
 
@@ -139,8 +138,7 @@ stay together too.
 
 ### A lower-case mac is not a surname
 
-*Fergus mac Léti* is older than surnames — the *mac* means a literal "son of"
-— so the name is left exactly as it is and files under **F**. Written with a
+*Fergus mac Léti* is older than surnames: the *mac* means a literal "son of", so the name is left exactly as it is and files under **F**. Written with a
 capital, *Mac* is a surname prefix and the name inverts. The capital letter is
 the whole of the difference, and the words this applies to are listed on
 **Preferences → Presentation**.

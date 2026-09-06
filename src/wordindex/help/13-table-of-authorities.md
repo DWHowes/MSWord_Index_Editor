@@ -15,15 +15,13 @@ files them, and shows you the table it would build.
 Then, for what you accept, it marks the manuscript: an `XE` field at each
 citation, exactly as marking an entry by hand does, but carrying an index type
 so the authorities stay **separate from your subject index**. Word builds the
-tables from those fields when the index document is composed, which is where
-the page numbers come from — the same arrangement as the subject index, and
+tables from those fields when the index document is composed, which is where the page numbers come from, the same arrangement as the subject index, and
 for the same reason: this tool never invents a page.
 
 ## Before you run it
 
 Tell it which standard the book is cited in, under **Index ▸ Preferences ▸
-Authorities**. There are three — Bluebook, McGill and OSCOLA — and the
-choice decides which citation shapes exist, so it changes what is found. If
+Authorities**. There are three: Bluebook, McGill and OSCOLA. The choice decides which citation shapes exist, so it changes what is found. If
 your publisher departs from the standard, choose their house style beside it;
 if they are not listed, you can record one under *Publishers*.
 
@@ -34,7 +32,7 @@ almost nothing, because the shapes it is looking for are not there.
 
 You are shown the table as it would be: sections, and the authorities under
 each with the number of places every one was found. Untick anything that does
-not belong and it is left out entirely — no fields are written for it.
+not belong and it is left out entirely; no fields are written for it.
 
 Nothing is written to your manuscript until you accept.
 
@@ -43,9 +41,7 @@ that were not resolved** are places missing from an entry rather than wrong
 ones: a `supra note 14` the tool could not follow is a page that will not
 appear. **Abbreviations no citation table recognises** are usually a typo in
 the book and sometimes a gap in the tables; the entry is in the table either
-way. And **rows struck** are near-duplicates the book's own back matter
-produced — `Bibliography Poor Law Act 1930` beside the real *Poor Law Act
-1930* — which are named rather than quietly dropped.
+way. And **rows struck** are near-duplicates the book's own back matter produced, `Bibliography Poor Law Act 1930` beside the real *Poor Law Act 1930*, and they are named rather than quietly dropped.
 
 ## Afterwards
 

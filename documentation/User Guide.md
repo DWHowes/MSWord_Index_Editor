@@ -6,8 +6,7 @@
 
 *The two sections marked "not yet built" on 25 August, the Generated index page
 and the index document, were built on 28 August and the markers are gone. §2,
-Installing it, was the last one waiting on packaging: it is written now against
-the route that exists — running from source — and says what the packaged
+Installing it, was the last one waiting on packaging: it is written now against the route that exists, running from source, and says what the packaged
 installer will look like when there is one. A guide that cannot be finished
 until the installer exists, and an installer built from the finished guide, is
 a circle somebody has to step out of.*
@@ -49,7 +48,7 @@ The application shows you the manuscript with a **marker** at the location of ea
 ### What it does not do
 
 - **It does not decide what to index.** No term suggestion, no concordance, no model. Indexing is judgement about what a reader will look for, and is the responsibility of the indexer.
-- **It does not change the manuscript.** Not; wording,  spelling, spacing, styles, filenames, or any other aspect of the manuscript – with the sole exception of inserting `XE` fields.
+- **It does not change the manuscript.** Not; wording,  spelling, spacing, styles, filenames, or any other aspect of the manuscript, with the sole exception of inserting `XE` fields.
 - **It does not generate the index.** Word does that, at layout, in the publisher's hands, because page numbers do not exist until then.
 - **There are no page numbers anywhere in it**, and there cannot be.
 
@@ -63,7 +62,7 @@ There are two ways in, and only one of them exists today.
 
 **This is the route that works now**, and it is the one to use until there is an installer. It needs Python 3.12 or later and the ability to install a few packages with `pip`.
 
-**Two repositories, not one.** The application is built on `bookindexcore`, a shared package the LaTeX and ToA tools use as well, and it is not published to PyPI — so it is installed from its own clone rather than downloaded. Clone them side by side:
+**Two repositories, not one.** The application is built on `bookindexcore`, a shared package the LaTeX and ToA tools use as well, and it is not published to PyPI, so it is installed from its own clone rather than downloaded. Clone them side by side:
 
 ```
 git clone https://github.com/DWHowes/bookindexcore.git
@@ -81,7 +80,7 @@ pip install -e ../bookindexcore
 pip install -e ".[qt]"
 ```
 
-The `qt` part matters: without it you get the headless half — the reader, the backend and the checks — and no window. That split is deliberate and is what lets the shared package stay free of Qt.
+The `qt` part matters: without it you get no window, only the headless half: the reader, the backend and the checks. That split is deliberate and is what lets the shared package stay free of Qt.
 
 With the environment active, `python main.py` opens the application, the same way the installer's shortcut will. An example Windows batch file:
 
@@ -101,11 +100,11 @@ python main.py
 When the installer exists it will follow the pattern the LaTeX Indexing Editor already uses, so what follows is what to expect rather than what to do:
 
 * a Windows installer on the project's GitHub Releases page, run by double-clicking it;
-* **no Python, no command line and no administrator rights** — it installs for your own user account only;
+* **no Python, no command line and no administrator rights**: it installs for your own user account only;
 * a *"Windows protected your PC"* SmartScreen warning the first time. That is what Windows says about any installer that is not code-signed, and is not a sign that anything is wrong. Click **More info**, then **Run anyway**;
 * a Start Menu entry, and a Desktop shortcut if you ask for one during setup.
 
-**One warning worth expecting, because it has already happened on this machine.** Norton's `IDP.Generic` heuristic objects to newly built PyInstaller executables — it is judging the *shape* of the program rather than anything in it, so a new build with no reputation behind it is exactly what it flags. If it quarantines the installer, restore it from Norton's history and add an exclusion. An anti-virus product saying it has never seen a file before is not the same as one finding something in it.
+**One warning worth expecting, because it has already happened on this machine.** Norton's `IDP.Generic` heuristic objects to newly built PyInstaller executables; it is judging the *shape* of the program rather than anything in it, so a new build with no reputation behind it is exactly what it flags. If it quarantines the installer, restore it from Norton's history and add an exclusion. An anti-virus product saying it has never seen a file before is not the same as one finding something in it.
 
 Running from source stays supported afterwards, and is the only route on macOS and Linux: the packaged build is Windows-only.
 
@@ -113,10 +112,10 @@ Running from source stays supported afterwards, and is the only route on macOS a
 
 Four things live outside your project folders, and knowing where they are matters when something looks wrong:
 
-* **Style profiles** — what each publisher's styles mean, one entry per project. In your user application-data folder, as `style_profiles.json`.
-* **Session logs** — a timestamped file per run, in a `session_logs` folder beside the profile store.
-* **Preferences** — Qt's own settings store, per user.
-* **The shared store** — `indexing.db`, in a `DH Indexing\shared` folder under your local application data. It holds the name decisions you have made and the alphabets and house styles you have written, and it is shared **between applications** rather than between projects: a name you settled in the LaTeX editor is already answered when you meet it here.
+* **Style profiles**: what each publisher's styles mean, one entry per project. In your user application-data folder, as `style_profiles.json`.
+* **Session logs**: a timestamped file per run, in a `session_logs` folder beside the profile store.
+* **Preferences**: Qt's own settings store, per user.
+* **The shared store**: `indexing.db`, in a `DH Indexing\shared` folder under your local application data. It holds the name decisions you have made and the alphabets and house styles you have written, and it is shared **between applications** rather than between projects: a name you settled in the LaTeX editor is already answered when you meet it here.
 
 **None of them is in the manuscript's folder**, and that is deliberate: that folder is the publisher's, and what goes back to them should differ from what arrived by the added index entries and nothing else.
 
@@ -446,19 +445,19 @@ One rule objects to a capital letter inside a word, and it is right to: it is ho
 
 Both live under *In the document* in **Preferences > Check Index**, and they report: neither ever changes anything. The first is **on**; the second is off until you ask for it.
 
-**Damaged index fields — on.** A field whose beginning or end is missing. Word does not index it, and — measured by asking Word to render the page — **its instruction text prints in the book as ordinary text**. One real Cambridge manuscript in this indexer's own corpus prints, on page 25:
+**Damaged index fields: on.** A field whose beginning or end is missing. Word does not index it, and, measured by asking Word to render the page, **its instruction text prints in the book as ordinary text**. One real Cambridge manuscript in this indexer's own corpus prints, on page 25:
 
 > …under which new design features could work**XE "Some Long Heading" \t "See Other"**. The book is divided into four parts.
 
 This application cannot show it either: it reads a paragraph's text and a field's instruction is not text. So the fault is invisible in the manuscript view, invisible in the index, and visible in the proofs. That is what the check is for. Fix it in Word, where the field is; nothing here will repair a document.
 
-**Index fields crossing a paragraph — off unless you ask.** A field that opens in one paragraph and closes in another. Word indexes it and this application reads fields a paragraph at a time, so such an entry would reach the printed index without ever appearing here.
+**Index fields crossing a paragraph: off unless you ask.** A field that opens in one paragraph and closes in another. Word indexes it and this application reads fields a paragraph at a time, so such an entry would reach the printed index without ever appearing here.
 
 It does something visible as well. The paragraph mark falls **inside** the field, so Word swallows it and **the two paragraphs print as one**, sentences run together:
 
 > First paragraph, which ends here.Second paragraph, which begins here.
 
-None of the 116 manuscripts measured contain one, and neither Word nor Index Manager writes them — which is why the check is off. Turn it on for a manuscript from tooling you do not know.
+None of the 116 manuscripts measured contain one, and neither Word nor Index Manager writes them, which is why the check is off. Turn it on for a manuscript from tooling you do not know.
 
 ### What it cannot check
 
@@ -569,8 +568,7 @@ Once Word has built the index into that document, the document holds your finish
 
 Which citation standard the book is written in, and whose house style it
 follows. Only used by **Index ▸ Build Table of Authorities…**; see §12a. The
-standard decides which citation shapes exist, so it changes what is found —
-a British book read as Bluebook finds almost nothing.
+standard decides which citation shapes exist, so it changes what is found: a British book read as Bluebook finds almost nothing.
 
 ---
 
@@ -607,15 +605,13 @@ files them, and shows you the table it would build.
 Then, for what you accept, it marks the manuscript: an `XE` field at each
 citation, exactly as marking an entry by hand does, but carrying an index type
 so the authorities stay **separate from your subject index**. Word builds the
-tables from those fields when the index document is composed, which is where
-the page numbers come from — the same arrangement as the subject index, and
+tables from those fields when the index document is composed, which is where the page numbers come from, the same arrangement as the subject index, and
 for the same reason: this tool never invents a page.
 
 ### Before you run it
 
 Tell it which standard the book is cited in, under **Index ▸ Preferences ▸
-Table of Authorities**. There are three — Bluebook, McGill and OSCOLA — and the
-choice decides which citation shapes exist, so it changes what is found. If
+Table of Authorities**. There are three: Bluebook, McGill and OSCOLA. The choice decides which citation shapes exist, so it changes what is found. If
 your publisher departs from the standard, choose their house style beside it;
 if they are not listed, you can record one under *Publishers*.
 
@@ -633,7 +629,7 @@ accepting.
 
 You are shown the table as it would be: sections, and the authorities under
 each with the number of places every one was found. Untick anything that does
-not belong and it is left out entirely — no fields are written for it.
+not belong and it is left out entirely; no fields are written for it.
 
 Nothing is written to your manuscript until you accept.
 
@@ -642,9 +638,7 @@ that were not resolved** are places missing from an entry rather than wrong
 ones: a `supra note 14` the tool could not follow is a page that will not
 appear. **Abbreviations no citation table recognises** are usually a typo in
 the book and sometimes a gap in the tables; the entry is in the table either
-way. And **rows struck** are near-duplicates the book's own back matter
-produced — `Bibliography Poor Law Act 1930` beside the real *Poor Law Act
-1930* — which are named rather than quietly dropped.
+way. And **rows struck** are near-duplicates the book's own back matter produced, `Bibliography Poor Law Act 1930` beside the real *Poor Law Act 1930*, and they are named rather than quietly dropped.
 
 ### Afterwards
 
@@ -673,8 +667,8 @@ as *Winston Churchill* and files as *Churchill, Winston*.
 Right-click any term in the **Index terms** panel, or use the **Index** menu
 for the term you have selected:
 
-- **Invert name…** — turn a name round, everywhere it occurs.
-- **Language of this name…** — say what language a name is, and nothing else.
+- **Invert name…**: turn a name round, everywhere it occurs.
+- **Language of this name…**: say what language a name is, and nothing else.
 
 ### The three answers
 
@@ -696,8 +690,7 @@ outside any project, and the LaTeX editor shares it.
 
 Where your correction produces a family name of more than one word, take the
 offer to remember it. *Vargas Llosa* entered once makes every later bearer of
-it right without being corrected again, and no rule could have worked it out —
-*Gabriel García Márquez* and *Winston Spencer Churchill* are the same shape
+it right without being corrected again, and no rule could have worked it out: *Gabriel García Márquez* and *Winston Spencer Churchill* are the same shape
 and take opposite answers.
 
 ### Everywhere it occurs
@@ -725,7 +718,7 @@ work without it: *Bin Laden* and *bin Sulman* differ by a capital letter and
 file differently, and the rule that knows this applies only to a name marked
 Arabic.
 
-The dialog says which of two things your choice does — the rules for that
+The dialog says which of two things your choice does: the rules for that
 language apply, or the language is recorded and nothing changes yet. Recording
 one that has no rules is worth doing: it is your own note of something true,
 and it is what any future rule would be written against.
