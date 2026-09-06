@@ -255,7 +255,7 @@ def main() -> int:
     # scratch database.
     real = os.environ.get("BOOKINDEXCORE_NAME_DB", "")
     os.environ["BOOKINDEXCORE_NAME_DB"] = (
-        r"C:\Users\<your name>\AppData\Local\DH Indexing\name_database\names.db")
+        r"C:\Users\<your name>\AppData\Local\DH Indexing\shared\indexing.db")
     try:
         prefs.populate_general_fields(GeneralPrefs().load())
     finally:
@@ -299,7 +299,10 @@ def main() -> int:
 
     from wordindex.toa_emission import build_plan               # noqa: E402
     from wordindex.toa_prefs import ToaPrefs                    # noqa: E402
-    from wordindex.ui.toa_review import ToaReviewDialog         # noqa: E402
+    # Moved into the shared package by the Phase 6a merge, and this line
+    # was not brought with it: the script has raised ImportError here,
+    # after eleven of its thirteen figures, ever since.
+    from bookindexcore.ui.dialogs.toa_review import ToaReviewDialog  # noqa: E402
 
     prefs = ToaPrefs()
     documents = [(path, window.session.backends[path])

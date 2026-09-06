@@ -58,5 +58,17 @@
   {
     "title": "14. Personal names",
     "file": "14-names.md"
+  },
+  {
+    "title": "15. Consolidating cross-references",
+    "file": "15-consolidating-cross-references.md"
+  },
+  {
+    "title": "16. Index statistics",
+    "file": "16-index-statistics.md"
+  },
+  {
+    "title": "17. Declared alphabets",
+    "file": "17-declared-alphabets.md"
   }
 ]

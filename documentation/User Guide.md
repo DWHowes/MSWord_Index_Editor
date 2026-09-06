@@ -1,6 +1,8 @@
 # Word Index Editor User Guide
 
-**Draft of 30 August 2026.** Nothing is marked *[blocked]* any more.
+**Draft of 30 August 2026, brought forward 6 September 2026.** Nothing is marked *[blocked]* any more.
+
+*The September pass added sections 12c and 12d for two tools this guide had never described, corrected section 12 against a preferences window that was rebuilt on 5 September, and added the fourth of the files section 2 keeps outside your project folders. The in-app help is the authority on what each tool does; this guide says when you would reach for it and points there.*
 
 *The two sections marked "not yet built" on 25 August, the Generated index page
 and the index document, were built on 28 August and the markers are gone. §2,
@@ -109,11 +111,12 @@ Running from source stays supported afterwards, and is the only route on macOS a
 
 ### Where the application keeps its own files
 
-Three things live outside your project folders, and knowing where they are matters when something looks wrong:
+Four things live outside your project folders, and knowing where they are matters when something looks wrong:
 
 * **Style profiles** — what each publisher's styles mean, one entry per project. In your user application-data folder, as `style_profiles.json`.
 * **Session logs** — a timestamped file per run, in a `session_logs` folder beside the profile store.
 * **Preferences** — Qt's own settings store, per user.
+* **The shared store** — `indexing.db`, in a `DH Indexing\shared` folder under your local application data. It holds the name decisions you have made and the alphabets and house styles you have written, and it is shared **between applications** rather than between projects: a name you settled in the LaTeX editor is already answered when you meet it here.
 
 **None of them is in the manuscript's folder**, and that is deliberate: that folder is the publisher's, and what goes back to them should differ from what arrived by the added index entries and nothing else.
 
@@ -472,9 +475,10 @@ Anything that needs page numbers. Nothing here can tell you whether a range is t
 **Figure 12.1** The preferences window, with its pages down the left-hand edge.
 
 - **General** covers how far Undo steps back, what the session-log folder is called, and where the shared name database lives. It is shorter here than in the LaTeX editor on purpose: this application has no auto-save, because nothing reaches disk before you save, and no recent-projects list, because it remembers every project you have named rather than the last few.
-- **Check Index** turns individual checking rules on and off, and holds the vocabulary of section 11.
-- **Sorting** sets how headings are compared: letter-by-letter or word-by-word, and what to do with hyphens and other punctuation.
+- **Checks** turns individual checking rules on and off, and holds the vocabulary of section 11.
+- **Sorting** sets how headings are compared: letter-by-letter or word-by-word, and what to do with hyphens and other punctuation. It also holds the **declared alphabet**, for a language whose letters do not run in Latin order, and a **Write one…** button for declaring your own. The help topic *Declared alphabets* covers it, including the part that matters most here: Word folds a sort key exactly as it folds a heading, so a declared alphabet is honoured everywhere this application shows you an order and does not reach the index Word builds.
 - **Presentation** covers how headings and cross-references are shown, and holds the **name tables**: direct-order names, compound surnames, particles, what is not filed on, the Arabic tables, epithets and places of origin, and the generational suffixes. These are what the rules in section 12b consult.
+- **Authorities** holds the citation standard and house style, and is built only when the project has a table of authorities to make. It is described below and used by section 12a.
 - **UI Themes** sets the colours, light or dark.
 - **Generated index** is this application's own page, below.
 
@@ -561,7 +565,7 @@ The default name puts the index document first in the folder, ahead of the chapt
 
 Once Word has built the index into that document, the document holds your finished index. Rewriting it from here **does not touch that**: only the pointers to your manuscript files and the index field itself are replaced, so a document whose index has been composed keeps it while its reading order is brought up to date. A file of that name which is not an index document is refused by name and left exactly as it was.
 
-### Table of Authorities
+### The Authorities page
 
 Which citation standard the book is written in, and whose house style it
 follows. Only used by **Index ▸ Build Table of Authorities…**; see §12a. The
@@ -732,6 +736,55 @@ the next book starts with the answer.
 
 **Without a network** you still get the rule-based answer and everything else
 works as usual.
+
+---
+
+## 12c. Consolidating cross-references
+
+**Index ▸ Consolidate cross-references…**, once a document is open.
+
+A heading collects the same *See also* once at every place you marked it, and
+the finished index needs it once. This gathers each heading's cross-references
+into a single one and removes the rest.
+
+**It proposes and you decide.** Consolidating deletes `XE` fields you put in
+the manuscript, which is the one thing this application is otherwise careful
+never to do, so nothing happens until you approve it: the preview lists every
+heading it would change and every row can be unticked. The whole run is a
+single step on the undo stack, so a run that rewrote nine headings comes back
+in one move rather than fourteen.
+
+**The reading order decides which occurrence survives.** References are taken
+in project order, the file list's order and then each document's own, and the
+first is the one rewritten to carry the consolidated reference. Set the
+reading order before you run this. Working a document at a time cannot do it,
+which is the difference between this and doing it by hand in Word.
+
+Where the consolidated reference lands, after the heading or as the first or
+last sub-entry, is a project setting on the Presentation page. Headings whose
+references disagree about where they point are reported and left alone. The
+help topic *Consolidating cross-references* has the detail.
+
+---
+
+## 12d. Index statistics
+
+**Index ▸ Index statistics…** counts what is in the index across the whole
+project: one row per heading level, then the total references and the total
+cross-references.
+
+Two of those counts surprise people, and both are deliberate. **A heading is
+a path rather than a word**, so `Kant:reception` and `Hume:reception` are two
+sub-headings and not one, because the finished index will have two lines.
+And **a heading carrying a sort key is a different heading**, so `Kant` and
+`Kant;kant` count as two: they file in different places, the entry table
+already shows them as two, and a count that quietly merged them would hide
+the inconsistency section 11 exists to report.
+
+It answers the question a publisher asks, and it is the cheapest way to
+notice that a level holds far more or far fewer headings than the book needs,
+which usually means something was marked at the wrong depth. The help topic
+*Index statistics* has the counting rules in full.
 
 ---
 

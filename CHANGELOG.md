@@ -5,6 +5,43 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The User Guide after the merge, and a renderer that had been broken since it
+
+Scope: `documentation/user_guide_refresh_scope.md`. Documentation and its
+tooling only; the suite is untouched at 796 passing.
+
+**The help was kept current through the merge week and the guide was not.**
+Three help topics were revised on 5 September against a guide dated
+30 August. The decision the LaTeX pass took carries here: **the help is the
+authority on a tool and the guide narrates**, so the three new topics carry
+the detail and the guide's new sections point at them.
+
+**Three help topics, 14 to 17.** *Consolidating cross-references* and *Index
+statistics* describe two tools that appeared in **neither** document: the
+guide named consolidation three times and every one was about undoing it, and
+statistics appeared only under *when something looks wrong*. *Declared
+alphabets* describes a control that has been on the Sorting page since
+4 September with nothing written about it anywhere.
+
+**The guide's section 12 described a window that no longer exists.** The tab
+renamed on 5 September was still called *Check Index*, and *Authorities* was
+missing from the page list although the page's own description sat further
+down the chapter. Section 2 said **three** things live outside a project
+folder and there have been **four** since the shared store arrived on
+4 September.
+
+***And `render_screenshots.py` had been failing since the merge.***
+`ToaReviewDialog` moved into the shared package and the script still imported
+it from `wordindex.ui`, so it raised `ImportError` **after eleven of its
+thirteen figures**, leaving the last two as they were and reporting the
+failure only to whoever ran it. Fixed, and all thirteen are re-rendered.
+
+**One of them had also been lying.** The General page's location field is
+filled with a deliberate placeholder for the screenshot, and the placeholder
+still read `DH Indexing\name_database\names.db`. The package resolves
+`DH Indexing\shared\indexing.db`. A placeholder that is plainly a
+placeholder is still a claim about where the file lives.
+
 ### Two Preferences tabs are named more briefly
 
 **Check Index** is now **Checks** and **Table of Authorities** is
