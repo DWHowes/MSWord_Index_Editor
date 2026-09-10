@@ -102,7 +102,8 @@ from .editor_tabs import ManuscriptTabs
 from .file_list import FileList
 from .index_panel import IndexPanel
 from .manuscript_view import ManuscriptView
-from .preferences import Preferences, WordPreferencesDialog
+from .preferences import (APPLICATION, ORGANISATION, Preferences,
+                          WordPreferencesDialog)
 from .profile_editor import ProfileEditor
 from .tree_menu import IndexTreeContextMenu
 
@@ -2415,6 +2416,17 @@ def run(argv=None) -> int:
     # the log rather than only in a console an installed copy does not have.
     logger = start_logging()
     app = QApplication.instance() or QApplication(sys.argv)
+
+    # ***This application had no identity until 10 September 2026***, and Qt
+    # builds a standard path out of one: with neither name set,
+    # `QStandardPaths.AppDataLocation` resolved to the executable's basename,
+    # so `profiles.store_path` wrote to `%APPDATA%` + `python` in a source run
+    # and `%APPDATA%` + the exe name in a frozen one. The store no longer asks
+    # Qt where it lives, but a Qt application with no name is a trap for the
+    # next thing that does, and these are the same two strings
+    # `ui.preferences` already gives QSettings.
+    app.setOrganizationName(ORGANISATION)
+    app.setApplicationName(APPLICATION)
     window = MainWindow()
     window.show()
     if logger is not None:

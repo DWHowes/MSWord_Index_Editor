@@ -5,6 +5,49 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The profile store was in the wrong place, twice over
+
+Scope: `bookindexcore/documentation/generated_file_locations_scope.md`. This
+application was the *reference* for that phase, since its session log already
+did the right thing; measuring it to say so found the store did not.
+
+**`store_path()` resolved Qt's `AppDataLocation`, and there were two things
+wrong with that.**
+
+*It was Roaming.* On Windows that is the profile copied between machines at
+logout, while the suite's shared store is deliberately in Local on the
+argument that a working file has no business travelling. One application was
+answering that question one way and one the other. Both answer to
+`bookindexcore.store.location.vendor_root` now, so the store is at
+`%LOCALAPPDATA%\DH Indexing\Word Index Editor\style_profiles.json`.
+
+***And there was no identity to build a path out of.*** Qt composes
+`AppDataLocation` from the organisation and application names set on the
+`QApplication`, and **this application never set either**. Measured on 10
+September 2026:
+
+    no org/app set ->  C:/Users/<you>/AppData/Roaming/python
+    with org/app   ->  C:/Users/<you>/AppData/Roaming/DH Indexing/Word Index Editor
+    AppLocalData   ->  C:/Users/<you>/AppData/Local/DH Indexing/Word Index Editor
+
+So a source run wrote to a folder named after the interpreter and a frozen
+build would have written to one named after the executable, with no vendor
+folder: **the packaged application and the development one had never agreed
+about where a profile lives**, and neither was the location this module
+documented. `1,910` bytes of real profiles were found in the first of them.
+
+Nothing is lost. `_read_raw` adopts a store from any of the previous
+locations, once, when the current one holds nothing, and says on the console
+which file it took. The old file is read and not deleted.
+
+`main()` sets `setOrganizationName` and `setApplicationName` from the two
+constants `ui.preferences` already gives QSettings. The store no longer asks
+Qt where it lives, but a Qt application with no name is a trap for the next
+thing that does.
+
+Suite: **803 passing**, up from 796, including that the store resolves under
+Local with no dependence on the identity having been set.
+
 ### The User Guide after the merge, and a renderer that had been broken since it
 
 Scope: `documentation/user_guide_refresh_scope.md`. Documentation and its

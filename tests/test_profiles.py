@@ -9,13 +9,18 @@ being written in as though it were a decision.
 """
 
 import json
+import os
+import sys
+from pathlib import Path
 
 import pytest
 
+from wordindex import profiles
 from wordindex.profiles import (
-    STORE_ENV, STORE_VERSION, forget_profile, forget_project, from_dict,
-    known_documents, known_projects, load_profile, load_project, save_profile,
-    save_project, store_path, to_dict,
+    APP_DIRECTORY, STORE_ENV, STORE_VERSION, forget_profile, forget_project,
+    from_dict, known_documents, known_projects, legacy_store_paths,
+    load_profile, load_project, save_profile, save_project, store_path,
+    to_dict,
 )
 from wordindex.reader import BODY, HEADING, StyleProfile
 
@@ -116,12 +121,113 @@ class TestTheStoreIsNotGuessedAt:
 
 
 class TestTheStoreLocation:
+    r"""
+    ***Where this file lives was wrong twice over until 10 September 2026.***
+
+    It resolved Qt's `AppDataLocation`, which is **Roaming** on Windows while
+    the suite's shared store is deliberately Local; and Qt builds that path
+    out of the organisation and application names, *which this application
+    never set*, so it resolved to the running executable's basename. A source
+    run wrote to a folder named after the interpreter and a frozen build would
+    have written to one named after the exe, with no vendor folder and no
+    agreement between them. The indexer's own profiles were found in the
+    first.
+    """
+
     def test_the_override_wins(self, store):
         assert store_path() == store
 
     def test_there_is_a_default_without_qt_or_an_override(self, monkeypatch):
         monkeypatch.delenv(STORE_ENV, raising=False)
         assert store_path().name == "style_profiles.json"
+
+    def test_it_sits_in_the_suite_folder_under_this_application_name(self, monkeypatch):
+        monkeypatch.delenv(STORE_ENV, raising=False)
+
+        assert store_path().parent.name == APP_DIRECTORY
+        assert store_path().parent.parent.name == "DH Indexing"
+
+    def test_it_is_local_rather_than_roaming(self, monkeypatch):
+        monkeypatch.delenv(STORE_ENV, raising=False)
+        if os.name != "nt":
+            pytest.skip("Roaming and Local are a Windows distinction")
+
+        assert "Roaming" not in str(store_path())
+        assert str(store_path()).startswith(os.environ["LOCALAPPDATA"])
+
+    def test_it_does_not_depend_on_the_application_having_a_name(self, monkeypatch):
+        """
+        The defect's mechanism, closed at the source rather than only at the
+        call that set the names: a store that asks Qt where it lives is a
+        store whose location depends on a startup sequence completing.
+        """
+        monkeypatch.delenv(STORE_ENV, raising=False)
+        resolved = str(store_path())
+
+        assert "python" not in resolved.lower().rsplit("dh indexing", 1)[-1]
+        assert Path(sys.executable).stem not in resolved
+
+
+class TestAdoptingAnOlderStore:
+    def test_profiles_written_to_the_old_place_are_still_found(
+            self, tmp_path, monkeypatch, profile):
+        """
+        The move must not lose a publisher's vocabulary. An installed copy has
+        been writing to one of the previous locations since this application
+        shipped, and 1,910 bytes of the indexer's own were in one of them on
+        the day this changed.
+        """
+        previous = tmp_path / "old_place" / "style_profiles.json"
+        current = tmp_path / "new_place" / "style_profiles.json"
+        monkeypatch.delenv(STORE_ENV, raising=False)
+
+        monkeypatch.setattr(profiles, "store_path", lambda: previous)
+        monkeypatch.setattr(profiles, "legacy_store_paths", lambda: ())
+        save_profile("C:/book.docx", profile)
+
+        monkeypatch.setattr(profiles, "store_path", lambda: current)
+        monkeypatch.setattr(profiles, "legacy_store_paths", lambda: (previous,))
+
+        assert load_profile("C:/book.docx") is not None
+
+    def test_the_current_store_wins_when_both_exist(self, tmp_path, monkeypatch, profile):
+        previous = tmp_path / "old_place" / "style_profiles.json"
+        current = tmp_path / "new_place" / "style_profiles.json"
+        monkeypatch.delenv(STORE_ENV, raising=False)
+        monkeypatch.setattr(profiles, "legacy_store_paths", lambda: ())
+
+        monkeypatch.setattr(profiles, "store_path", lambda: previous)
+        save_profile("C:/old.docx", profile)
+        monkeypatch.setattr(profiles, "store_path", lambda: current)
+        save_profile("C:/new.docx", profile)
+
+        monkeypatch.setattr(profiles, "legacy_store_paths", lambda: (previous,))
+
+        assert load_profile("C:/new.docx") is not None
+        assert load_profile("C:/old.docx") is None
+
+    def test_the_old_file_is_read_and_not_removed(self, tmp_path, monkeypatch, profile):
+        previous = tmp_path / "old_place" / "style_profiles.json"
+        current = tmp_path / "new_place" / "style_profiles.json"
+        monkeypatch.delenv(STORE_ENV, raising=False)
+
+        monkeypatch.setattr(profiles, "store_path", lambda: previous)
+        monkeypatch.setattr(profiles, "legacy_store_paths", lambda: ())
+        save_profile("C:/book.docx", profile)
+
+        monkeypatch.setattr(profiles, "store_path", lambda: current)
+        monkeypatch.setattr(profiles, "legacy_store_paths", lambda: (previous,))
+        load_profile("C:/book.docx")
+
+        assert previous.exists()
+
+    def test_an_explicit_store_adopts_nothing(self, store):
+        """
+        An explicit path is an explicit answer. Reading somewhere the caller
+        did not name into it would be the opposite of what they asked for, and
+        it is what would put the indexer's real profiles into a test run.
+        """
+        assert legacy_store_paths() == ()
 
 
 class TestEncoding:

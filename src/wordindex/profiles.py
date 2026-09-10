@@ -61,31 +61,106 @@ STORE_ENV = "WORDINDEX_PROFILE_STORE"
 STORE_VERSION = 1
 
 
-def store_path() -> Path:
-    """
-    The profile store's file.
+#: What this application's own folder inside the suite's is called. The same
+#: string `ui.preferences.APPLICATION` gives QSettings, so an indexer who goes
+#: looking finds one folder rather than two spellings of one.
+APP_DIRECTORY = "Word Index Editor"
 
-    Qt's ``AppDataLocation`` when Qt is there, the platform's own convention
-    otherwise, and always overridable. Imported lazily so this module stays
-    usable in a test run with no display and no ``QApplication``.
+#: The store's filename, in the one place it is written down.
+STORE_NAME = "style_profiles.json"
+
+
+def app_data_root() -> Path:
+    """
+    This application's own folder for the files it writes.
+
+    ``bookindexcore.store.location.vendor_root`` is the suite's single
+    encoding of where a user's working files go, and this sits beside the
+    shared store rather than inside it: a style profile is keyed by a
+    document path and means nothing to another application.
+    """
+    override = os.environ.get(STORE_ENV)
+    if override:
+        return Path(override).parent
+
+    from bookindexcore.store.location import vendor_root
+
+    return vendor_root() / APP_DIRECTORY
+
+
+def store_path() -> Path:
+    r"""
+    The profile store's file, and always overridable.
+
+    ***This resolved Qt's `AppDataLocation` until 10 September 2026, and two
+    things were wrong with that.***
+
+    **It was Roaming.** On Windows `AppDataLocation` is the roaming profile,
+    which is copied between machines at logout; the shared store is
+    deliberately in Local on the argument that a working file has no business
+    travelling. One application in the suite was answering that question one
+    way and one the other, so both answer to `vendor_root` now.
+
+    **And it had no identity to work from.** Qt builds that path from the
+    organisation and application names set on the `QApplication`, and *this
+    application never set either*, so the path resolved to the executable's
+    basename: `%APPDATA%\python\style_profiles.json` in a source run, and
+    `%APPDATA%\<exe name>\` with no vendor folder in a frozen one. The
+    packaged application and the development one had never agreed about where
+    a profile lives, and neither was the location this module documented.
+    Measured on 10 September, with 1,910 bytes of the indexer's profiles in
+    the first of them. `ui.main_window` sets the identity now, and this no
+    longer depends on it.
+
+    Anything found in one of the old places is read once, by
+    :func:`legacy_store_paths`, so a profile authored before the move is still
+    found.
     """
     override = os.environ.get(STORE_ENV)
     if override:
         return Path(override)
 
-    try:
-        from PySide6.QtCore import QStandardPaths
+    return app_data_root() / STORE_NAME
 
-        base = QStandardPaths.writableLocation(
-            QStandardPaths.StandardLocation.AppDataLocation)
-    except Exception:                                         # noqa: BLE001
-        base = ""
 
-    if not base:
-        base = os.environ.get("APPDATA") or str(Path.home() / ".local/share")
-        base = str(Path(base) / "WordIndexEditor")
+def legacy_store_paths() -> tuple:
+    """
+    Every place a profile store may already be, newest first.
 
-    return Path(base) / "style_profiles.json"
+    ***Three of them, and all three are real.*** The documented one, which is
+    what a build that set an identity would have written; the interpreter-named
+    one a source run actually wrote to; and the executable-named one a frozen
+    build would have. An installed copy has been writing to one of these since
+    the application shipped, and a move that quietly left them behind would
+    lose a publisher's vocabulary without saying so.
+
+    Empty when :data:`STORE_ENV` is set: an explicit path is an explicit
+    answer, and adopting into it from somewhere the caller did not name is not
+    what they asked for.
+    """
+    if os.environ.get(STORE_ENV):
+        return ()
+
+    roaming = os.environ.get("APPDATA")
+    if not roaming:
+        return ()
+
+    import sys
+
+    base = Path(roaming)
+    names = [Path(APP_DIRECTORY), Path("DH Indexing") / APP_DIRECTORY,
+             Path("WordIndexEditor")]
+    stem = Path(sys.executable).stem
+    if stem:
+        names.append(Path(stem))
+
+    seen, out = set(), []
+    for name in names:
+        candidate = base / name / STORE_NAME
+        if candidate not in seen:
+            seen.add(candidate)
+            out.append(candidate)
+    return tuple(out)
 
 
 def _key(document) -> str:
@@ -111,6 +186,15 @@ def _key(document) -> str:
         return text
 
 
+def _load(path: Path) -> Optional[dict]:
+    """One store file, or None if it is not there or not readable."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return raw if isinstance(raw, dict) else None
+
+
 def _read_raw() -> dict:
     """
     The whole store, or an empty one.
@@ -118,15 +202,30 @@ def _read_raw() -> dict:
     Whole rather than one section, because profiles and projects live in the
     same file and a writer that read only its own half would drop the other
     every time it saved.
+
+    **A store in one of the old places is adopted here**, once, and only when
+    the current location holds nothing: the move to Local on 10 September 2026
+    left real files behind, including 1,910 bytes of this indexer's own. The
+    old file is read and not deleted. Nothing else in this suite deletes a
+    file it adopted either, and a profile store is small enough that leaving
+    it costs nothing against the chance that an older build is still reading
+    it.
     """
     path = store_path()
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    raw = _load(path)
+
+    if raw is None:
+        for previous in legacy_store_paths():
+            if previous == path:
+                continue
+            raw = _load(previous)
+            if raw is not None:
+                print(f"[PROFILES] Adopted the profile store from {previous}")
+                break
+
+    if raw is None:
         return {}
 
-    if not isinstance(raw, dict):
-        return {}
     # A store from a future version is not guessed at. Returning nothing means
     # the indexer is asked to author a profile again, which is a nuisance;
     # reading half of one they cannot see would be a wrong answer.

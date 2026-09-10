@@ -196,6 +196,21 @@ tests/
                             being renamed to something adjacent rather than
                             dropped. None of the three would raise.
 
+                            TestTheStoreLocation and TestAdoptingAnOlderStore
+                            were added 10 September 2026, after the store was
+                            found to be in the wrong place twice over: in
+                            Roaming, where the suite's shared store is
+                            deliberately Local, and under a folder named after
+                            whatever executable was running, because this
+                            application set no organisation or application
+                            name for Qt to build a path from. A source run
+                            wrote to `%APPDATA%/python/`. The location tests
+                            pin the new place and, more usefully, pin that it
+                            does not depend on the identity having been set;
+                            the adoption tests pin that a profile written to
+                            any of the old places is still found and that the
+                            old file is not deleted.
+
   ui/test_profile_editor.py
                             step 4's dialog. What the indexer is shown and
                             what is decided without asking: the heaviest
