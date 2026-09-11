@@ -85,6 +85,9 @@ DELIBERATE = {
     "ui.tree.tree_controller": "the tree is populated directly by "
                                "`IndexPanel.show_references`",
     "util.text": "a path sanitiser for a host that stores file paths",
+    "util.text_layer": "cleans a PDF's text layer; ToA_Builder and the "
+                       "extraction probe call it, and this application "
+                       "never reads a PDF",
 }
 
 
