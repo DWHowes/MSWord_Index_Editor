@@ -5,6 +5,15 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The Table of Authorities keeps the entry above in a manuscript's table of cases
+
+Nothing changed here; the change is to the shared parser's party-name walk. A
+party that ran into the line above took that entry's tail into its name **and
+cost that entry its place in the table**, because the two spans overlapped and
+the longer won. Also read now: a party with a lower-case *and others*, a name
+whose particles stack (*Van der Linde*) or begins with one (*de Souza*). Scope:
+`bookindexcore/documentation/party_walk_limits_scope.md`.
+
 ### The Table of Authorities reads ECtHR judgments in OSCOLA's forms
 
 Nothing changed here; the change is to the shared parser. Under OSCOLA a
