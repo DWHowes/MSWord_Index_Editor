@@ -5,6 +5,15 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The Table of Authorities stops doubling a bibliography's articles
+
+Nothing changed here; the change is in `bookindexcore.authorities.paginated`,
+which this application's Table of Authorities builds through. An article
+listed in a manuscript's bibliography surname-first lost its surname and sat
+in the table beside its footnote twin; the first of two inverted authors was
+lost the same way. Both now fold into one row. Scope:
+`bookindexcore/documentation/bibliography_inverted_authors_scope.md`.
+
 ### The profile store was in the wrong place, twice over
 
 Scope: `bookindexcore/documentation/generated_file_locations_scope.md`. This
