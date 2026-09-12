@@ -182,5 +182,5 @@ class TestWhatItSays:
     def test_it_carries_what_the_table_struck(self):
         from wordindex.toa_run import ToaRun
 
-        said = str(ToaRun(placed=2, struck=("Bibliography Poor Law Act 1930",)))
+        said = str(ToaRun(placed=2, struck=("Bibliography Poor Relief Act 1930",)))
         assert "1 row struck" in said

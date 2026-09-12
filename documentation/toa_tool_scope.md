@@ -102,8 +102,8 @@ Two behaviours hang off that, and both silently did not happen:
   surname-first — it is deliberately gated on the back matter, because the
   convention is the bibliography's. **105 duplicate spellings stayed
   unfolded**, which is the whole of the Secondary Materials gap;
-* **the near-duplicate strike**, which removes `Bibliography Poor Law Act 1930`
-  beside the real `Poor Law Act 1930`. **4 rows**, which is the whole of the
+* **the near-duplicate strike**, which removes `Bibliography Poor Relief Act 1930`
+  beside the real `Poor Relief Act 1930`. **4 rows**, which is the whole of the
   Legislation gap.
 
 105 + 4 = 109, and 694 − 584 = 110. **The last row is not accounted for**, and

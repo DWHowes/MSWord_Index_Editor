@@ -5,6 +5,14 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The statutes in the Table of Authorities help topic are invented ones now
+
+No change to the application. The worked example in help topic 13 and in the
+User Guide quoted a client manuscript's own list of statutes, mangled exactly
+as that book's typography mangled it. The shape is what the example is for, so
+it keeps the shape with invented names. Core:
+`documentation/e0_probes/client_text_sweep.py`.
+
 ### The Table of Authorities reads a case cited by a single name
 
 Nothing changed here; the change is in the shared parser. A Court of Justice

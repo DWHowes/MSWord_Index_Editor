@@ -638,7 +638,7 @@ that were not resolved** are places missing from an entry rather than wrong
 ones: a `supra note 14` the tool could not follow is a page that will not
 appear. **Abbreviations no citation table recognises** are usually a typo in
 the book and sometimes a gap in the tables; the entry is in the table either
-way. And **rows struck** are near-duplicates the book's own back matter produced, `Bibliography Poor Law Act 1930` beside the real *Poor Law Act 1930*, and they are named rather than quietly dropped.
+way. And **rows struck** are near-duplicates the book's own back matter produced, `Bibliography Poor Relief Act 1930` beside the real *Poor Relief Act 1930*, and they are named rather than quietly dropped.
 
 ### Afterwards
 
