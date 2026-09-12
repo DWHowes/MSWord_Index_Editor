@@ -5,6 +5,16 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Footnote back-references are placed only on the evidence
+
+Nothing changed here; the change is in the shared resolver. Where a
+manuscript's note numbering restarts per chapter and only one chapter's
+apparatus could be read, *supra note 21* was answered from another chapter's
+note. A reference outside the read part of the book now has to name the work it
+means, and a note citing two works is read as citing two. Execution record: the
+closing section of
+`bookindexcore/documentation/single_name_cjeu_cases_scope.md`.
+
 ### The statutes in the Table of Authorities help topic are invented ones now
 
 No change to the application. The worked example in help topic 13 and in the
