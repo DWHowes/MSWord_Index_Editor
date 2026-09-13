@@ -5,6 +5,11 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Nothing changed here
+
+A citation followed by subsequent history (`on other grounds`) now ends at its
+last word rather than after the following space, in the shared parser.
+
 ### Two German alphabets
 
 Nothing changed here; the shared Sorting preferences page lists every alphabet
