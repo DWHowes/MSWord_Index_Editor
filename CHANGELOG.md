@@ -5,6 +5,13 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Two German alphabets
+
+Nothing changed here; the shared Sorting preferences page lists every alphabet
+the shared package ships, and it now ships *German (telephone directory, CLDR)*,
+which files `ä` as `ae`, and *German, Austria (CLDR)*, which files `ä` after
+every `a` word. Chosen per language like the others.
+
 ### No field is written inside the bibliography
 
 `toa_emission.build_plan` placed an `XE` field at every occurrence of an
