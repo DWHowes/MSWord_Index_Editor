@@ -520,3 +520,16 @@ wins**.
 `conftest.py` gives each test its own store. Without it the suite writes to the
 indexer's real one, which now holds their name decisions, their publishers and
 their alphabets rather than a cache.
+
+## No field inside the bibliography
+
+`test_toa_emission.py::TestThePlanRunsTheWholePipeline::test_no_field_is_written_inside_the_bibliography`,
+13 September 2026. The indexer's ruling of 24 August is that a work the back
+matter lists is taken and never placed, and the paginated tool enforces it by
+answering no page there. **This host places a field at every occurrence and
+never asks for a page**, so it wrote one beside every listed work and a
+generated table printed the bibliography's pages. The test fails on the old
+`build_plan`; the fix is one question to the core's `PlacedTable.places`. It
+also asserts that the listed work is **still a row**, because the ruling is
+*taken*, not *dropped*, and a fix that simply removed back-matter occurrences
+from the table would pass the first two assertions.

@@ -5,6 +5,19 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### No field is written inside the bibliography
+
+`toa_emission.build_plan` placed an `XE` field at every occurrence of an
+authority, and a work the manuscript's bibliography listed has an occurrence
+there, so the generated table printed the bibliography's pages for it. The
+indexer's ruling of 24 August 2026 is that such a listing is taken and never
+placed; it is now asked of `PlacedTable.places`. The work is still a row.
+
+The shared table builder also changed underneath this host: with no page marks
+to count, an author's own list of cases is recognised by its density over
+pages of characters, which stops a body line from excluding part of a book,
+and a one-document project no longer spends a minute on a rule about pages.
+
 ### Cases named only by a short title print that name
 
 Nothing changed here; the change is in the shared parser and table builder. A

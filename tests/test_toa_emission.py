@@ -361,6 +361,30 @@ class TestThePlanRunsTheWholePipeline:
         for entry in plan.entries:
             assert 0 <= entry.offset <= len(backend.read_text(entry.container))
 
+    def test_no_field_is_written_inside_the_bibliography(self, tmp_path):
+        """
+        The indexer's ruling of 24 August 2026: a work the back matter lists is
+        taken and never placed. A field there would print the bibliography's
+        page in the generated table, and until 13 September 2026 this host
+        wrote one for every listed work, because it places at the citation and
+        never asks for a page. See `PlacedTable.places`.
+        """
+        text = ("See R v Oakes, [1986] 1 SCR 103.\n"
+                + "Nothing cited on this line at all.\n" * 40
+                + "Bibliography\n"
+                  "R v Oakes, [1986] 1 SCR 103.\n"
+                  "Hunter v Southam Inc, [1984] 2 SCR 145.")
+        plan = self._plan(tmp_path, text)
+        backend = OoxmlBackend()
+        backend.open(tmp_path / "book.docx")
+        body = backend.read_text("word/document.xml")
+        bibliography = body.index("Bibliography")
+
+        assert plan.entries, "the body citation is still placed"
+        assert all(entry.offset < bibliography for entry in plan.entries)
+        assert any("Hunter" in row.display for section in plan.table.sections
+                   for row in section.entries), "the listed work is still a row"
+
     def test_every_planned_field_can_still_be_placed(self, tmp_path):
         plan = self._plan(tmp_path, "See R v Oakes, [1986] 1 SCR 103.")
         backend = OoxmlBackend()

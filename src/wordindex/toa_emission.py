@@ -349,6 +349,13 @@ def build_plan(documents, system, rules: SortRules, *,
                 continue
             instruction = xe_instruction(path, name)
             for occurrence in entry.occurrences:
+                # **No field inside the bibliography.** A work the back matter
+                # lists is in the table and its listing is not a citation, so
+                # a field there would print the bibliography's page. See
+                # `PlacedTable.places`; until 13 September 2026 nothing here
+                # asked.
+                if not placed.places(occurrence):
+                    continue
                 # **The field goes at the citation's end**, so it attaches to
                 # the last character of the citation rather than pushing the
                 # first one along.
