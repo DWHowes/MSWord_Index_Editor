@@ -88,6 +88,10 @@ DELIBERATE = {
     "util.text_layer": "cleans a PDF's text layer; ToA_Builder and the "
                        "extraction probe call it, and this application "
                        "never reads a PDF",
+    "style.provenance": "where each shipped table came from, read by its "
+                        "guard test and by the name-inversion article's "
+                        "Appendix B generator (`appendix_sources.py`, beside "
+                        "the article); no application shows a table's source",
 }
 
 
