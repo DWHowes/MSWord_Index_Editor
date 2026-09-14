@@ -343,6 +343,7 @@ class TestThePlanRunsTheWholePipeline:
         plan = self._plan(tmp_path, "Nothing cited here at all.")
         assert plan.struck == ()
         assert plan.unfilled == ()
+        assert plan.unread == ()
 
     def test_the_plan_carries_a_dash_it_could_not_fill(self, tmp_path):
         """

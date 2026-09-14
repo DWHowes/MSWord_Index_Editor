@@ -61,6 +61,8 @@ class ToaRun:
     #: Rows filed by title because their bibliography dash could not be given
     #: the author above, carried from the plan for the same sentence.
     unfilled: tuple = ()
+    #: Bibliography entries left out because they could not be read.
+    unread: tuple = ()
 
     def __str__(self) -> str:
         said = (f"{self.placed} field{'s' if self.placed != 1 else ''} "
@@ -74,6 +76,9 @@ class ToaRun:
             said += (f", {len(self.unfilled)} row"
                      f"{'s' if len(self.unfilled) != 1 else ''} filed by title "
                      f"for want of an author")
+        if self.unread:
+            said += (f", {len(self.unread)} bibliography entr"
+                     f"{'ies' if len(self.unread) != 1 else 'y'} not read")
         return said + "."
 
 
@@ -92,7 +97,8 @@ def apply_plan(plan, *, backend_for, on_progress=None,
     the worst of both.*
     """
     run = ToaRun(struck=tuple(getattr(plan, "struck", ()) or ()),
-                 unfilled=tuple(getattr(plan, "unfilled", ()) or ()))
+                 unfilled=tuple(getattr(plan, "unfilled", ()) or ()),
+                 unread=tuple(getattr(plan, "unread", ()) or ()))
     edits = []
     refused = []
     touched = []

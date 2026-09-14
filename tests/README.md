@@ -542,3 +542,10 @@ September 2026. A bibliography's dash for "same author" with no entry above it
 to read is filed by title by the core and named in `PlacedTable.unfilled`; these
 assert the plan and the run carry the naming to the summary, for the reason the
 struck rows are carried. The filling itself is `bookindexcore`'s to test.
+
+## An entry the core could not read is carried
+
+`test_toa_run.py::test_it_carries_what_the_table_could_not_read` and the `unread`
+assertion beside `struck` and `unfilled` in `test_toa_emission.py`, 14 September
+2026: the plan and the run carry `PlacedTable.unread` to the summary. The guard
+itself is `bookindexcore`'s to test.

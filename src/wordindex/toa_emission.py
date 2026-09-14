@@ -218,6 +218,9 @@ class WordToaPlan:
     #: an author, filed by title, by display string. Carried for the same
     #: reason as `struck`; see `PlacedTable.unfilled`.
     unfilled: tuple = ()
+    #: Bibliography entries the core left out because they could not be read,
+    #: by their text; see `PlacedTable.unread`.
+    unread: tuple = ()
 
     @property
     def is_empty(self) -> bool:
@@ -389,7 +392,8 @@ def build_plan(documents, system, rules: SortRules, *,
         unresolved=getattr(report, "unresolved", ()) or (),
         unknown=table.unknown,
         struck=placed.struck,
-        unfilled=placed.unfilled)
+        unfilled=placed.unfilled,
+        unread=placed.unread)
 
 
 def _every_entry(section):

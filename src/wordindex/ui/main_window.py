@@ -1859,6 +1859,13 @@ class MainWindow(QMainWindow):
                 f"for 'same author as above', and the entry above could not be "
                 f"read, so they are filed by title:\n"
                 + "\n".join(f"  {d}" for d in plan.unfilled[:12]))
+        unread = getattr(plan, "unread", ())
+        if unread:
+            lines.append(
+                f"\n{len(unread)} bibliography entries could not be read: the "
+                f"author found was part of the entry's own title, so they are "
+                f"not in the table:\n"
+                + "\n".join(f"  {d}" for d in unread[:12]))
         lines.append(
             "\nThe table itself is collected by INDEX fields in the index "
             "document. Write it from Index \u25b8 Write index document.")

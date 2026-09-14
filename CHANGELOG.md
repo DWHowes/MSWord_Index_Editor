@@ -5,6 +5,16 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Bibliography entries the core could not read are carried
+
+The shared table builder now leaves out a bibliography citation that started
+partway along its line (its author was part of the entry's title) and names it
+in `PlacedTable.unread`; it also files `– and Jane Doe` under the author above
+and that name. `WordToaPlan.unread` and `ToaRun.unread` carry the list, the
+shared review dialog counts it, and the run summary names the entries. The
+PDF text-layer repairs in the same change do not reach this application, which
+reads `.docx`.
+
 ### A bibliography's "same author" dash is read
 
 The shared table builder now files a bibliography entry that prints a dash for

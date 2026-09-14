@@ -190,3 +190,9 @@ class TestWhatItSays:
 
         said = str(ToaRun(placed=2, unfilled=("A Constructed Title", "Another")))
         assert "2 rows filed by title" in said
+
+    def test_it_carries_what_the_table_could_not_read(self):
+        from wordindex.toa_run import ToaRun
+
+        said = str(ToaRun(placed=2, unread=("A Constructed Study. Lectures",)))
+        assert "1 bibliography entry not read" in said
