@@ -184,3 +184,9 @@ class TestWhatItSays:
 
         said = str(ToaRun(placed=2, struck=("Bibliography Poor Relief Act 1930",)))
         assert "1 row struck" in said
+
+    def test_it_carries_what_the_table_filed_by_title(self):
+        from wordindex.toa_run import ToaRun
+
+        said = str(ToaRun(placed=2, unfilled=("A Constructed Title", "Another")))
+        assert "2 rows filed by title" in said

@@ -214,6 +214,10 @@ class WordToaPlan:
     #: **Carried so a deletion is never silent**, the same reason
     #: `PlacedTable` carries them.
     struck: tuple = ()
+    #: Rows holding a bibliography's same-author dash the core could not give
+    #: an author, filed by title, by display string. Carried for the same
+    #: reason as `struck`; see `PlacedTable.unfilled`.
+    unfilled: tuple = ()
 
     @property
     def is_empty(self) -> bool:
@@ -384,7 +388,8 @@ def build_plan(documents, system, rules: SortRules, *,
         entries=tuple(entries), index_fields=fields, table=table,
         unresolved=getattr(report, "unresolved", ()) or (),
         unknown=table.unknown,
-        struck=placed.struck)
+        struck=placed.struck,
+        unfilled=placed.unfilled)
 
 
 def _every_entry(section):

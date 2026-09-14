@@ -58,6 +58,9 @@ class ToaRun:
     #: Rows `build_table` struck as back-matter residue, carried through from
     #: the plan so one sentence can account for the whole run.
     struck: tuple = ()
+    #: Rows filed by title because their bibliography dash could not be given
+    #: the author above, carried from the plan for the same sentence.
+    unfilled: tuple = ()
 
     def __str__(self) -> str:
         said = (f"{self.placed} field{'s' if self.placed != 1 else ''} "
@@ -67,6 +70,10 @@ class ToaRun:
         if self.struck:
             said += (f", {len(self.struck)} row"
                      f"{'s' if len(self.struck) != 1 else ''} struck")
+        if self.unfilled:
+            said += (f", {len(self.unfilled)} row"
+                     f"{'s' if len(self.unfilled) != 1 else ''} filed by title "
+                     f"for want of an author")
         return said + "."
 
 
@@ -84,7 +91,8 @@ def apply_plan(plan, *, backend_for, on_progress=None,
     back in one gesture: *a cancelled run that could not be undone would be
     the worst of both.*
     """
-    run = ToaRun(struck=tuple(getattr(plan, "struck", ()) or ()))
+    run = ToaRun(struck=tuple(getattr(plan, "struck", ()) or ()),
+                 unfilled=tuple(getattr(plan, "unfilled", ()) or ()))
     edits = []
     refused = []
     touched = []

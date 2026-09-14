@@ -342,6 +342,20 @@ class TestThePlanRunsTheWholePipeline:
         """
         plan = self._plan(tmp_path, "Nothing cited here at all.")
         assert plan.struck == ()
+        assert plan.unfilled == ()
+
+    def test_the_plan_carries_a_dash_it_could_not_fill(self, tmp_path):
+        """
+        A bibliography's same-author dash with no bibliography around it has no
+        entry above to take a name from. The core files it by title and says
+        so; the plan carries the saying.
+        """
+        plan = self._plan(tmp_path,
+                          "Smith, Jane, A Constructed Title (Toronto: Example "
+                          "Press, 2001).\n– “A Constructed Article” (2003) "
+                          "12:1 Example L Rev 34.")
+        assert len(plan.unfilled) == 1
+        assert "A Constructed Article" in plan.unfilled[0]
 
     def test_a_document_with_no_citations_plans_nothing(self, tmp_path):
         plan = self._plan(tmp_path, "Prose about nothing in particular.")

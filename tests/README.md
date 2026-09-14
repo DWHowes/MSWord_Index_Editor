@@ -533,3 +533,12 @@ generated table printed the bibliography's pages. The test fails on the old
 also asserts that the listed work is **still a row**, because the ruling is
 *taken*, not *dropped*, and a fix that simply removed back-matter occurrences
 from the table would pass the first two assertions.
+
+## A dash the core could not fill is carried
+
+`test_toa_emission.py::TestThePlanRunsTheWholePipeline::test_the_plan_carries_a_dash_it_could_not_fill`
+and `test_toa_run.py::test_it_carries_what_the_table_filed_by_title`, 14
+September 2026. A bibliography's dash for "same author" with no entry above it
+to read is filed by title by the core and named in `PlacedTable.unfilled`; these
+assert the plan and the run carry the naming to the summary, for the reason the
+struck rows are carried. The filling itself is `bookindexcore`'s to test.

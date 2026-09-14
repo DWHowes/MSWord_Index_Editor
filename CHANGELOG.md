@@ -5,6 +5,16 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### A bibliography's "same author" dash is read
+
+The shared table builder now files a bibliography entry that prints a dash for
+"same author as above" under that author, reads an author list ending in
+`et al`, stops a book's title at a closing square bracket, and keeps a running
+head out of a bibliography author. `toa_emission.WordToaPlan.unfilled` and
+`toa_run.ToaRun.unfilled` carry the rows whose dash could not be given an author
+(filed by title); the shared review dialog counts them and the run summary names
+them under the struck rows.
+
 ### Nothing changed here
 
 A citation followed by subsequent history (`on other grounds`) now ends at its

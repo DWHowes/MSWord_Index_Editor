@@ -1853,6 +1853,12 @@ class MainWindow(QMainWindow):
             lines.append(
                 f"\n{len(plan.struck)} rows were struck as back-matter "
                 f"residue:\n" + "\n".join(f"  {d}" for d in plan.struck[:12]))
+        if plan.unfilled:
+            lines.append(
+                f"\n{len(plan.unfilled)} bibliography entries printed a dash "
+                f"for 'same author as above', and the entry above could not be "
+                f"read, so they are filed by title:\n"
+                + "\n".join(f"  {d}" for d in plan.unfilled[:12]))
         lines.append(
             "\nThe table itself is collected by INDEX fields in the index "
             "document. Write it from Index \u25b8 Write index document.")
