@@ -7,6 +7,12 @@ The application does not exist yet; what is here are its seams.
 
 ### Nothing changed here
 
+The shared parser no longer reads a sentence naming a book, or a quotation in a
+sentence, as a citation, and reads a book title that contains a quoted phrase.
+The text-layer change in the same commit reaches only PDFs.
+
+### Nothing changed here
+
 The shared parser now reads a name with a particle whole, keeps a subtitle or an
 editor's initials inside a book's title, and joins a bibliography entry's second
 author to the first; `– and Jane Doe` takes only the first author above. The
