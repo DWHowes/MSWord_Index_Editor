@@ -5,6 +5,13 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Nothing changed here
+
+The shared parser now reads a name with a particle whole, keeps a subtitle or an
+editor's initials inside a book's title, and joins a bibliography entry's second
+author to the first; `– and Jane Doe` takes only the first author above. The
+table this application writes changes where a manuscript has those shapes.
+
 ### Bibliography entries the core could not read are carried
 
 The shared table builder now leaves out a bibliography citation that started
