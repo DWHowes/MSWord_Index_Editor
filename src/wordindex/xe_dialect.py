@@ -46,6 +46,7 @@ module and design §8.5. Briefly:
 
 import re
 
+from bookindexcore.dialect import delimited
 from bookindexcore.dialect.types import (
     ERROR,
     ROLE_SORT,
@@ -120,22 +121,15 @@ _SWITCH = re.compile(r'\\(?P<name>[a-z])(?:\s+"(?P<quoted>(?:[^"\\]|\\.)*)"|\s+(
 
 
 def _split_unescaped(text: str, separator: str) -> list[str]:
-    """Split on ``separator`` where it is not backslash-escaped."""
-    parts, buffer, idx = [], [], 0
-    while idx < len(text):
-        char = text[idx]
-        if char == ESCAPE and idx + 1 < len(text):
-            buffer.append(text[idx:idx + 2])
-            idx += 2
-            continue
-        if char == separator:
-            parts.append("".join(buffer))
-            buffer = []
-        else:
-            buffer.append(char)
-        idx += 1
-    parts.append("".join(buffer))
-    return parts
+    """
+    Split on ``separator`` where it is not backslash-escaped.
+
+    The mechanics are the core's (``bookindexcore.dialect.delimited``), moved
+    there when the InDesign editor's dialect needed the same (its design,
+    finding F9). What the separators mean, and every measured detail of how
+    Word reads a sort key, stay here.
+    """
+    return delimited.split_unescaped(text, separator, escape_char=ESCAPE)
 
 
 class XEDialect:
@@ -465,23 +459,10 @@ class XEDialect:
 
     @staticmethod
     def _escape_with(text: str, escapable) -> str:
-        out = []
-        for char in text or "":
-            if char in escapable:
-                out.append(ESCAPE)
-            out.append(char)
-        return "".join(out)
+        return delimited.escape(text, escapable, escape_char=ESCAPE)
 
     def unescape(self, text: str) -> str:
-        out, idx, text = [], 0, text or ""
-        while idx < len(text):
-            if text[idx] == ESCAPE and idx + 1 < len(text):
-                out.append(text[idx + 1])
-                idx += 2
-                continue
-            out.append(text[idx])
-            idx += 1
-        return "".join(out)
+        return delimited.unescape(text, escape_char=ESCAPE)
 
     def check(self, text: str, *, role: str = "display") -> list[Finding]:
         r"""

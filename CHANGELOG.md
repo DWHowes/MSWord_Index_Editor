@@ -5,6 +5,15 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The level grammar's mechanics come from the core
+
+`_split_unescaped`, `escape`'s mechanics and `unescape` now call
+`bookindexcore.dialect.delimited`, which they moved into when the InDesign
+editor's dialect needed the same code. Nothing Word does changed: every measured
+reading of a sort key (the last `;` wins, an empty tail is text, whitespace is
+insignificant) stays in `xe_dialect.py`, and the suite is unchanged at 817
+passed, 65 skipped.
+
 ### Adapted to the core's phase FN
 
 The shared core was made format-neutral (`bookindexcore`
