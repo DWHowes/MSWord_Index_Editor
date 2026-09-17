@@ -146,7 +146,7 @@ def levels_needed(placement: str) -> int:
     How many heading levels a placement spends: one, or none.
 
     The sub-entry placements add a level, so a heading already at
-    `effective_max_levels` has no room for one. Named rather than counted at
+    `effective_levels` has no room for one. Named rather than counted at
     the call site, because "does this fit" is asked in two places.
     """
     return 0 if placement == XREF_AFTER_HEADING else 1

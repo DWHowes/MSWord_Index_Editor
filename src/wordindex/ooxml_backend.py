@@ -44,7 +44,7 @@ from pathlib import Path
 
 from lxml import etree
 
-from bookindexcore.backend.base import DocumentBackend, EntryState
+from bookindexcore.backend.base import DocumentBackend
 from bookindexcore.backend.locator import EditResult, Locator, SourceEdit
 
 from wordindex.xe_dialect import XE_DIALECT
@@ -279,18 +279,6 @@ class OoxmlBackend(DocumentBackend):
     #: Word owns the file it writes, like LaTeX and unlike InDesign, so a
     #: committed write stays undoable.
     clears_on_commit = False
-
-    #: Four of the five. ORPHANED is reachable here and is not for LaTeX: a
-    #: user can delete the companion bookmark, or another tool can strip it,
-    #: leaving an entry the database knows about and the document cannot
-    #: locate (HLD §5's recovery path). CONFLICTED needs a live document and
-    #: belongs to the v2 COM backend.
-    reachable_states = frozenset({
-        EntryState.ORIGINAL,
-        EntryState.STAGED,
-        EntryState.DIRTY,
-        EntryState.ORPHANED,
-    })
 
     def __init__(self):
         self._path: Path | None = None

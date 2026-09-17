@@ -5,6 +5,30 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Adapted to the core's phase FN
+
+The shared core was made format-neutral (`bookindexcore`
+`documentation/format_neutrality_scope.md`).
+
+- **The entry table's page-style editor speaks Word.** It offered Standard,
+  Bold and Italic with LaTeX's `textbf` and `textit` as their values, and this
+  application's dialect knows neither, so **choosing Bold on an entry silently
+  wrote Standard**. It now offers Standard, Bold, Italic and Bold italic with
+  Word's own values (`tests/ui/test_page_style_editor.py`).
+- **Undo**: `forget_document` calls the core's renamed
+  `drop_commands_for_container`; a save calls `UndoStack.committed` for every
+  document written, which reads the backend's `clears_on_commit` (this backend
+  keeps the history).
+- **Pages**: `OpenProject.page_numbers()` merges every backend's
+  `resolve_page_numbers()`, and the index panel's rows are built with it
+  (`heading_rows(..., pages=)`). Offline `.docx` knows no pages, so nothing
+  visible changes.
+- The cross-reference run's level ceiling comes from the core's
+  `effective_levels`; `XEDialect` no longer declares `implicit_range_threshold`
+  or `effective_max_levels`, nor `OoxmlBackend` `reachable_states`.
+- **Not in this change**: adopting `IndexRepository` and `EntryStore`, which
+  are now format-neutral. That is its own scope (the core scope's D5).
+
 ### Nothing changed here
 
 The shared parser no longer reads a sentence naming a book, or a quotation in a

@@ -14,7 +14,6 @@ import zipfile
 
 import pytest
 
-from bookindexcore.backend.base import EntryState
 from bookindexcore.backend.locator import Locator, SourceEdit
 from bookindexcore.testing.backend_conformance import BackendConformance
 
@@ -264,17 +263,6 @@ class TestWriting:
 
 
 class TestDeclarations:
-    def test_orphaned_is_reachable_here_and_is_not_for_latex(self, tmp_path):
-        """
-        A user can delete a companion bookmark, or another tool can strip it,
-        leaving an entry the database knows about and the document cannot
-        locate. A .tex file has no equivalent -- its entries cannot lose their
-        identity without losing their text too.
-        """
-        backend, _ = _build(tmp_path)
-        assert EntryState.ORPHANED in backend.reachable_states
-        assert EntryState.CONFLICTED not in backend.reachable_states
-
     def test_page_numbers_are_unavailable_offline(self, tmp_path):
         """
         Nothing in the OOXML says where page breaks fall; pagination is a

@@ -14,7 +14,7 @@ the three-level cap, and instructions carrying every switch.
 
 import pytest
 
-from bookindexcore.dialect import IndexDialect
+from bookindexcore.dialect import IndexDialect, effective_levels
 from bookindexcore.dialect.types import (
     SORT_PER_LEVEL,
     STANDARD_PAGE_STYLE,
@@ -121,7 +121,7 @@ class TestTheGrammarItself:
         as far as Word is concerned.
         """
         assert XE_DIALECT.max_levels == 3
-        assert XE_DIALECT.effective_max_levels(None) == 3
+        assert effective_levels(XE_DIALECT, None) == 3
 
     def test_the_escapes_round_trip(self):
         for text in ("Ratios: financial", 'She said "yes"', "back\\slash"):

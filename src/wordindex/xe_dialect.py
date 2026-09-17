@@ -256,9 +256,6 @@ class XEDialect:
     #: put it, because there is not one.
     supports_note_locators = False
 
-    def effective_max_levels(self, project: object = None) -> int:
-        return self.max_levels
-
     def normalise_for_comparison(self, text: str) -> str:
         r"""
         Identity. An ``XE`` field's display half is plain text -- Word carries
@@ -270,21 +267,6 @@ class XEDialect:
         heading are both correct depending on where the entry was written.
         """
         return text
-
-    def implicit_range_threshold(self, project: object = None) -> int | None:
-        """
-        None. **Word never forms a range on its own**, measured in E7: five
-        consecutive pages come out of a generated index as
-        ``100, 101, 102, 103, 104`` and no property on the ``Index`` object
-        changes it.
-
-        The declaration that keeps the locator advice honest in both
-        directions. makeindex collapses three consecutive pages into
-        ``100--102``, so advice written against LaTeX's behaviour would tell a
-        Word indexer that a run needs no attention when it is about to print
-        in full.
-        """
-        return None
 
     def max_entry_length(self, project: object = None) -> int | None:
         """

@@ -108,6 +108,15 @@ class UndoStack:
     def clear(self) -> None:
         self._stack.clear()
 
+    def committed(self, backend) -> bool:
+        """
+        A save through ``backend`` has been committed; clears the stack if the
+        backend declares that such a write cannot be reversed. Returns whether
+        it cleared. Phase FN5: the core stack reads ``clears_on_commit``, and
+        this application asks it once per document written.
+        """
+        return self._stack.committed(backend)
+
     def forget_document(self, container: str) -> int:
         """
         Drop every command touching one document.
@@ -124,7 +133,7 @@ class UndoStack:
         cannot be kept until a command carries the document, and the wider
         one is the safe direction to be wrong in.
         """
-        return self._stack.drop_commands_for_file(container)
+        return self._stack.drop_commands_for_container(container)
 
     # -- what the menu asks --------------------------------------------------
 

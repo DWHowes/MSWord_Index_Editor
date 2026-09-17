@@ -199,3 +199,23 @@ class TestADocumentChangingUnderneath:
         stack, _b, _s = parts
         assert stack.undo() == ""
         assert stack.redo() == ""
+
+
+class TestACommitAsksTheBackend:
+    """Phase FN5: `committed` reads `clears_on_commit` through the core stack."""
+
+    class _Declares:
+        def __init__(self, clears):
+            self.clears_on_commit = clears
+
+    def test_a_backend_that_keeps_history_keeps_it(self, parts):
+        stack, _b, _s = parts
+        stack.record(command_for(EDIT, "Changed", [edit("a", "1", "2")]))
+        assert stack.committed(self._Declares(False)) is False
+        assert stack.can_undo
+
+    def test_a_backend_that_clears_empties_the_stack(self, parts):
+        stack, _b, _s = parts
+        stack.record(command_for(EDIT, "Changed", [edit("a", "1", "2")]))
+        assert stack.committed(self._Declares(True)) is True
+        assert not stack.can_undo

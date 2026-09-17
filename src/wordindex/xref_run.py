@@ -39,6 +39,7 @@ from typing import Iterable, Optional, Sequence
 
 from bookindexcore.backend.locator import SourceEdit
 from bookindexcore.checks.consolidate import consolidate
+from bookindexcore.dialect import effective_levels
 from bookindexcore.model.proposals import ChangeSet, ProposedChange
 from bookindexcore.style import XREF_AT_END
 
@@ -81,7 +82,7 @@ def build_change_set(references, *, placement=XREF_AT_END, profile=None,
     found = consolidate(ordered, dialect=XE_DIALECT)
     by_id = {r.entry_id: r for r in ordered}
 
-    ceiling = XE_DIALECT.effective_max_levels(project)
+    ceiling = effective_levels(XE_DIALECT, project)
     changes = []
     refused = list(found.contradictions)
 

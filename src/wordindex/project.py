@@ -143,6 +143,23 @@ class OpenProject:
         """The documents that opened, in the indexer's order."""
         return tuple(p for p in self.project.documents if p in self.backends)
 
+    def page_numbers(self):
+        """
+        Every page any open document's backend knows, by entry id, or None.
+
+        ``DocumentBackend.resolve_page_numbers`` per document, merged: entry
+        ids are minted per field and do not collide across documents. None
+        when no backend knows a page, which is every offline ``.docx``, since
+        pagination is a rendering property and nothing in the OOXML records
+        where a page breaks.
+        """
+        pages = {}
+        for path in self.documents:
+            known = self.backends[path].resolve_page_numbers()
+            if known:
+                pages.update(known)
+        return pages or None
+
     # -- the style profile --------------------------------------------------
 
     def styles(self) -> set:

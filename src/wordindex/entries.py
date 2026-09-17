@@ -93,7 +93,7 @@ def all_references(backend) -> list:
 # The shared tree speaks dicts, and that was a finding rather than a nuisance
 # ---------------------------------------------------------------------------
 
-def heading_rows(references) -> tuple:
+def heading_rows(references, *, pages=None) -> tuple:
     """
     ``(headings, rows)`` in the shape `populate_hierarchy_tree` reads.
 
@@ -110,10 +110,12 @@ def heading_rows(references) -> tuple:
     What is left here is the call, and it stays a named function of this
     module because eight call sites and four tests use the name.
 
-    **No label and no location.** An entry id is not a thing to show a reader
-    when it is a `wim_<uuid>` bookmark anchor, so the tree numbers the
-    references within each term instead; and there is no location to snapshot,
+    **No label and no location, unless a page is known.** An entry id is not a
+    thing to show a reader when it is a `wim_<uuid>` bookmark anchor, so the
+    tree numbers the references within each term instead; ``pages``, the
+    session's `page_numbers()`, labels a reference with its page where a
+    backend knows one (phase FN5), which offline OOXML never does; and there is no location to snapshot,
     because `MainWindow._go_to_entry` resolves an entry's document from the
     session at click time.
     """
-    return rows_from_references(references)
+    return rows_from_references(references, pages=pages)

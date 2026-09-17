@@ -1261,8 +1261,9 @@ class MainWindow(QMainWindow):
         """
         self.session.reread()
         self._references = self.session.references
-        self.index_panel.show_references(*heading_rows(self._references),
-                                         self._references)
+        self.index_panel.show_references(
+            *heading_rows(self._references, pages=self.session.page_numbers()),
+            self._references)
 
     def _draw_markers(self) -> None:
         """
@@ -2284,6 +2285,13 @@ class MainWindow(QMainWindow):
                 self, "Some documents were not written",
                 "\n".join(p.name for p in failures))
             return
+
+        # Each backend written through decides whether its committed write
+        # stays undoable (phase FN5). A list, not any(): every one is asked.
+        written = [path for path in self.session.documents if path not in held_back]
+        if any([self.undo_stack.committed(self.session.backends[path])
+                for path in written]):
+            self._refresh_undo_actions()
 
         for path in list(self._unsaved):
             if path in held_back:

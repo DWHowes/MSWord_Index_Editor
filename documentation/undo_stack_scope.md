@@ -150,7 +150,10 @@ Worth stating in the interface either way.
 detects that (step 11e) and refuses to write over it. A command recorded
 against the old text must not be applied to the new, and
 `IndexCommandStack.drop_commands_for_file` exists for exactly this. It needs
-wiring to `_document_changed_on_disk`.
+wiring to `_document_changed_on_disk`. *(17 September 2026: the core renamed it
+`drop_commands_for_container` in its format-neutrality phase, FN4, with no
+alias; `UndoStack.forget_document` calls the new name. This scope is kept as
+written.)*
 
 **What about the tree and table?** The LaTeX editor's `apply_command` refreshes
 the views itself. Here `_after_change` already re-reads the index from the

@@ -549,3 +549,16 @@ struck rows are carried. The filling itself is `bookindexcore`'s to test.
 assertion beside `struck` and `unfilled` in `test_toa_emission.py`, 14 September
 2026: the plan and the run carry `PlacedTable.unread` to the summary. The guard
 itself is `bookindexcore`'s to test.
+
+## Phase FN: this application adapted to a format-neutral core (15 to 17 September 2026)
+
+- `ui/test_page_style_editor.py`: the shared entry table offers Word's four
+  page styles and writes Word's values. Five of its six fail against the core
+  before phase FN, where choosing Bold silently wrote Standard.
+- `ui/test_declarations_read.py`: a save asks each backend written through
+  whether history survives, and the index panel is built with the pages the
+  backends know.
+- `test_undo.py::TestACommitAsksTheBackend`.
+- `test_ooxml_backend.py` no longer asserts `reachable_states`, which the core
+  removed; the states this backend reaches are kept in the core host guide's
+  Appendix C.9a.
