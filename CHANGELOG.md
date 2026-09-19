@@ -5,6 +5,15 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The Check Index defaults come from the core
+
+`CHECK_INDEX_DEFAULTS` is built by `bookindexcore.checks.check_index_defaults`,
+which counts this application's own rules in the off list exactly as this file
+did. It moved into the core because the InDesign editor would have been the
+third copy. Identical value for value, checked before and after; the core's
+version deep-copies, where `dict(GRAMMAR_DEFAULTS)` here had shared the grammar
+defaults' own lists.
+
 ### The level grammar's mechanics come from the core
 
 `_split_unescaped`, `escape`'s mechanics and `unescape` now call

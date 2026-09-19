@@ -28,8 +28,8 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from bookindexcore.checks import DISABLED_RULES_KEY, every_rule
-from bookindexcore.model.grammar import GRAMMAR_DEFAULTS, grammar_from_settings
+from bookindexcore.checks import DISABLED_RULES_KEY, check_index_defaults, every_rule
+from bookindexcore.model.grammar import grammar_from_settings
 
 #: Where these sit inside `QSettings`. One prefix, so a future setting cannot
 #: land loose in the root alongside window geometry.
@@ -58,9 +58,10 @@ def host_rules():
 #: about them would leave a rule declaring `default_on=False` switched *on*
 #: in every project -- the exact inversion the key's own docstring warns
 #: about in the other direction.
-CHECK_INDEX_DEFAULTS: Dict[str, Any] = dict(GRAMMAR_DEFAULTS)
-CHECK_INDEX_DEFAULTS[DISABLED_RULES_KEY] = sorted(
-    rule.id for rule in every_rule(host_rules()) if not rule.default_on)
+#:
+#: Built by the core since 19 September 2026, which counts a host's rules in
+#: exactly this way; the InDesign editor would have been the third copy.
+CHECK_INDEX_DEFAULTS: Dict[str, Any] = check_index_defaults(host_rules())
 
 
 class CheckIndexPrefs:
