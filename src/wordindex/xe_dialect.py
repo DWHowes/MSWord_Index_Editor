@@ -236,6 +236,8 @@ class XEDialect:
     #: answers ``document`` and InDesign ``host``; a single preference could
     #: only ever have been right for this one.
     xref_label_owner = XREF_LABEL_OURS
+    #: No cross-reference kinds beyond see and see also (the core's two).
+    preserved_xref_kinds: dict = {}
 
     #: **False, and it is not for want of trying.** An ``XE`` field placed
     #: inside a footnote files at the page the note sits on, indistinguishable

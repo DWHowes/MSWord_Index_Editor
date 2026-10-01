@@ -234,7 +234,11 @@ tests/
                             a location at all -- see
                             documentation/step9b_tree_measurements.md
 
-  test_undo.py              step U3: the command stack, away from Qt. What is
+  test_undo.py              MOVED to bookindexcore tests/model/test_undo.py on
+                            1 October 2026, with the executor itself
+                            (bookindexcore.model.undo; the InDesign editor's
+                            step 7, S1). What follows is what it held.
+                            step U3: the command stack, away from Qt. What is
                             asserted is what a stack is for rather than what
                             it is made of -- a consolidation of 35 edits
                             reverses together or not at all, a failure
@@ -558,7 +562,16 @@ itself is `bookindexcore`'s to test.
 - `ui/test_declarations_read.py`: a save asks each backend written through
   whether history survives, and the index panel is built with the pages the
   backends know.
-- `test_undo.py::TestACommitAsksTheBackend`.
+- `test_undo.py::TestACommitAsksTheBackend`, now in the core's `tests/model/test_undo.py`.
 - `test_ooxml_backend.py` no longer asserts `reachable_states`, which the core
   removed; the states this backend reaches are kept in the core host guide's
   Appendix C.9a.
+
+## Edits typed into the entry table (1 October 2026)
+
+`ui/test_table_edits.py`: a heading typed into the entry table is written to
+the manuscript and undone with Ctrl+Z, and a cross-reference keeps its `\t`
+switch. Both fail with the table left unconnected, which is how it shipped:
+the cell showed the edit and the document kept the old field. Found while
+scoping the InDesign editor's step 7. `test_undo.py` moved to the core with
+the executor (`bookindexcore/tests/model/test_undo.py`).

@@ -5,6 +5,22 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Edits typed into the entry table are written; undo is the core's
+
+- **Typing into the entry table now changes the manuscript.** Its heading
+  and page cells were editable and nothing listened: the cell showed the
+  edit, the document kept the old field, and nothing said so. An edit is now
+  written through the same path as the entry window's, so it is one undoable
+  change; a cross-reference keeps its `\t` switch. Found 1 October 2026 while
+  scoping the InDesign editor's step 7, which had the same defect.
+- **The undo executor is the core's** (`bookindexcore.model.undo`), moved
+  from `wordindex/undo.py` unchanged in what it does, its tests with it.
+  One difference the indexer can see: if putting back a half-applied
+  operation itself fails, the message now says so and asks for the document
+  to be read again, where it used to say nothing had changed.
+- **Its dialect declares `preserved_xref_kinds`**, empty: Word has no kinds
+  beyond *See* and *See also*.
+
 ### The manuscript view and its tabs are the core's
 
 `ManuscriptView` and `ManuscriptTabs` are now thin subclasses of the core's

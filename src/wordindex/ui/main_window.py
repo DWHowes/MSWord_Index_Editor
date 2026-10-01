@@ -76,7 +76,7 @@ from bookindexcore.ui.dialogs.toa_review import ToaReviewDialog
 from ..document_checks import document_rules
 from ..presentation_prefs import PresentationPrefs
 from ..sort_prefs import SortPrefs
-from ..undo import CannotReverse, UndoStack, command_for
+from bookindexcore.model.undo import CannotReverse, UndoStack, command_for
 from ..xref_run import apply_changes, build_change_set
 from ..entries import all_references, heading_rows
 from ..generated_index import GeneratedIndexPrefs, index_instruction
@@ -193,6 +193,11 @@ class MainWindow(QMainWindow):
         self.index_panel = IndexPanel()
         self.index_panel.entry_selected.connect(self._go_to_entry)
         self.index_panel.entry_selected.connect(self._show_in_entry_window)
+        # **Typed edits in the table are written.** The table's level and
+        # page cells were editable and nothing listened, so an edit showed in
+        # the cell and never reached the manuscript, with nothing said: found
+        # 1 October 2026 while scoping the InDesign editor's step 7 (its S10).
+        self.index_panel.table.entry_modifier_edit_committed.connect(self._table_edited)
 
         #: Personal names: the cascade, the language, the tables. N2, and
         #: until it this application had no way to invert a name at all.
@@ -1350,6 +1355,35 @@ class MainWindow(QMainWindow):
             before=(reference.locator.hint or {}).get("instruction", ""),
             after=instruction,
         ), f"Changed {entry_id}")
+
+    def _table_edited(self, entry_id, _value: str = "") -> None:
+        r"""
+        A row of the entry table edited: its levels and page style written
+        through `_edit_entry`, so it is one undoable change like any other.
+
+        Built onto the stored instruction, never from nothing, as the entry
+        window builds (so `\r`, `\f` and anything unmodelled survive). A
+        cross-reference keeps its switches: its Page cell shows the
+        cross-reference, not a page style.
+        """
+        reference = self._reference(entry_id)
+        fields = self.index_panel.table.get_row_field_values(entry_id)
+        if reference is None or fields is None:
+            return
+        raw = (reference.locator.hint or {}).get("instruction", "")
+        levels = []
+        for sort, display in fields["levels"]:
+            if not display:
+                break                               # a gap ends the heading
+            levels.append(XE_DIALECT.build_level(XE_DIALECT.escape(sort),
+                                                 XE_DIALECT.escape(display)))
+        if not levels:
+            return
+        instruction = XE_DIALECT.with_entry_text(raw, XE_DIALECT.join_levels(levels))
+        if reference.xref is None:
+            instruction = XE_DIALECT.with_page_style(instruction, fields["page_style"] or "")
+        if instruction != raw:
+            self._edit_entry(entry_id, instruction)
 
     def _delete_entry(self, entry_id) -> None:
         reference = self._reference(entry_id)

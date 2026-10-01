@@ -115,7 +115,7 @@ def main() -> int:
     differing = [name for name in original if original[name] != changed.get(name)]
     print(f"parts changed {differing or 'NONE -- the run did nothing'}")
 
-    from wordindex.undo import command_for
+    from bookindexcore.model.undo import command_for
     from bookindexcore.model.commands import EDIT
 
     window.undo_stack.record(

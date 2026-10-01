@@ -58,6 +58,10 @@ PACKAGE = "bookindexcore"
 #: be written down, which is what the map is for.
 DELIBERATE = {
     "ui.text_view": "a LaTeX source view; a Word manuscript has no source",
+    "ui.cross_reference_list": "the Cross-References tab for project-wide "
+                               "cross-references (LaTeX's managed ones, InDesign's "
+                               "topic-level ones); a Word cross-reference is an XE "
+                               "field's `\\t` switch, edited with its entry",
     "ui.tab_find_dialog": "used, through the shared search window",
     "persistence.index_repository": "this application's project store is the "
                                     "style-profile JSON; step 4 declined the "
