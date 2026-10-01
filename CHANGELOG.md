@@ -5,6 +5,19 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The manuscript view and its tabs are the core's
+
+`ManuscriptView` and `ManuscriptTabs` are now thin subclasses of the core's
+`DocumentView` and `DocumentTabs`, which they became when the InDesign editor
+needed the same view. This application keeps what is Word's: which of its
+reader's kinds are set aside, and tabs keyed by a manuscript's path. **Nothing
+renders differently**: the old and new views were compared over every
+paragraph kind, character by character, with markers and a range.
+
+**The entry table gains an Extent column**, read-only, showing a range's
+bookmark as the record stores it: a Word range is one field with an extent,
+which the table had never shown.
+
 ### Which rules are on, and the book's order, come from the core
 
 `CheckIndexPrefs.enabled_rules` is `bookindexcore.checks.enabled_rules`, and
