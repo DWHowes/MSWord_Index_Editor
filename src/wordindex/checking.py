@@ -42,7 +42,7 @@ collaborator went missing.
 
 from __future__ import annotations
 
-from bookindexcore.checks import check_index
+from bookindexcore.checks import book_order_key, check_index
 from bookindexcore.model.grammar import ProjectGrammar
 
 from .document_checks import document_rules, faults_in_project
@@ -51,32 +51,43 @@ from .xe_dialect import XE_DIALECT
 
 BODY = "word/document.xml"
 
-#: What a Locator sorts to when nothing owns it. Behind every real entry, so
-#: an orphan sinks rather than silently sorting first and making every rule
-#: that reads position wrong in the same direction.
-_UNPLACED = (1 << 30, 1 << 30)
-
-
-def project_order_key(session):
+def project_order_key(session, *, stale_is_unknown=False):
     """
     A `Locator -> sort key` callable that spans a project's documents.
 
     Returned as a closure rather than a method so the caller passes
     `project_order_key(session)` and nothing else, which is the shape
-    `check_index` documents for `backend.order_key`.
+    `check_index` documents for `backend.order_key`. The key itself is the
+    core's `book_order_key` (1 October 2026): this supplies only what the
+    core cannot know, which document owns a locator (by its anchor) and where
+    that document sits in the indexer's order. An entry no document owns
+    sorts behind everything.
+
+    `stale_is_unknown` is for consolidation, which orders references the
+    window holds and must not fail on one whose anchor the backend no longer
+    has: its order within its document is then unknown, not an error. Check
+    Index leaves it off, so a stale anchor there raises.
     """
     positions = {path: index
                  for index, path in enumerate(session.documents)}
 
-    def order_key(locator):
+    def position_of(locator):
         document = session.document_of(getattr(locator, "anchor", None))
-        if document is None:
-            return _UNPLACED
-        backend = session.backends.get(document)
-        within = backend.order_key(locator) if backend else -1
-        return (positions.get(document, 1 << 30), within)
+        return positions.get(document) if document is not None else None
 
-    return order_key
+    def within(locator):
+        backend = session.backends.get(
+            session.document_of(getattr(locator, "anchor", None)))
+        if backend is None:
+            return None
+        try:
+            return backend.order_key(locator)
+        except Exception:                       # noqa: BLE001 -- a stale anchor
+            if stale_is_unknown:
+                return None
+            raise
+
+    return book_order_key(position_of, within)
 
 
 def check_project(session, *, prefs=None, grammar=None, enabled=None):

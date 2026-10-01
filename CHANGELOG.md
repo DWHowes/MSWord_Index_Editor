@@ -5,6 +5,21 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### Which rules are on, and the book's order, come from the core
+
+`CheckIndexPrefs.enabled_rules` is `bookindexcore.checks.enabled_rules`, and
+the project's order key is built on `bookindexcore.checks.book_order_key`.
+Both moved into the core because the InDesign editor needed them. The enabled
+set is identical to what this file derived, compared over six stored values.
+
+**The book order had two copies here, and they disagreed.** Check Index used
+`checking.project_order_key`; consolidation used the main window's own
+`_project_order`, which put a reference no document owns in a different place
+and put a reference with a stale anchor *first* in its document. Both now use
+`project_order_key`, and consolidation passes `stale_is_unknown=True`, so a
+stale reference orders after the live ones in its document and is not chosen
+as the carrier ahead of them. Check Index still raises on a stale anchor.
+
 ### The Check Index defaults come from the core
 
 `CHECK_INDEX_DEFAULTS` is built by `bookindexcore.checks.check_index_defaults`,

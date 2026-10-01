@@ -85,6 +85,10 @@ DELIBERATE = {
     "ui.tree.tree_controller": "the tree is populated directly by "
                                "`IndexPanel.show_references`",
     "util.text": "a path sanitiser for a host that stores file paths",
+    "qt.settings": "the global store for `ScopedSettings`; this application "
+                   "keeps its settings in its own `QSettings` groups and has "
+                   "no project scope to route between (D7: adopting the "
+                   "core's project pieces is its own Word scope)",
     "util.text_layer": "cleans a PDF's text layer; ToA_Builder and the "
                        "extraction probe call it, and this application "
                        "never reads a PDF",

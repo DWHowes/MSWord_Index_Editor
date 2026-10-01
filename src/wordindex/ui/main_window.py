@@ -68,7 +68,7 @@ from .. import __version__
 from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
 from ..general_prefs import GeneralPrefs
-from ..checking import check_project
+from ..checking import check_project, project_order_key
 from ..toa_emission import build_plan
 from ..toa_prefs import ToaPrefs
 from ..toa_run import apply_plan
@@ -1882,17 +1882,17 @@ class MainWindow(QMainWindow):
         that backend's `order_key`. Neither alone is enough, and only this
         window has both -- which is why `consolidate` takes its references
         already ordered rather than working it out.
-        """
-        documents = list(self.session.documents) if self.session else []
-        path = self.session.document_of(reference.entry_id) if self.session else None
-        first = documents.index(path) if path in documents else len(documents)
 
-        backend = self.session.backend_of(reference.entry_id) if self.session else None
-        try:
-            second = backend.order_key(reference.locator) if backend else 0
-        except Exception:                       # noqa: BLE001 -- a stale anchor
-            second = 0
-        return (first, second)
+        The same key Check Index uses (`checking.project_order_key`, built on
+        the core's `book_order_key` since 1 October 2026), where this window
+        once kept its own copy that disagreed about an entry no document owns.
+        A reference whose anchor its backend no longer has orders as unknown
+        within its document, after the ones whose place is known, rather than
+        first, so it is not chosen as the carrier ahead of a live one.
+        """
+        if self.session is None:
+            return (1,)
+        return project_order_key(self.session, stale_is_unknown=True)(reference.locator)
 
     def _report_refusals(self, refused, *, run=None, nothing_to_do=False) -> None:
         """

@@ -28,7 +28,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from bookindexcore.checks import DISABLED_RULES_KEY, check_index_defaults, every_rule
+from bookindexcore.checks import check_index_defaults, enabled_rules
 from bookindexcore.model.grammar import grammar_from_settings
 
 #: Where these sit inside `QSettings`. One prefix, so a future setting cannot
@@ -103,9 +103,7 @@ class CheckIndexPrefs:
         so **a rule added to the core later is on by default** instead of
         silently absent because an old settings file never named it.
         """
-        disabled = set(self.load().get(DISABLED_RULES_KEY) or ())
-        return {rule.id for rule in every_rule(host_rules())
-                if rule.id not in disabled}
+        return enabled_rules(self.load(), host_rules())
 
     # -- writing ------------------------------------------------------------
 
