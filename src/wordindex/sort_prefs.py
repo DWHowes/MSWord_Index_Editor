@@ -45,12 +45,11 @@ import json
 from typing import Any, Dict
 
 from bookindexcore import store
-from bookindexcore.structure.kinds import INDEX_KIND_KEY, KIND_SUBJECT
+from bookindexcore.sorting.page import SORTING_PAGE_DEFAULTS
 from bookindexcore.sorting import (
     ORDER_BY_PROJECT,
     ORDER_MODE_KEY,
     ORDER_MODES,
-    SORT_DEFAULTS,
     WORD_HOST,
     SortRules,
     rules_for,
@@ -72,9 +71,9 @@ PREF_PREFIX = "sorting"
 #: it, opening the preferences window shows *Subject index* for a project
 #: that declared a name index, and the indexer either wonders or declares it
 #: again. Nothing reads it back except the page that wrote it.
-SORT_PREF_DEFAULTS: Dict[str, Any] = dict(SORT_DEFAULTS)
-SORT_PREF_DEFAULTS[ORDER_MODE_KEY] = ORDER_BY_PROJECT
-SORT_PREF_DEFAULTS[INDEX_KIND_KEY] = KIND_SUBJECT
+#: The core's since 2 October 2026 (`bookindexcore.sorting.page`), when the
+#: InDesign editor was the third application to add the two keys by hand.
+SORT_PREF_DEFAULTS: Dict[str, Any] = dict(SORTING_PAGE_DEFAULTS)
 
 
 class SortPrefs:

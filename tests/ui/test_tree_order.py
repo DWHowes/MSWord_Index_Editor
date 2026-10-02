@@ -39,3 +39,15 @@ def test_choosing_as_word_files_it_reorders_the_tree(window):
     assert window.index_panel.tree.filing_rules == WORD_HOST
     window._save_preferences({ORDER_MODE_KEY: ORDER_BY_PROJECT}, {}, {})
     assert window.index_panel.tree.filing_rules == SortPrefs().project_rules()
+
+
+def test_the_entry_window_offers_by_the_rules_preferences_saved(window):
+    """
+    Its sort-key offer read the rules once, when it was built. **Negative
+    control**: without `set_rules` in `_apply_filing_rules`, the window keeps
+    the rules it started with.
+    """
+    from wordindex.sort_prefs import SortPrefs
+    window._save_preferences({"ignore_punctuation": True}, {}, {})
+    assert window.entry_window.fields._rules == SortPrefs().project_rules()
+    assert window.entry_window.fields._rules.ignore_punctuation is True

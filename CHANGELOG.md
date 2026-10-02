@@ -5,6 +5,16 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The entry window's sort-key offer follows Preferences
+
+- **The entry window offered sort keys by the rules it started with.** It
+  read them once, when the window was built, so after Preferences changed
+  the filing rules its *Sort as* suggestions kept the old ones until the
+  application was restarted. It is now given them whenever they are saved.
+  Found by the InDesign editor's step 8, which had the same gap.
+- The sort store's defaults are the core's `SORTING_PAGE_DEFAULTS`; no
+  change in what is stored.
+
 ### File > Open Recent; the tree follows *Which order to show*
 
 - **File > Open Recent** lists the named projects most recently opened, as

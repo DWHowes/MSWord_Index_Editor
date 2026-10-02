@@ -437,6 +437,11 @@ tests/
                             half in front of the semicolon.
 ```
 
+`ui/test_tree_order.py::test_the_entry_window_offers_by_the_rules_preferences_saved` (step 8,
+subunit B): after Preferences the entry window holds the rules just saved.
+**Negative control**: without `set_rules` in `_apply_filing_rules` it keeps
+the rules it was built with.
+
 `ui/test_recent_projects.py` (2 October 2026) covers *File > Open Recent*,
 added at the indexer's instruction: a named project opened goes first, an
 ampersand in its name is shown rather than read as a mnemonic, the menu
