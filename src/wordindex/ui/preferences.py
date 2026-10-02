@@ -89,17 +89,17 @@ class WordPreferencesDialog(PreferencesDialog):
 
     def build_general_tab(self) -> GeneralPreferencesTab:
         """
-        The General page, without the two groups this application cannot
-        honour.
+        The General page, without the auto-save group.
 
         **Auto-save**: nothing here reaches disk before Save, which is the
         scope's second section rather than an omission, so an interval that
         can never fire is a control an indexer would one day rely on.
 
-        **Recent projects**: there is no most-recently-used list.
-        `profiles.known_projects` is every project ever named, so a maximum
-        limits nothing and *Clear List Now* would delete project records
-        rather than forget an ordering.
+        **Recent projects** are offered since 2 October 2026: the named
+        projects most recently opened, on *File > Open Recent*. Declined
+        until then because `profiles.known_projects` is every project ever
+        named; the list is a separate ordering, and *Clear List Now* forgets
+        it without deleting a project. See `general_prefs`.
 
         The log location is stated too, because it differs by host: the shared
         tooltip said *the open project's own directory*, which is the LaTeX
@@ -109,7 +109,7 @@ class WordPreferencesDialog(PreferencesDialog):
         return GeneralPreferencesTab(
             self._dialect, self,
             offers_autosave=False,
-            offers_recent_projects=False,
+            offers_recent_projects=True,
             log_location="this application's own data folder")
 
     def host_check_rules(self):

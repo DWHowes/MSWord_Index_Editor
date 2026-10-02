@@ -35,9 +35,10 @@ lost the edit, and found the page showing defaults the next time -- and the
 **General** page as neither populated nor stored. Both are asserted below,
 and the probe is what will find the third.
 
-The General page's other four keys are absent by declaration rather than by
-neglect: `build_general_tab` refuses the auto-save and recent-project groups
-here, so the shared page leaves those keys out of its payload entirely.
+The General page's two auto-save keys are absent by declaration rather than
+by neglect: `build_general_tab` refuses that group here, so the shared page
+leaves them out of its payload entirely. The recent-projects pair is offered
+and kept since 2 October 2026 (`test_recent_projects.py`).
 """
 
 from __future__ import annotations
@@ -47,7 +48,7 @@ import pytest
 from bookindexcore.checks import DISABLED_RULES_KEY, every_rule
 
 from wordindex.check_prefs import CheckIndexPrefs
-from wordindex.general_prefs import GeneralPrefs
+from wordindex.general_prefs import general_prefs
 from wordindex.presentation_prefs import PresentationPrefs
 from wordindex.sort_prefs import SortPrefs
 from wordindex.toa_prefs import ToaPrefs
@@ -142,7 +143,7 @@ class TestEveryStoreThatIsSavedIsAlsoLoaded:
         (PresentationPrefs, "populate_presentation_fields"),
         (ToaPrefs, "populate_authorities_fields"),
         (SortPrefs, "populate_sorting_fields"),
-        (GeneralPrefs, "populate_general_fields"),
+        (general_prefs, "populate_general_fields"),
     )
 
     @pytest.mark.parametrize("store,populate", PAIRS,
@@ -218,14 +219,14 @@ class TestTheGeneralPageOffersOnlyWhatThisApplicationCanDo:
     cannot be extended.
     """
 
-    def test_auto_save_and_recent_projects_are_not_offered(self, qt_app, dialog):
+    def test_auto_save_is_not_offered(self, qt_app, dialog):
         module, _ini = dialog
         window = module.WordPreferencesDialog(None, instructions=(),
                                               project_name="Sample")
         collected = window.general_tab.collect()
 
         assert "autosave_enabled" not in collected
-        assert "recent_projects_max" not in collected
+        assert "recent_projects_max" in collected
 
     def test_what_is_offered_is_what_is_stored(self, qt_app, dialog):
         """
@@ -236,16 +237,17 @@ class TestTheGeneralPageOffersOnlyWhatThisApplicationCanDo:
         window = module.WordPreferencesDialog(None, instructions=(),
                                               project_name="Sample")
 
+        assert set(window.general_tab.collect()) == set(general_prefs().defaults)
+        # And the probe's statement of the same keys says the same.
         from wordindex.general_prefs import GENERAL_DEFAULTS
-
-        assert set(window.general_tab.collect()) == set(GENERAL_DEFAULTS)
+        assert set(GENERAL_DEFAULTS) == set(general_prefs().defaults)
 
     def test_the_undo_depth_round_trips(self, qt_app, dialog):
         module, _ini = dialog
-        GeneralPrefs().save({"undo_stack_size": 12})
+        general_prefs().save({"undo_stack_size": 12})
 
         window = module.WordPreferencesDialog(None, instructions=(),
                                               project_name="Sample")
-        window.populate_general_fields(GeneralPrefs().load())
+        window.populate_general_fields(general_prefs().load())
 
         assert window.general_tab.collect()["undo_stack_size"] == 12

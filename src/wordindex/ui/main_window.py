@@ -67,7 +67,7 @@ from bookindexcore.ui.progress_dialog import ProgressDialog
 from .. import __version__
 from ..app_paths import HELP_SUBDIR, get_app_root, get_icon_path, get_icons_root
 from ..check_prefs import CheckIndexPrefs
-from ..general_prefs import GeneralPrefs
+from ..general_prefs import general_prefs, recent_projects
 from ..checking import check_project, project_order_key
 from ..toa_emission import build_plan
 from ..toa_prefs import ToaPrefs
@@ -191,6 +191,7 @@ class MainWindow(QMainWindow):
         self.outline_tree.itemClicked.connect(self._jump)
 
         self.index_panel = IndexPanel()
+        self._apply_filing_rules()
         self.index_panel.entry_selected.connect(self._go_to_entry)
         self.index_panel.entry_selected.connect(self._show_in_entry_window)
         # **Typed edits in the table are written.** The table's level and
@@ -250,7 +251,7 @@ class MainWindow(QMainWindow):
             # The indexer's answer, not the default argument. The General
             # page has asked how deep undo goes since step 9 and nothing here
             # read it until the wiring sweep of 1 September 2026.
-            limit=GeneralPrefs().undo_stack_size(),
+            limit=general_prefs().undo_stack_size(),
         )
 
         self.entry_window = EntryWindow()
@@ -273,6 +274,12 @@ class MainWindow(QMainWindow):
         open_action.setShortcut(shortcuts.sequence(shortcuts.OPEN_PROJECT))
         file_menu.addSeparator()
         file_menu.addAction("Open &project…", self.choose_project)
+        # The named projects most recently opened, at the indexer's
+        # instruction (step 8 of the InDesign editor, which moved the list to
+        # the core). Rebuilt each time it opens, so a change of preference or
+        # a cleared list shows at once.
+        self.recent_menu = file_menu.addMenu("Open &Recent")
+        self.recent_menu.aboutToShow.connect(self._fill_recent_menu)
         self.add_action = file_menu.addAction(
             "&Add document to project…", self.choose_addition)
         self.add_action.setEnabled(False)
@@ -994,6 +1001,48 @@ class MainWindow(QMainWindow):
             if documents:
                 self.open_project(Project(name=name, documents=documents))
 
+    def _fill_recent_menu(self) -> None:
+        """
+        *File > Open Recent*: as many as the General page says, then
+        *Clear List*. Empty, or switched off, it says so rather than showing
+        nothing.
+        """
+        menu = self.recent_menu
+        menu.clear()
+        shown = recent_projects().shown(general_prefs().recent_projects_shown())
+        if not shown:
+            empty = menu.addAction("(No recent projects)")
+            empty.setEnabled(False)
+        for number, entry in enumerate(shown, start=1):
+            name = entry["path"]
+            # A name may hold an ampersand, which Qt reads as a mnemonic.
+            shown_name = name.replace("&", "&&")
+            label = f"&{number} {shown_name}" if number < 10 else shown_name
+            menu.addAction(label, lambda name=name: self.open_recent_project(name))
+        menu.addSeparator()
+        clear = menu.addAction("&Clear List", self.clear_recent_projects)
+        clear.setEnabled(bool(shown))
+
+    def open_recent_project(self, name: str) -> None:
+        """
+        Open one of the list. **A project that has gone is forgotten and
+        said**, never a menu entry that silently does nothing.
+        """
+        documents = load_project(name)
+        if not documents:
+            recent_projects().forget(name)
+            QMessageBox.information(
+                self, "Project not found",
+                f"There is no project named {name!r} any more, so it has been "
+                "taken off the recent list.")
+            return
+        self.open_project(Project(name=name, documents=documents))
+
+    def clear_recent_projects(self) -> None:
+        """Forgets the ordering. No project is deleted."""
+        recent_projects().clear()
+        self.statusBar().showMessage("The recent projects list is cleared.")
+
     def choose_addition(self) -> None:
         """Add documents to the open project, at the end of the order."""
         if self.session is None:
@@ -1101,6 +1150,14 @@ class MainWindow(QMainWindow):
 
         self._reread_index()
         self.show_document(session.documents[0])
+        # Recorded once it has opened, and only when it is a stored project.
+        # A loose document's project carries the file's stem as its name, so
+        # the test is the store, not the name: an unnamed project is not
+        # remembered anywhere (`name_project`).
+        from ..profiles import known_projects
+
+        if project.name and project.name in known_projects():
+            recent_projects().record(project.name, project.name)
 
         if failed:
             QMessageBox.warning(
@@ -2109,11 +2166,12 @@ class MainWindow(QMainWindow):
         dialog.populate_presentation_fields(PresentationPrefs().load())
         dialog.populate_sorting_fields(SortPrefs().load())
         dialog.populate_authorities_fields(ToaPrefs().load())
-        dialog.populate_general_fields(GeneralPrefs().load())
+        dialog.populate_general_fields(general_prefs().load())
         dialog.populate_theme_fields(self._theme.model.serialize_dark(),
                                      self._theme.model.serialize_light())
         dialog.sig_config_accepted.connect(self._save_preferences)
         dialog.sig_general_accepted.connect(self._save_general_preferences)
+        dialog.sig_clear_recent_projects.connect(self.clear_recent_projects)
         dialog.sig_name_database_relocated.connect(self._name_database_moved)
         dialog.exec()
 
@@ -2138,11 +2196,22 @@ class MainWindow(QMainWindow):
         # have been collecting since the shared shell arrived with nothing
         # keeping a word of it.
         SortPrefs().save(payload)
+        self._apply_filing_rules()
         # **The colours are not in the payload**, they are the other two
         # arguments, and this method used to name them `_dark` and `_light`
         # and throw them away. The controller is the core's and does the
         # whole job: store them, then repaint what is on the screen.
         self._theme.handle_accepted(dark, light)
+
+    def _apply_filing_rules(self) -> None:
+        """
+        The tree files by the Sorting page's *Which order to show*: the
+        indexer's rules, or as Word will file them (``SortPrefs.rules``
+        resolves the pair). Stored since N1 and ordering no tree until the
+        InDesign editor's step 8 found the shared tree making every row
+        without rules.
+        """
+        self.index_panel.tree.set_filing_rules(SortPrefs().rules())
 
     def _save_general_preferences(self, payload) -> None:
         """
@@ -2151,11 +2220,11 @@ class MainWindow(QMainWindow):
         Stored first and applied second, so a failure to apply still leaves
         the setting saved for next time. Only two of its settings mean
         anything here and the page no longer offers the rest: see
-        `GeneralPrefs` for which, and why the others are declined rather than
-        stored.
+        `general_prefs` for which, and why auto-save is declined rather than
+        stored. (Four since 2 October 2026, with the recent-projects pair.)
         """
-        GeneralPrefs().save(payload)
-        self.undo_stack.set_limit(GeneralPrefs().undo_stack_size())
+        general_prefs().save(payload)
+        self.undo_stack.set_limit(general_prefs().undo_stack_size())
 
     def _name_database_moved(self, path: str) -> None:
         """

@@ -51,9 +51,9 @@ def folder_name() -> str:
     running and logging somewhere rather than not at all.
     """
     try:
-        from .general_prefs import GeneralPrefs
+        from .general_prefs import general_prefs
 
-        return GeneralPrefs().log_directory_name()
+        return general_prefs().log_directory_name()
     except Exception:                                         # noqa: BLE001
         return LOG_FOLDER_NAME
 

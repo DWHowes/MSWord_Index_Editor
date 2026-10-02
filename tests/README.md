@@ -437,6 +437,17 @@ tests/
                             half in front of the semicolon.
 ```
 
+`ui/test_recent_projects.py` (2 October 2026) covers *File > Open Recent*,
+added at the indexer's instruction: a named project opened goes first, an
+ampersand in its name is shown rather than read as a mnemonic, the menu
+shows as many as the General page says and none when switched off, a deleted
+project is forgotten and said, *Clear List* keeps the projects, and the
+page's button reaches the list. **It caught one defect while being written**:
+a single document's project carries the file's stem as its name, so recording
+"a project with a name" remembered loose documents; the window now records
+only a stored project. `ui/test_tree_order.py` asserts the tree is handed the
+rules *Which order to show* resolves to (before, it was handed none).
+
 `ui/test_preferences_round_trip.py` grew two classes from the wiring sweep of
 1 September 2026. **The Theme page was never populated and its colours were
 dropped on OK**, so an indexer set colours, lost the edit, and found the page

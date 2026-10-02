@@ -5,6 +5,23 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### File > Open Recent; the tree follows *Which order to show*
+
+- **File > Open Recent** lists the named projects most recently opened, as
+  many as the General page says (ten unless changed), with *Clear List*.
+  Added at the indexer's instruction. The page's recent-projects group is
+  offered now; clearing the list deletes no project. A project that has
+  since been deleted is taken off the list when chosen, and the indexer is
+  told. A single document opened on its own is not remembered, as before.
+- **The index tree is filed by the Sorting page's *Which order to show***.
+  The setting was stored from N1 on and ordered nothing: the shared tree made
+  every row without rules. It is now handed them at start and after
+  Preferences. Found by the InDesign editor's step 8 scope.
+- **The General page's store is the core's** (`bookindexcore.session.
+  GeneralPrefs`), moved from `wordindex/general_prefs.py` for the InDesign
+  editor; the keys and their place in the settings are unchanged.
+  `general_prefs.py` now only says how this application uses it.
+
 ### Edits typed into the entry table are written; undo is the core's
 
 - **Typing into the entry table now changes the manuscript.** Its heading

@@ -62,6 +62,11 @@ DELIBERATE = {
                                "cross-references (LaTeX's managed ones, InDesign's "
                                "topic-level ones); a Word cross-reference is an XE "
                                "field's `\\t` switch, edited with its entry",
+    "ui.dialogs.head_note_dialog": "the head note dialog (LaTeX's, and the "
+                                   "InDesign editor's from its step 8); this "
+                                   "application offers no head note: the index "
+                                   "document it writes could carry one before its "
+                                   "INDEX field, and nothing asks for one yet",
     "ui.tab_find_dialog": "used, through the shared search window",
     "persistence.index_repository": "this application's project store is the "
                                     "style-profile JSON; step 4 declined the "
