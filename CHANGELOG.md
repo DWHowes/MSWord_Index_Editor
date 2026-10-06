@@ -5,6 +5,13 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### A name's language comes from the core
+
+`NameDesk` asks the core's `HeadingLanguages` for a heading's language and
+states one through it (this project's record first, then the shared name
+database). No change in behaviour; the LaTeX editor had the same two
+methods, and the InDesign editor would have been the third copy.
+
 ### The entry window's sort-key offer follows Preferences
 
 - **The entry window offered sort keys by the rules it started with.** It

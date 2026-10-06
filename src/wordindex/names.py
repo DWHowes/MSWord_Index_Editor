@@ -47,8 +47,9 @@ from dataclasses import dataclass
 from typing import Callable, Optional, Sequence
 
 from bookindexcore.backend.locator import SourceEdit
+from bookindexcore.naming.desk import HeadingLanguages
 from bookindexcore.naming.service import NameInversionService
-from bookindexcore.style.languages import UNSTATED, normalise_language
+from bookindexcore.style.languages import UNSTATED
 from bookindexcore.style.names import fold_for_matching
 
 from . import profiles
@@ -88,17 +89,25 @@ class NameDesk:
 
     # -- the language of a name ---------------------------------------------
 
+    @property
+    def _languages(self) -> HeadingLanguages:
+        """
+        The precedence and the two writes, the core's since 6 October 2026
+        (the InDesign editor's step 8); the project's half is this
+        application's profile store. Built at the point of use, so a service
+        replaced after construction is the one written to.
+        """
+        return HeadingLanguages(
+            self.service,
+            read_project=lambda heading: profiles.heading_language(
+                self._project_key(), heading),
+            write_project=lambda heading, language: profiles.set_heading_language(
+                self._project_key(), heading,
+                "" if language == UNSTATED else language))
+
     def heading_language(self, heading: str) -> str:
         """This heading's language by the settled precedence. Never raises."""
-        try:
-            stored = profiles.heading_language(self._project_key(), heading)
-            if normalise_language(stored) != UNSTATED:
-                return normalise_language(stored)
-            return self.service.remembered_language(heading)
-        except Exception as exc:                                  # noqa: BLE001
-            print(f"[NAME INVERSION] Language lookup failed for "
-                  f"{heading!r}: {exc}")
-            return UNSTATED
+        return self._languages.of(heading)
 
     def set_heading_language(self, heading: str, language: str) -> None:
         """
@@ -106,17 +115,10 @@ class NameDesk:
 
         Separately guarded, because the two stores fail for unrelated reasons
         -- no project open, no name database -- and one being unavailable is
-        no reason to withhold the decision from the other.
+        no reason to withhold the decision from the other (the core's
+        ``HeadingLanguages``).
         """
-        language = normalise_language(language)
-        try:
-            profiles.set_heading_language(
-                self._project_key(), heading,
-                "" if language == UNSTATED else language)
-        except Exception as exc:                                  # noqa: BLE001
-            print(f"[NAME INVERSION] Could not store the language for "
-                  f"{heading!r}: {exc}")
-        self.service.remember_language(heading, language)
+        self._languages.state(heading, language)
 
     # -- the tables ---------------------------------------------------------
 

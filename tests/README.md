@@ -442,6 +442,11 @@ subunit B): after Preferences the entry window holds the rules just saved.
 **Negative control**: without `set_rules` in `_apply_filing_rules` it keeps
 the rules it was built with.
 
+`ui/test_invert_action.py`'s language tests run unchanged against the core's
+`HeadingLanguages` (6 October 2026); the desk builds it at the point of use,
+because a test replaces the service after the desk is made, and a helper
+holding the first service wrote to the wrong one (which those tests caught).
+
 `ui/test_recent_projects.py` (2 October 2026) covers *File > Open Recent*,
 added at the indexer's instruction: a named project opened goes first, an
 ampersand in its name is shown rather than read as a mnemonic, the menu
