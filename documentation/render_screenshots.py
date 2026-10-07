@@ -62,6 +62,7 @@ sys.path.insert(0, str(HERE.parent / "src"))
 sys.path.insert(0, str(HERE))
 
 from PySide6.QtCore import QCoreApplication                    # noqa: E402
+from PySide6.QtGui import QFont                                # noqa: E402
 from PySide6.QtWidgets import QApplication                     # noqa: E402
 
 from sample_book import write_book                             # noqa: E402
@@ -119,6 +120,12 @@ def shoot(widget, name: str) -> Path:
 
 def main() -> int:
     app = QApplication.instance() or QApplication([])
+    # **The application's font, set.** Offscreen Qt resolves its default
+    # "Sans Serif" to the first family it finds alphabetically, which on
+    # Windows is Agency FB, a condensed display face; every figure up to
+    # 7 October 2026 was drawn in it. Segoe UI is what Windows gives the
+    # application. Found by the InDesign editor's guide (its step 10a).
+    app.setFont(QFont("Segoe UI", 9))
 
     settings_folder = isolate_settings()
 
@@ -235,7 +242,7 @@ def main() -> int:
     # name database lives. The same fault the wiring sweep was called in for,
     # arriving in the documentation instead of the application.
     from wordindex.check_prefs import CheckIndexPrefs
-    from wordindex.general_prefs import GeneralPrefs
+    from wordindex.general_prefs import general_prefs
     from wordindex.presentation_prefs import PresentationPrefs
     from wordindex.sort_prefs import SortPrefs
     from wordindex.toa_prefs import ToaPrefs
@@ -257,7 +264,10 @@ def main() -> int:
     os.environ["BOOKINDEXCORE_NAME_DB"] = (
         r"C:\Users\<your name>\AppData\Local\DH Indexing\shared\indexing.db")
     try:
-        prefs.populate_general_fields(GeneralPrefs().load())
+        # As the menu fills it (main_window), through the factory: since
+        # the core's step 8 GeneralPrefs takes its settings, and this line
+        # raised TypeError after eight of thirteen figures until 7 October.
+        prefs.populate_general_fields(general_prefs().load())
     finally:
         os.environ["BOOKINDEXCORE_NAME_DB"] = real
     prefs.resize(820, 640)

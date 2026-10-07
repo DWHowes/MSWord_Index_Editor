@@ -5,6 +5,19 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The User Guide's figures, in the application's font
+
+Every figure `documentation/render_screenshots.py` rendered was drawn in
+Agency FB: offscreen Qt resolves its default *Sans Serif* to the first font
+it finds, alphabetically. The script now sets Segoe UI, the font Windows
+gives the application, and the thirteen figures are rendered again. Found
+by the InDesign editor's guide figures (its step 10a).
+
+**And the script had stopped running again**, after eight of its thirteen
+figures: the core's step 8 gave `GeneralPrefs` a required settings argument
+and the script still called `GeneralPrefs()`. It now fills the General page
+as the menu does, through `general_prefs()`.
+
 ### A name's language comes from the core
 
 `NameDesk` asks the core's `HeadingLanguages` for a heading's language and
