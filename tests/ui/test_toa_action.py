@@ -219,3 +219,35 @@ class TestTheProfileReachesTheReview:
     def test_the_standard_s_own_conventions_show_nothing(self, window,
                                                          monkeypatch):
         assert self._reviewed(window, monkeypatch, "none") == ""
+
+
+def test_the_table_is_filed_by_the_project_rules_not_the_shown_order(window, monkeypatch):
+    """
+    *Which order to show* is a viewing choice, and a table's filing key is
+    written into each field as its sort key. The build was handed the
+    order-resolved rules until 8 October 2026 (found by the user documents
+    review), so showing Word's order changed what was written. **Negative
+    control**: the two rule sets differ here, so the old call fails.
+    """
+    import dataclasses
+
+    from bookindexcore.sorting import ORDER_AS_HOST
+    from wordindex import sort_prefs
+    from wordindex.ui import main_window as module
+
+    own = dataclasses.replace(sort_prefs.SortPrefs().project_rules(),
+                              evaluate_numbers=True)
+    monkeypatch.setattr(sort_prefs.SortPrefs, "project_rules", lambda self: own)
+    monkeypatch.setattr(sort_prefs.SortPrefs, "order_mode", lambda self: ORDER_AS_HOST)
+    assert sort_prefs.SortPrefs().rules() != own
+
+    seen = {}
+
+    def build(documents, system, rules, **kwargs):
+        seen["rules"] = rules
+        return build_plan(documents, system, rules, **kwargs)
+
+    monkeypatch.setattr(module, "build_plan", build)
+    keep_nothing(monkeypatch)
+    window.build_table_of_authorities()
+    assert seen["rules"] == own

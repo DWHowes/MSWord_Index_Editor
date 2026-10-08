@@ -135,8 +135,14 @@ class TestTheTableIsBuiltWithThem:
 
         source = inspect.getsource(MainWindow.build_table_of_authorities)
 
-        assert "SortPrefs().rules()" in source, (
+        assert "SortPrefs().project_rules()" in source, (
             "the Table of Authorities is not reading the Sorting page")
+        # Not the order-resolved rules: a filing key is written into each
+        # field as its sort key, and *Which order to show* only changes what
+        # is shown (8 October 2026; see test_toa_action.py).
+        assert "SortPrefs().rules()" not in source, (
+            "the Table of Authorities files by the order the tree shows, so a "
+            "viewing choice reaches the manuscript")
         assert "sort_rules_from_settings({})" not in source, (
             "the Table of Authorities is built under bare defaults, so the "
             "indexer's filing rules do not reach the table this application "

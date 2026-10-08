@@ -1862,8 +1862,11 @@ class MainWindow(QMainWindow):
         progress.show()
         QApplication.processEvents()
         try:
+            # The project's rules, never the resolved pair: a filing key is
+            # written into each field as its sort key, and *Which order to
+            # show* is a viewing choice (`SortPrefs.rules` says so).
             plan = build_plan(
-                documents, system, SortPrefs().rules(),
+                documents, system, SortPrefs().project_rules(),
                 house=house,
                 on_progress=lambda done, total: (
                     progress.advance(done, total),

@@ -609,3 +609,12 @@ and `toc.json` entry must lead to a topic, both ways. **Negative controls**: a
 real command on the wrong menu in both arrow forms, the old page title as the
 guide spelled it, and a check that the walk read the commands at all, since a
 walk that found none would pass vacuously.
+
+## The table is filed by the project's rules (8 October 2026)
+
+`ui/test_toa_action.py::test_the_table_is_filed_by_the_project_rules_not_the_shown_order`:
+with *Which order to show* set to Word's order and project rules that differ
+from it, the build is handed the project's rules. A table's filing key is
+written into each field as its sort key, so the order-resolved rules let a
+viewing choice reach the manuscript. **Negative control**: it fails against
+the previous call.

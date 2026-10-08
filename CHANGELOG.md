@@ -5,6 +5,15 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### A Table of Authorities is filed by the project's rules, whatever the tree shows
+
+The build was handed the rules *Which order to show* resolves to, and a
+table's filing key is written into each field as its sort key. So setting
+the tree to show Word's order changed what was written into the manuscript,
+when that setting is only meant to change what you see. It is handed the
+project's own rules now. Found 8 October 2026 by the user documents review,
+while writing the sentence that says the setting writes nothing.
+
 ### The User Guide and Help brought current (8 October 2026)
 
 The user documents review measured the window against both documents and
