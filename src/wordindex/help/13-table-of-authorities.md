@@ -43,6 +43,21 @@ appear. **Abbreviations no citation table recognises** are usually a typo in
 the book and sometimes a gap in the tables; the entry is in the table either
 way. And **rows struck** are near-duplicates the book's own back matter produced, `Bibliography Poor Relief Act 1930` beside the real *Poor Relief Act 1930*, and they are named rather than quietly dropped.
 
+Two more kinds of entry come from the bibliography, and the summary after the
+run names each one:
+
+- **An entry that prints a dash for "same author as above"** is filed under
+  the author of the entry above it. Where that author could not be read, it is
+  filed **by its title** instead, and listed, so you can check where it went.
+- **An entry the tool could not read** is one where the only author it found
+  was part of the work's own title. It is **left out of the table** and named,
+  because filing a work under a word of its title is worse than not filing it:
+  add it by hand if it belongs.
+
+**Nothing is marked inside the bibliography itself.** A work the bibliography
+lists is still a row of the table, but its fields are placed only where the
+book cites it, so the table does not print the bibliography's own pages.
+
 ## Afterwards
 
 The whole run is **one undo**. A real book writes over a thousand fields, and

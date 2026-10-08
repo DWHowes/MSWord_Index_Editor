@@ -596,3 +596,16 @@ switch. Both fail with the table left unconnected, which is how it shipped:
 the cell showed the edit and the document kept the old field. Found while
 scoping the InDesign editor's step 7. `test_undo.py` moved to the core with
 the executor (`bookindexcore/tests/model/test_undo.py`).
+
+## Menu paths and Help links (8 October 2026)
+
+`ui/test_menu_paths.py`, copied from the InDesign editor's test of the same
+name for the user documents review. Every *Menu > Command* the Help and the
+User Guide name must be on the menu that holds it, read from the live menu
+bar because this application builds its menus inline; no page of Preferences
+may be named by the title it had before 5 September (*Check Index*, *Table of
+Authorities*), which the guide still did in four places; and every Help link
+and `toc.json` entry must lead to a topic, both ways. **Negative controls**: a
+real command on the wrong menu in both arrow forms, the old page title as the
+guide spelled it, and a check that the walk read the commands at all, since a
+walk that found none would pass vacuously.

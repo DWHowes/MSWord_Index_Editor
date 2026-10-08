@@ -1,6 +1,8 @@
 # Word Index Editor User Guide
 
-**Draft of 30 August 2026, brought forward 6 September 2026.** Nothing is marked *[blocked]* any more.
+**Draft of 30 August 2026, brought forward 6 September and 8 October 2026.** Nothing is marked *[blocked]* any more.
+
+*The October pass added what September and early October built: **File > Open Recent** (§9), the **Which order to show** setting (§12), editing in the entry table and its **Extent** column (§6), and the two new kinds of bibliography entry the Table of Authorities summary names (§12a). It also corrected three places that still named the Preferences pages by their old titles, and §12's claim that this application keeps no recent-projects list.*
 
 *The September pass added sections 12c and 12d for two tools this guide had never described, corrected section 12 against a preferences window that was rebuilt on 5 September, and added the fourth of the files section 2 keeps outside your project folders. The in-app help is the authority on what each tool does; this guide says when you would reach for it and points there.*
 
@@ -27,7 +29,7 @@ This application builds an **embedded index** in a Microsoft Word manuscript.
 
 ### The shape of the job
 
-You are sent a Word manuscript, usually earely in the editing process. You read it, decide on index entries and mark those entries in the text. You hand back a file that differs from the one you received **by the added fields and nothing else**. 
+You are sent a Word manuscript, usually early in the editing process. You read it, decide on index entries and mark those entries in the text. You hand back a file that differs from the one you received **by the added fields and nothing else**. 
 
 That last point shapes every write operation this product performs. The manuscript is not yours to improve, and the application is built so that you cannot change it by accident: the text is read-only, and the only things written into it are index fields and the bookmarks they need.
 
@@ -35,7 +37,7 @@ That last point shapes every write operation this product performs. The manuscri
 
 A Word index entry is an `XE` **field**, hidden text sitting at a point in the document, carrying the heading under which it should appear. Word's `INDEX` field collects these `XE` tags at layout and produces the index with page numbers. Because the field is hidden, you cannot see it in Word without turning on formatting marks (¶) and then you see field codes, rather than a formatted index entry. 
 
-The application shows you the manuscript with a **marker** at the location of each entry instead. You as the indexer do not need to be concerned with strucuring an `XE` field in order to produce the index entry you wish, the application handles that for you.
+The application shows you the manuscript with a **marker** at the location of each entry instead. You as the indexer do not need to be concerned with structuring an `XE` field in order to produce the index entry you wish, the application handles that for you.
 
 ### What it does
 
@@ -48,7 +50,7 @@ The application shows you the manuscript with a **marker** at the location of ea
 ### What it does not do
 
 - **It does not decide what to index.** No term suggestion, no concordance, no model. Indexing is judgement about what a reader will look for, and is the responsibility of the indexer.
-- **It does not change the manuscript.** Not; wording,  spelling, spacing, styles, filenames, or any other aspect of the manuscript, with the sole exception of inserting `XE` fields.
+- **It does not change the manuscript.** Not its wording, spelling, spacing, styles, filenames, or any other aspect of it, with the sole exception of inserting `XE` fields.
 - **It does not generate the index.** Word does that, at layout, in the publisher's hands, because page numbers do not exist until then.
 - **There are no page numbers anywhere in it**, and there cannot be.
 
@@ -112,7 +114,7 @@ Running from source stays supported afterwards, and is the only route on macOS a
 
 Four things live outside your project folders, and knowing where they are matters when something looks wrong:
 
-* **Style profiles**: what each publisher's styles mean, one entry per project. In your user application-data folder, as `style_profiles.json`.
+* **Style profiles**: what each publisher's styles mean, one entry per project, and the projects you have named. In `%LOCALAPPDATA%\DH Indexing\Word Index Editor`, as `style_profiles.json`. Before 10 September 2026 it was kept in the roaming application-data folder; a store found there is taken over once, and the old file is left where it was.
 * **Session logs**: a timestamped file per run, in a `session_logs` folder beside the profile store.
 * **Preferences**: Qt's own settings store, per user.
 * **The shared store**: `indexing.db`, in a `DH Indexing\shared` folder under your local application data. It holds the name decisions you have made and the alphabets and house styles you have written, and it is shared **between applications** rather than between projects: a name you settled in the LaTeX editor is already answered when you meet it here.
@@ -232,6 +234,10 @@ The numbers count that term's own entries. They are **not page numbers** and the
 ### The entries
 
 The lower half is one row per entry across the project, with its heading, its sort key and its page style. The filter box above it narrows it as you type, matching the displayed headings and their sort keys, so filtering here searches the whole book at once.
+
+**The table can be edited where it stands.** Double-click a heading or a sort key on any level and type, or choose the page style in the **Page** column: standard, bold, italic or bold italic, the same four as the entry window. Each edit is written to its entry at once, exactly as an edit in the entry window is, and each is one step for **Edit > Undo**. A cross-reference keeps its *See* or *See also*: its Page cell shows the cross-reference rather than a page style. The **ID** and **Extent** columns are for reading only.
+
+**Extent** names the bookmark a page range spans, because that is where Word keeps a range (section 8). It is empty for an entry that marks a single place.
 
 The line above both says how many terms and how many entries the project holds. On a real 2,076-entry book that reads *1,127 index terms in 2,076 entries*, and the gap between the two numbers is the index doing its job.
 
@@ -363,6 +369,8 @@ Open the first document, then **File > Add document to project** for the rest. T
 
 **File > Name this project** gives it a name and stores it, so **File > Open project** brings the whole book back.
 
+**File > Open Recent** lists the named projects you opened last, most recent first, so the book you were working on yesterday is one click away. How many it lists, and whether it is shown at all, is on the **General** page of Preferences (section 12). **Clear List** at the foot of the menu forgets the order and deletes no project: every one you have named is still under **File > Open project**. A project that no longer exists is taken off the list when you choose it, and you are told so.
+
 ![The Files tab, with the project's documents and the outline](images/guide_06_files.png)
 
 **Figure 9.1** The Files tab: the documents in reading order rather than filename order, with the open chapter's outline beneath them.
@@ -435,15 +443,15 @@ Two headings identical for their first 259 characters or so. Word compares only 
 
 ### Telling it your vocabulary
 
-One rule objects to a capital letter inside a word, and it is right to: it is how `SpaceX` and `iPhone` are told from a typing slip. But it cannot know which of those your book uses, and on one real manuscript it produced 110 of 239 findings on its own. **Preferences > Check Index** is where you tell it the words your book uses on purpose. No vocabulary is shipped, because a Word book is as likely to be about medieval Flanders as about spaceflight.
+One rule objects to a capital letter inside a word, and it is right to: it is how `SpaceX` and `iPhone` are told from a typing slip. But it cannot know which of those your book uses, and on one real manuscript it produced 110 of 239 findings on its own. **Preferences > Checks** is where you tell it the words your book uses on purpose. No vocabulary is shipped, because a Word book is as likely to be about medieval Flanders as about spaceflight.
 
 ### Choosing which checks run
 
-**Preferences > Check Index** turns individual rules on and off. A rule turned off stays off for every project.
+**Preferences > Checks** turns individual rules on and off. A rule turned off stays off for every project.
 
 ### Two checks about the document, not the index
 
-Both live under *In the document* in **Preferences > Check Index**, and they report: neither ever changes anything. The first is **on**; the second is off until you ask for it.
+Both live under *In the document* in **Preferences > Checks**, and they report: neither ever changes anything. The first is **on**; the second is off until you ask for it.
 
 **Damaged index fields: on.** A field whose beginning or end is missing. Word does not index it, and, measured by asking Word to render the page, **its instruction text prints in the book as ordinary text**. One real Cambridge manuscript in this indexer's own corpus prints, on page 25:
 
@@ -473,9 +481,10 @@ Anything that needs page numbers. Nothing here can tell you whether a range is t
 
 **Figure 12.1** The preferences window, with its pages down the left-hand edge.
 
-- **General** covers how far Undo steps back, what the session-log folder is called, and where the shared name database lives. It is shorter here than in the LaTeX editor on purpose: this application has no auto-save, because nothing reaches disk before you save, and no recent-projects list, because it remembers every project you have named rather than the last few.
+- **General** covers how far Undo steps back, the **recent projects** list (whether **File > Open Recent** is shown, how many projects it lists, from 1 to 25, and a button that clears it), what the session-log folder is called, and where the shared name database lives. It is shorter here than in the LaTeX editor on purpose: this application has no auto-save, because nothing reaches disk before you save.
 - **Checks** turns individual checking rules on and off, and holds the vocabulary of section 11.
-- **Sorting** sets how headings are compared: letter-by-letter or word-by-word, and what to do with hyphens and other punctuation. It also holds the **declared alphabet**, for a language whose letters do not run in Latin order, and a **Write one…** button for declaring your own. The help topic *Declared alphabets* covers it, including the part that matters most here: Word folds a sort key exactly as it folds a heading, so a declared alphabet is honoured everywhere this application shows you an order and does not reach the index Word builds.
+- **Sorting** sets how headings are compared: letter-by-letter or word-by-word, and what to do with hyphens and other punctuation. It also holds the **declared alphabet**, for a language whose letters do not run in Latin order, and a **Write one…** button for declaring your own. The help topic *Declared alphabets* covers it, including the part that matters most here: Word folds a sort key exactly as it folds a heading, so a declared alphabet is honoured where this application shows you your project's order and does not reach the index Word builds.
+- **Which order to show**, on the same page, decides the order of the **Index References** tab. **By this project's rules** shows the order you are working to, with everything set on this page. **As this format will actually file it** shows the order Word will give the finished index: word by word, digits as characters, punctuation counted except the hyphen, and accents folded, as measured against Word itself. The two can differ, and that is the point of having both: the first is what you intend, the second is what the publisher will print. The setting changes what you see and never what is written into the manuscript.
 - **Presentation** covers how headings and cross-references are shown, and holds the **name tables**: direct-order names, compound surnames, particles, what is not filed on, the Arabic tables, epithets and places of origin, and the generational suffixes. These are what the rules in section 12b consult.
 - **Authorities** holds the citation standard and house style, and is built only when the project has a table of authorities to make. It is described below and used by section 12a.
 - **UI Themes** sets the colours, light or dark.
@@ -611,7 +620,7 @@ for the same reason: this tool never invents a page.
 ### Before you run it
 
 Tell it which standard the book is cited in, under **Index ▸ Preferences ▸
-Table of Authorities**. There are three: Bluebook, McGill and OSCOLA. The choice decides which citation shapes exist, so it changes what is found. If
+Authorities**. There are three: Bluebook, McGill and OSCOLA. The choice decides which citation shapes exist, so it changes what is found. If
 your publisher departs from the standard, choose their house style beside it;
 if they are not listed, you can record one under *Publishers*.
 
@@ -639,6 +648,13 @@ ones: a `supra note 14` the tool could not follow is a page that will not
 appear. **Abbreviations no citation table recognises** are usually a typo in
 the book and sometimes a gap in the tables; the entry is in the table either
 way. And **rows struck** are near-duplicates the book's own back matter produced, `Bibliography Poor Relief Act 1930` beside the real *Poor Relief Act 1930*, and they are named rather than quietly dropped.
+
+Two more kinds of entry come from the bibliography, and the summary after the run names each one:
+
+- **An entry that prints a dash for "same author as above"** is filed under the author of the entry above it. Where that author could not be read, the entry is filed **by its title** instead, and listed, so you can check where it went.
+- **An entry the tool could not read** is one where the only author it found was part of the work's own title. It is **left out of the table** and named, because filing a work under a word of its title is worse than not filing it: add it by hand if it belongs.
+
+**Nothing is marked inside the bibliography itself.** A work the bibliography lists is still a row of the table, but its fields are placed only where the book cites it, so the table does not print the bibliography's own pages.
 
 ### Afterwards
 

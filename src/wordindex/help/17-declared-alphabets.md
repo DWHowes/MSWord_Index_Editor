@@ -39,8 +39,10 @@ both are silent:
 Word collates a sort key by the same rules it collates a heading, so the key
 this setting builds is folded flat by the application it is handed to, and the
 generated index comes out in the order it would have come out with no key at
-all. The setting is honoured everywhere this application shows you an order,
-and Word's own index is the one place it cannot reach.
+all. The setting is honoured wherever this application shows you your
+project's order, and Word's own index is the one place it cannot reach. That
+is also why it does not show when [Which order to show](10-preferences.md) is
+set to *As this format will actually file it*: that order is Word's.
 
 That is a limit of the host and not of the alphabet: the same declaration
 delivered through LaTeX files exactly as its authority prints.

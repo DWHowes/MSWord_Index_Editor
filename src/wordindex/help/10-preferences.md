@@ -3,20 +3,42 @@
 **Index > Preferences**. These follow you from book to book; the style profile
 and the reading order belong to the project instead.
 
-- **General** covers how far Undo steps back, what the session-log folder is
-  called, and where the shared name database lives. It is shorter here than in
-  the LaTeX editor on purpose: there is no auto-save, because nothing reaches
-  disk before you save, and no recent-projects list, because this application
-  remembers every project you have named rather than the last few.
+- **General** covers how far Undo steps back, the **recent projects** list
+  (whether **File > Open Recent** is shown, how many projects it lists, from 1
+  to 25, and a button that clears it), what the session-log folder is called,
+  and where the shared name database lives. It is shorter here than in the
+  LaTeX editor on purpose: there is no auto-save, because nothing reaches disk
+  before you save.
 - **Checks** turns the individual rules section 7 runs on and off.
 - **Sorting** sets how headings are compared: letter-by-letter or
-  word-by-word, and what to do with hyphens and other punctuation.
+  word-by-word, and what to do with hyphens and other punctuation. It also
+  holds the [declared alphabet](17-declared-alphabets.md) and **Which order
+  to show**, below.
 - **Presentation** covers how headings and cross-references are shown, and
   holds the **name tables** section 14 consults: direct-order names, compound
   surnames, particles, what is not filed on, the Arabic tables, epithets and
   places of origin, and the generational suffixes.
+- **Authorities** holds the citation standard and house style for
+  [a Table of Authorities](13-table-of-authorities.md), and is built only when
+  the project has one to make.
 - **UI Themes** sets the colours, light or dark.
 - **Generated index** is this application's own page, below.
+
+## Which order to show
+
+On the Sorting page. It decides the order of the **Index References** tab.
+
+- **By this project's rules** shows the order you are working to, with
+  everything set on the Sorting page.
+- **As this format will actually file it** shows the order Word will give the
+  finished index: word by word, digits as characters, punctuation counted
+  except the hyphen, and accents folded, as measured against Word itself.
+
+The two can differ, and that is the point of having both: the first is what you
+intend, the second is what the publisher will print. A declared alphabet, for
+instance, shows in the first and not the second, because Word does not file by
+one. The setting changes what you see and never what is written into the
+manuscript.
 
 ## The Generated index page
 

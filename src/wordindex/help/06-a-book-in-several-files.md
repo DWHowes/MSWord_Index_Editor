@@ -11,6 +11,13 @@ beside it.
 **File > Name this project** gives it a name and stores it, so **File > Open
 project** brings the whole book back.
 
+**File > Open Recent** lists the named projects you opened last, most recent
+first. How many it lists, and whether it is shown at all, is on the **General**
+page of [Preferences](10-preferences.md). **Clear List** at the foot of the
+menu forgets the order and deletes no project: every one you have named is
+still under **File > Open project**. A project that no longer exists is taken
+off the list when you choose it, and you are told so.
+
 ## The order is yours
 
 Sorting by filename does not give reading order. One real 17-chapter book,

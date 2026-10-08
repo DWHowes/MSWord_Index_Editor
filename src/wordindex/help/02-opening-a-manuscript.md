@@ -39,6 +39,17 @@ have marked eight times, which is worth a second look on its own.
 its heading, its sort key and its page style. The line above the terms says how
 many terms and how many entries the project holds.
 
+**The table can be edited where it stands.** Double-click a heading or a sort
+key on any level and type, or choose the page style in the **Page** column:
+standard, bold, italic or bold italic. Each edit is written to its entry at
+once, as an edit in [the entry window](05-the-entry-window.md) is, and each is
+one step for **Edit > Undo**. A cross-reference keeps its *See* or *See also*:
+its Page cell shows the cross-reference rather than a page style.
+
+The **ID** and **Extent** columns are for reading only. **Extent** names the
+bookmark a page range spans, which is where Word keeps a range; it is empty
+for an entry that marks a single place.
+
 ## Regions you cannot index
 
 Front matter, the bibliography, the generated index if there is one: these are

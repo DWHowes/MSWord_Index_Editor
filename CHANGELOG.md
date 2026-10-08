@@ -5,6 +5,33 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### The User Guide and Help brought current (8 October 2026)
+
+The user documents review measured the window against both documents and
+found them a month behind what it builds:
+
+- **File > Open Recent** (2 October) was in neither, and both still said this
+  application *has no recent-projects list*. Guide §9 and §12, Help topics 6
+  and 10.
+- **Which order to show** on the Sorting page, in effect here since 2 October,
+  was in neither. Guide §12 and Help topic 10 say what each answer shows;
+  the declared-alphabets topic no longer claims the alphabet shows in every
+  order, since Word's order is the one it cannot reach.
+- **The entry table can be edited**, and its **Extent** column names a range's
+  bookmark. Guide §6, Help topic 2.
+- **The Table of Authorities summary names two kinds of bibliography entry**,
+  dashes filed by title and entries it could not read, and nothing is marked
+  inside the bibliography. Guide §12a, Help topic 13.
+- **Four places named a Preferences page by its old title**: *Check Index*
+  three times in §11 and *Table of Authorities* in §12a, a month after the
+  pages became *Checks* and *Authorities*. Help topic 10 also lacked the
+  Authorities page.
+- Guide §2 names the profile store's real folder, and three typos in §1 are
+  corrected.
+
+`tests/ui/test_menu_paths.py` now holds menu paths, the old page titles and
+the Help links to what the window builds.
+
 ### The User Guide's figures, in the application's font
 
 Every figure `documentation/render_screenshots.py` rendered was drawn in
