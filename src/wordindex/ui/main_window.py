@@ -2219,11 +2219,14 @@ class MainWindow(QMainWindow):
         # when it was built and so offered by stale ones after Preferences
         # until a restart (the same step 8 finding, one widget over).
         # At start the tree is made before the entry window, which reads the
-        # rules itself when it is built.
-        from bookindexcore.sorting import WORD_HOST
+        # rules itself when it is built. **Word's side is read under the
+        # generated index's filing language**, which can file an alphabet by
+        # itself (`generated_index.host_rules`).
+        from ..generated_index import stored_host_rules
 
         if hasattr(self, "entry_window"):
-            self.entry_window.set_rules(SortPrefs().project_rules(), WORD_HOST)
+            self.entry_window.set_rules(SortPrefs().project_rules(),
+                                        stored_host_rules())
 
     def _save_general_preferences(self, payload) -> None:
         """

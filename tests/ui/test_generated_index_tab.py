@@ -217,3 +217,18 @@ class TestWritingItFromTheWindow:
         from wordindex.ui.main_window import MainWindow
 
         assert not MainWindow().index_document_action.isEnabled()
+
+
+class TestALanguageThatFilesAnAlphabetItself:
+    def test_turkish_says_no_key_is_offered(self, page):
+        page.populate({"filing_language": "1055"})
+
+        assert page.lbl_language_alphabet.isVisibleTo(page)
+        assert "Turkish alphabet itself" in page.lbl_language_alphabet.text()
+
+    def test_a_language_that_files_none_says_nothing(self, page):
+        """Negative control."""
+        page.populate({"filing_language": "1053"})
+
+        assert not page.lbl_language_alphabet.isVisibleTo(page)
+        assert page.lbl_language_alphabet.text() == ""

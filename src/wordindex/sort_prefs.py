@@ -129,8 +129,15 @@ class SortPrefs:
         mode. `project_rules` is there for the one case that needs the
         indexer's own answer regardless -- writing a sort key into a
         manuscript, where *what Word would do anyway* is not worth writing.
+
+        *As Word files it* is read under the generated index's filing
+        language, which can file a declared alphabet by itself
+        (`generated_index.host_rules`).
         """
-        return rules_for(self.order_mode(), self.project_rules(), WORD_HOST)
+        from .generated_index import stored_host_rules
+
+        return rules_for(self.order_mode(), self.project_rules(),
+                         stored_host_rules(self._settings))
 
     # -- writing ------------------------------------------------------------
 

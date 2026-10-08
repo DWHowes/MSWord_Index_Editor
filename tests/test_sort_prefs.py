@@ -266,3 +266,18 @@ class TestTheAlphabetsAreTheMachinesRatherThanThisApplications:
                             lambda *args: refuse())
 
         assert SortPrefs(Store()).load()["authored_alphabets"] == {}
+
+
+def test_as_word_files_it_reads_the_generated_index_language():
+    """
+    *As Word files it* under a Turkish generated index is Word's preset with
+    the Turkish alphabet, because that is what Word prints (the alphabet hosts
+    scope, D3). Under Word's own language it is `WORD_HOST`, above.
+    """
+    from wordindex.generated_index import host_rules
+
+    store = Store({f"sorting/{ORDER_MODE_KEY}": ORDER_AS_HOST,
+                   "generated_index/filing_language": "1055"})
+
+    assert SortPrefs(store).rules() == host_rules("1055")
+    assert SortPrefs(store).rules() != WORD_HOST

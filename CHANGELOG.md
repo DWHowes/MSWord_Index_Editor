@@ -5,6 +5,24 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### No alphabet key where the index's language files the alphabet itself
+
+Measured 8 October 2026 (bookindexcore `e0_probes/alphabet_shipped_key_hosts.py`,
+its declared-alphabet hosts scope, D3): with the generated index's filing
+language set to Turkish, Word files Alakuş's ten Turkish names in order with
+**no sort key**, and prints Ç, İ and Ş as letter headings of their own. A
+declared Turkish alphabet's keys keep the order and lose those headings, into
+C, H and S, and each writes a private-use character into the manuscript.
+
+So **Word's side of every comparison is now read under the filing language**:
+`generated_index.host_rules` is `WORD_HOST`, plus a shipped alphabet wherever
+`ALPHABET_OF_LANGUAGE` says the language files it (Turkish, 1055, the one
+measured). The entry window offers no key Word would make redundant; *As Word
+files it* in the tree shows Word's Turkish order; the Generated index page's
+filing check compares against it; and that page says, under the language,
+that no key is offered for the alphabet and why. Under any other language
+nothing changes.
+
 ### A Table of Authorities is filed by the project's rules, whatever the tree shows
 
 The build was handed the rules *Which order to show* resolves to, and a

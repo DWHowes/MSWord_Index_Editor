@@ -56,7 +56,9 @@ from ..generated_index import (
     HEADINGS_LETTER,
     HEADINGS_NONE,
     HEADINGS_PATTERN,
+    ALPHABET_OF_LANGUAGE,
     LANGUAGE_WORDS_OWN,
+    host_rules,
     index_instruction,
     index_type_report,
     letter_heading_preview,
@@ -156,11 +158,16 @@ class GeneratedIndexTab(QWidget):
         and the one this must not nag about: a page that warns when there is
         nothing to warn about is a page an indexer learns to skip.
         """
-        from bookindexcore.sorting import WORD_HOST, disagreements
+        from bookindexcore.sorting import disagreements
 
+        from ..generated_index import stored_host_rules
         from ..sort_prefs import SortPrefs
 
         rules = SortPrefs().project_rules()
+        # Word's side under the language this page has chosen, or the stored
+        # one while the page is still being built.
+        word = (host_rules(self.cmb_language.currentData())
+                if hasattr(self, "cmb_language") else stored_host_rules())
         levels = [
             (index, XE_DIALECT.display_of(level).strip())
             for instruction in self._instructions
@@ -177,7 +184,7 @@ class GeneratedIndexTab(QWidget):
 
         differing = [
             (text, index) for index, text in levels
-            if disagreements([text], rules, WORD_HOST, level=index)
+            if disagreements([text], rules, word, level=index)
         ]
         if not differing:
             self.lbl_filing.setText(
@@ -226,6 +233,9 @@ class GeneratedIndexTab(QWidget):
             "The one setting here that changes the sort, and an indexing "
             "decision rather than a formality. Word files Ä and Ö as A and O "
             "in German and after Z in Swedish, and it is right both times."))
+        # Shown only for a language that files a shipped alphabet by itself.
+        self.lbl_language_alphabet = _note("")
+        form.addRow(self.lbl_language_alphabet)
         return group
 
     def _build_headings_group(self) -> QGroupBox:
@@ -380,6 +390,17 @@ class GeneratedIndexTab(QWidget):
 
         self.lbl_field.setText(index_instruction(self.collect()))
 
+        alphabet = ALPHABET_OF_LANGUAGE.get(
+            str(self.cmb_language.currentData() or ""))
+        self.lbl_language_alphabet.setText(
+            f"Word files the {alphabet_label(alphabet)} alphabet itself in "
+            f"this language, its letter headings included, so no sort key is "
+            f"offered for it: a key would print those letters under their "
+            f"base letter's heading." if alphabet else "")
+        self.lbl_language_alphabet.setVisible(bool(alphabet))
+        if hasattr(self, "lbl_filing"):
+            self._refresh_filing()
+
     def _pattern_advice(self) -> str:
         """Why Word would refuse this pattern, or what it would draw."""
         pattern = self.txt_pattern.text()
@@ -443,6 +464,14 @@ class GeneratedIndexTab(QWidget):
             "write_index_document": self.chk_write_document.isChecked(),
             "index_document_name": self.txt_document_name.text().strip(),
         }
+
+
+def alphabet_label(name: str) -> str:
+    """A shipped alphabet's name as a sentence says it: *Turkish*."""
+    from bookindexcore.style.alphabets import ALPHABETS
+
+    declared = ALPHABETS.get(name)
+    return declared.label.split(" (")[0] if declared else name
 
 
 def _note(text: str) -> QLabel:

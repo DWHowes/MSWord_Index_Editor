@@ -618,3 +618,16 @@ from it, the build is handed the project's rules. A table's filing key is
 written into each field as its sort key, so the order-resolved rules let a
 viewing choice reach the manuscript. **Negative control**: it fails against
 the previous call.
+
+## A filing language that files an alphabet itself (8 October 2026)
+
+`test_generated_index.py::TestALanguageThatFilesAnAlphabetItself`: Word's
+preset under its own language and under English is `WORD_HOST`; every entry of
+`ALPHABET_OF_LANGUAGE` is an offered language and a shipped alphabet; under
+Turkish no alphabet key is offered for four headings, **and under English
+(Canada) the same four are offered one**, which is the negative control; an
+English heading in a Turkish index is offered a key it was not offered before,
+because the comparison is with what Word does. `test_sort_prefs.py` holds the
+tree's *As Word files it* reading the generated index's language, and
+`ui/test_generated_index_tab.py` the page's sentence, shown for Turkish and
+absent for Swedish.

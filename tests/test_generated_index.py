@@ -268,3 +268,60 @@ class TestStorage:
         assert GENERATED_INDEX_DEFAULTS["letter_heading_pattern"] == \
             DEFAULT_HEADING_PATTERN
         assert GENERATED_INDEX_DEFAULTS["letter_headings"] == HEADINGS_BLANK
+
+
+class TestALanguageThatFilesAnAlphabetItself:
+    r"""
+    The declared-alphabet hosts scope's D3 (bookindexcore,
+    `declared_alphabet_hosts_scope.md`), measured 8 October 2026 by
+    `alphabet_shipped_key_hosts.py`: under `\z 1055` Word files Turkish with
+    no key, letter headings included, and a key only costs the headings.
+    """
+
+    def test_word_left_to_itself_is_the_measured_preset(self):
+        from bookindexcore.sorting import WORD_HOST
+        from wordindex.generated_index import LANGUAGE_WORDS_OWN, host_rules
+
+        assert host_rules(LANGUAGE_WORDS_OWN) == WORD_HOST
+        assert host_rules("4105") == WORD_HOST
+
+    def test_every_entry_is_a_shipped_alphabet_and_an_offered_language(self):
+        from bookindexcore.style.alphabets import ALPHABETS
+        from wordindex.generated_index import (
+            ALPHABET_OF_LANGUAGE, FILING_LANGUAGES)
+
+        offered = {language.lcid for language in FILING_LANGUAGES}
+        for lcid, alphabet in ALPHABET_OF_LANGUAGE.items():
+            assert lcid in offered
+            assert alphabet in ALPHABETS
+
+    @pytest.mark.parametrize("name", ["Çağlayangil", "Şahin", "Kür", "Inal"])
+    def test_no_alphabet_key_is_offered_under_turkish(self, name):
+        """
+        **Negative control**, the same heading under English (Canada): the
+        key is offered there, because Word's own collation would misfile it.
+        """
+        from bookindexcore.sorting import sort_key_needed, sort_rules_from_settings
+        from wordindex.generated_index import host_rules
+
+        project = sort_rules_from_settings({"declared_alphabet": "turkish"})
+
+        assert sort_key_needed(name, project, host_rules("1055")) is None
+        assert sort_key_needed(name, project, host_rules("4105"))
+
+    def test_an_english_heading_in_a_turkish_index_is_still_offered_a_key(self):
+        """
+        Word's Turkish collation files **every** heading, so an English one in
+        a project that keeps English out of the Turkish order now needs a key
+        where under English it did not: the comparison is with what Word does.
+        """
+        from bookindexcore.sorting import sort_key_needed, sort_rules_from_settings
+        from wordindex.generated_index import host_rules
+
+        project = sort_rules_from_settings(
+            {"declared_alphabet": "turkish", "language_alphabets": {"en": ""}})
+
+        assert sort_key_needed("Inal", project, host_rules("4105"),
+                               language="en") is None
+        assert sort_key_needed("Inal", project, host_rules("1055"),
+                               language="en")

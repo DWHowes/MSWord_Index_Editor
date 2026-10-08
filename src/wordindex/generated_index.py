@@ -86,6 +86,44 @@ def language_named(lcid: str) -> Optional[FilingLanguage]:
     return None
 
 
+#: The shipped alphabets a filing language files **by itself**, with no sort
+#: key: `{lcid: alphabet name}`. **Measured, one entry per measurement.**
+#: `bookindexcore/documentation/e0_probes/alphabet_shipped_key_hosts.py`,
+#: 8 October 2026: under `\z 1055` Word files Alakuş's ten Turkish names in
+#: order with no key, and heads them `Ç`, `İ` and `Ş` correctly, which the
+#: alphabet's keys cannot do; with the keys the order holds and those headings
+#: are lost. Not German (1031 is the standard order, not the phone book's), and
+#: Welsh, Māori and the Mayan orthographies have no language here.
+ALPHABET_OF_LANGUAGE: Dict[str, str] = {"1055": "turkish"}
+
+
+def host_rules(filing_language: str = LANGUAGE_WORDS_OWN):
+    """
+    What Word files by, under the generated index's filing language.
+
+    `WORD_HOST` is Word left to its own locale. **Under a language that files
+    a shipped alphabet itself** the preset also carries that alphabet, for
+    every heading, as Word's collation applies it to every heading. So a key
+    the alphabet would otherwise need is not offered there: it would write a
+    private-use character into the manuscript and cost the letter headings
+    Word would have printed (the alphabet hosts scope, D3).
+    """
+    from bookindexcore.sorting import WORD_HOST
+    from bookindexcore.sorting.rules import UNSTATED
+    from bookindexcore.style.alphabets import substitutions_for
+
+    alphabet = ALPHABET_OF_LANGUAGE.get(str(filing_language or ""))
+    if not alphabet:
+        return WORD_HOST
+    return WORD_HOST.evolve(
+        language_substitutions={UNSTATED: substitutions_for(alphabet, {}, {})})
+
+
+def stored_host_rules(settings=None):
+    """:func:`host_rules` under the filing language Preferences hold."""
+    return host_rules(GeneratedIndexPrefs(settings).load()["filing_language"])
+
+
 # -- letter headings --------------------------------------------------------
 
 #: No `\h` at all: entries run on with no break between letter groups.
