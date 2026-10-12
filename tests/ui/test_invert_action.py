@@ -102,7 +102,7 @@ def opened(window, book):
 
 
 def _accept_the_dialog(monkeypatch, value="Wittenborg, Johann",
-                       language=UNSTATED):
+                       language=UNSTATED, has_surname=None):
     """Stand in for the modal dialog with one that answers immediately."""
 
     class _Dialog:
@@ -119,7 +119,10 @@ def _accept_the_dialog(monkeypatch, value="Wittenborg, Johann",
             return value
 
         def correction_reason(self):
-            return "particle"
+            return "patronymic" if has_surname is False else "particle"
+
+        def has_surname(self):
+            return has_surname
 
         def language(self):
             return language
@@ -260,6 +263,20 @@ class TestWhatTheDialogIsTold:
         opened.invert_name("Johann Wittenborg", 0)
         assert opened._names.service.corrections[0][:2] == (
             "Johann Wittenborg", "Wittenborg, Johann")
+
+    def test_a_name_with_no_surname_is_remembered_though_unchanged(
+            self, opened, monkeypatch):
+        """
+        *No* to the surname question, on a heading already in direct order:
+        nothing in the manuscript changes, and the decision is still kept,
+        because it is the one the rules will get wrong in the next book.
+        """
+        _accept_the_dialog(monkeypatch, value="Johann Wittenborg",
+                           has_surname=False)
+        opened.invert_name("Johann Wittenborg", 0)
+        assert opened._names.service.corrections == [
+            ("Johann Wittenborg", "Johann Wittenborg", "patronymic", UNSTATED)]
+        assert "Johann Wittenborg" in [r.heading_raw for r in opened._references]
 
 
 class TestStatingALanguageOnItsOwn:

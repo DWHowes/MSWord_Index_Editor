@@ -5,6 +5,15 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### 12 October 2026: the name dialog asks whether a name has a surname
+
+- **From bookindexcore, with no change here to show it**: the name dialog now
+  asks *does this name have a surname?*, with a note on the period for the
+  traditions where it decides (Turkish, Irish, Welsh, Ethiopian, Icelandic).
+  *No* puts the name as written. The name article's validation set traced 19
+  of its 23 wrong headings to that one defect.
+- **A *no* is kept even when the heading does not change.** This editor remembered a correction only when the value differed from the heading, so a name typed in direct order and confirmed to have no surname reached the shared store as nothing, and the rules would invert it again in the next book. `test_invert_action.py::test_a_name_with_no_surname_is_remembered_though_unchanged`, which fails without the change.
+
 ### No alphabet key where the index's language files the alphabet itself
 
 Measured 8 October 2026 (bookindexcore `e0_probes/alphabet_shipped_key_hosts.py`,

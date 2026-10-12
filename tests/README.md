@@ -631,3 +631,7 @@ because the comparison is with what Word does. `test_sort_prefs.py` holds the
 tree's *As Word files it* reading the generated index's language, and
 `ui/test_generated_index_tab.py` the page's sentence, shown for Turkish and
 absent for Swedish.
+
+## A name with no surname (12 October 2026)
+
+`ui/test_invert_action.py::test_a_name_with_no_surname_is_remembered_though_unchanged` answers *no* to the core dialog's surname question on a heading already in direct order and requires the decision in the shared store with the reason *patronymic*, and the manuscript unchanged. The stand-in dialog gained `has_surname()`, since the window now asks it.

@@ -1665,7 +1665,11 @@ class MainWindow(QMainWindow):
         final = dialog.result_value()
         language = dialog.language()
 
-        if final.strip() and final.strip() != heading.strip():
+        # A *no* to the surname question is kept even when the heading did not
+        # change: a name typed in direct order and confirmed to have no
+        # surname is the decision the rules will get wrong in the next book.
+        if final.strip() and (final.strip() != heading.strip()
+                              or dialog.has_surname() is False):
             self._names.service.remember_heading(
                 heading, final, reason=dialog.correction_reason() or "",
                 language=language)
