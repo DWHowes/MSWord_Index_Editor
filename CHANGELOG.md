@@ -5,6 +5,10 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### 15 October 2026: the menu-path test runs on bookindexcore's checks
+
+Nothing changes in the window. The test that every *Menu > Command* the documents name is the menu that holds it, and that every help link leads to a topic, was one of three copies across the editors; the checks are now `bookindexcore.testing.documentation` and `bookindexcore.qt.menus`, and this application's test keeps only its own sources and negative controls. Every path still passes.
+
 ### 15 October 2026: CIndex's two conditional cross-reference placements
 
 - **From bookindexcore**: the Presentation page offers five placements, CIndex's, adding *after the heading if it has no page references, else as the first sub-entry* and *as the last sub-entry if there are sub-entries, else after the heading*.

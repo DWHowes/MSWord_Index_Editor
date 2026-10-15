@@ -639,3 +639,7 @@ absent for Swedish.
 ## CIndex's conditional cross-reference placements (15 October 2026)
 
 `test_xref_run.py::TestTheConditionalPlacements`: no pages puts the consolidated reference after the heading and pages make it the first sub-entry (`;aaa`); sub-entries make it the last sub-entry (`;zzz`) and none leaves it after the heading; a cross-reference already written as a sub-entry does not count as a sub-entry; a sort key on the heading does not make it another heading. `test_xref_placement.py::TestAnUnresolvedPlacementIsRefused` requires `instruction_for` and `levels_needed` to raise on a conditional value.
+
+## The menu-path test on the core's checks (15 October 2026)
+
+`test_menu_paths.py` calls `bookindexcore.testing.documentation.wrong_menu_paths` and `help_link_problems` (and, where the commands are read from the window, `bookindexcore.qt.menus.menu_commands`) in place of its own copies of them; its sources and negative controls are unchanged, and a wrong path is now reported as *Menu > Command (it is on Other)* whatever arrow the document wrote.

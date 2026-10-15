@@ -15,51 +15,34 @@ alone.
 
 **Negative control**: the paths this test was written for, and a wrong menu
 for a real command.
+
+**The checks are bookindexcore's** (``testing.documentation``, with
+``qt.menus`` reading the menu bar) since 15 October 2026, when this test and
+two others like it were the three copies a fourth application would have
+added to. What stays here is this application's sources and controls.
 """
 
-import json
 import re
 from pathlib import Path
 
 import pytest
 
+from bookindexcore.testing.documentation import help_link_problems, wrong_menu_paths
+
 ROOT = Path(__file__).resolve().parents[2]
 HELP = ROOT / "src" / "wordindex" / "help"
 GUIDE = ROOT / "documentation" / "User Guide.md"
-MENU = re.compile(r"\b(File|Manuscript|Edit|Index|View|Help)\s*[>▸]\s*")
-
-
-def _plain(label: str) -> str:
-    return label.replace("&", "").rstrip("…").strip()
 
 
 @pytest.fixture(scope="module")
 def commands(qt_app):
     """Each command's label, as text spells it, to the menu that holds it."""
+    from bookindexcore.qt.menus import menu_commands
     from wordindex.ui.main_window import MainWindow
 
     window = MainWindow()
-    found = {}
-    for top in window.menuBar().actions():
-        title = _plain(top.text())
-        for action in top.menu().actions():
-            if not action.isSeparator() and action.text():
-                found[_plain(action.text())] = title
+    found = menu_commands(window.menuBar())
     window.close()
-    return found
-
-
-def wrong_paths(text: str, commands: dict) -> list[str]:
-    """Each ``Menu > Command`` in ``text`` naming a command another menu holds."""
-    flat = re.sub(r"\s+", " ", text)
-    found = []
-    for match in MENU.finditer(flat):
-        following = flat[match.end():match.end() + 80].lstrip("*")
-        named = [c for c in commands if following.lower().startswith(c.lower())]
-        if named:
-            command = max(named, key=len)
-            if commands[command] != match.group(1):
-                found.append(f"{match.group(1)} > {command} (it is on {commands[command]})")
     return found
 
 
@@ -70,7 +53,7 @@ def sources():
 
 def test_every_menu_path_named_is_the_menu_that_holds_it(commands):
     wrong = {str(path.relative_to(ROOT)): found for path in sources()
-             if (found := wrong_paths(path.read_text(encoding="utf-8"), commands))}
+             if (found := wrong_menu_paths(path.read_text(encoding="utf-8"), commands))}
     assert wrong == {}
 
 
@@ -83,17 +66,17 @@ def test_the_commands_were_read(commands):
 
 def test_a_wrong_menu_is_caught(commands):
     """Negative control: a real command on the wrong menu, both arrow forms."""
-    assert wrong_paths("**Edit > Preferences…**", commands) == [
+    assert wrong_menu_paths("**Edit > Preferences\u2026**", commands) == [
         "Edit > Preferences (it is on Index)"]
-    assert wrong_paths("**Index ▸ Open Recent**", commands) == [
+    assert wrong_menu_paths("**Index \u25b8 Open Recent**", commands) == [
         "Index > Open Recent (it is on File)"]
-    assert wrong_paths("File > Open Recent, Index > Check index, and Word's "
-                       "File > Save", commands) == []
+    assert wrong_menu_paths("File > Open Recent, Index > Check index, and Word's "
+                            "File > Save", commands) == []
 
 
 def test_no_page_of_preferences_is_named_by_an_old_title():
     """The two pages renamed on 5 September, as the guide still spelled them."""
-    stale = re.compile(r"Preferences\s*[>▸→]\s*(Check Index|Table of Authorities)\b")
+    stale = re.compile(r"Preferences\s*[>\u25b8\u2192]\s*(Check Index|Table of Authorities)\b")
     found = {str(path.relative_to(ROOT)): stale.findall(path.read_text(encoding="utf-8"))
              for path in sources()}
     assert {k: v for k, v in found.items() if v} == {}
@@ -101,12 +84,4 @@ def test_no_page_of_preferences_is_named_by_an_old_title():
 
 
 def test_every_help_link_and_contents_entry_leads_to_a_topic():
-    topics = {path.name for path in HELP.glob("*.md")}
-    listed = {item["file"] for item in json.loads((HELP / "toc.json").read_text(encoding="utf-8"))}
-    assert listed == topics
-    broken = []
-    for path in HELP.glob("*.md"):
-        for target in re.findall(r"\]\(([^)#\s]+\.md)", path.read_text(encoding="utf-8")):
-            if target not in topics:
-                broken.append(f"{path.name} -> {target}")
-    assert broken == []
+    assert help_link_problems(HELP) == []
