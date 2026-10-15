@@ -13,6 +13,7 @@ from bookindexcore.backend.locator import Locator
 from bookindexcore.model.records import IndexReference
 from bookindexcore.style import (
     StyleProfile, XREF_AFTER_HEADING, XREF_AT_END, XREF_FIRST_SUBHEADING,
+    XREF_AFTER_HEADING_IF_NO_PAGES, XREF_AT_END_IF_SUBHEADINGS,
 )
 
 from wordindex.xe_dialect import XE_DIALECT
@@ -190,3 +191,48 @@ class TestApplying:
         assert run.created == 1
         assert backend.deleted == ["b"]
         assert [w[0] for w in backend.written] == ["a"]
+
+
+class TestTheConditionalPlacements:
+    """
+    CIndex's two conditional places (P6 of the Polyglot Index Editor): each
+    is written as one of the three field forms, chosen per heading.
+    """
+
+    def _instruction(self, refs, placement):
+        changes, refused = build_change_set(refs, placement=placement)
+        assert refused == ()
+        return changes.changes[0].key["instruction"]
+
+    def test_no_pages_puts_it_after_the_heading(self):
+        refs = [ref("a", "Kant", "X"), ref("b", "Kant", "Y")]
+        raw = self._instruction(refs, XREF_AFTER_HEADING_IF_NO_PAGES)
+        assert XE_DIALECT.entry_text_of(raw) == "Kant"
+
+    def test_pages_make_it_the_first_sub_entry(self):
+        refs = [ref("p", "Kant"), ref("a", "Kant", "X"), ref("b", "Kant", "Y")]
+        raw = self._instruction(refs, XREF_AFTER_HEADING_IF_NO_PAGES)
+        assert XE_DIALECT.entry_text_of(raw).endswith(";aaa")
+
+    def test_subheadings_make_it_the_last_sub_entry(self):
+        refs = [ref("s", "Kant:ethics"), ref("a", "Kant", "X"),
+                ref("b", "Kant", "Y")]
+        raw = self._instruction(refs, XREF_AT_END_IF_SUBHEADINGS)
+        assert XE_DIALECT.entry_text_of(raw).endswith(";zzz")
+
+    def test_without_subheadings_it_follows_the_pages(self):
+        refs = [ref("p", "Kant"), ref("a", "Kant", "X"), ref("b", "Kant", "Y")]
+        raw = self._instruction(refs, XREF_AT_END_IF_SUBHEADINGS)
+        assert XE_DIALECT.entry_text_of(raw) == "Kant"
+
+    def test_a_cross_reference_sub_entry_is_not_a_subheading(self):
+        """Else the cross-reference's own old sub-entry would count as one."""
+        refs = [ref("o", "Kant:See also Z;zzz"), ref("a", "Kant", "X"),
+                ref("b", "Kant", "Y")]
+        raw = self._instruction(refs, XREF_AT_END_IF_SUBHEADINGS)
+        assert XE_DIALECT.entry_text_of(raw) == "Kant"
+
+    def test_a_sort_key_does_not_make_another_heading(self):
+        refs = [ref("p", "Kant;kant"), ref("a", "Kant", "X"), ref("b", "Kant", "Y")]
+        raw = self._instruction(refs, XREF_AFTER_HEADING_IF_NO_PAGES)
+        assert XE_DIALECT.entry_text_of(raw).endswith(";aaa")

@@ -133,3 +133,20 @@ class TestWhatAPlacementCosts:
         Word's three-level ceiling.
         """
         assert levels_needed(XREF_AFTER_HEADING) == 0
+
+
+class TestAnUnresolvedPlacementIsRefused:
+    """
+    A conditional placement has no field form; written unresolved it would
+    once have fallen through to the last sub-entry, silently.
+    """
+
+    @pytest.mark.parametrize("placement", ["after_heading_if_no_pages",
+                                           "end_if_subheadings"])
+    def test_instruction_for_refuses(self, placement):
+        with pytest.raises(ValueError):
+            instruction_for("Costs", XREF_SEEALSO, ["Fees"], placement=placement)
+
+    def test_levels_needed_refuses(self):
+        with pytest.raises(ValueError):
+            levels_needed("end_if_subheadings")

@@ -5,6 +5,12 @@ The application does not exist yet; what is here are its seams.
 
 ## Unreleased
 
+### 15 October 2026: CIndex's two conditional cross-reference placements
+
+- **From bookindexcore**: the Presentation page offers five placements, CIndex's, adding *after the heading if it has no page references, else as the first sub-entry* and *as the last sub-entry if there are sub-entries, else after the heading*.
+- **Consolidate Cross-References writes each as one of the three field forms**, decided heading by heading: whether the heading has a page reference of its own and whether it has sub-entries, read from the project's fields. A heading and the same heading with a sort key are one heading; a cross-reference this editor wrote as a sub-entry (`;aaa`, `;zzz`) is not a sub-entry. `xref_run.build_change_set`.
+- **`instruction_for` and `levels_needed` refuse a placement that has no field form.** Before, anything other than *after the heading* fell through to a sub-entry, so an unresolved conditional value would have been written as the last sub-entry, silently.
+
 ### 12 October 2026: the name dialog asks whether a name has a surname
 
 - **From bookindexcore, with no change here to show it**: the name dialog now

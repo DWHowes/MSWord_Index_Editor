@@ -41,10 +41,12 @@ from bookindexcore.backend.locator import SourceEdit
 from bookindexcore.checks.consolidate import consolidate
 from bookindexcore.dialect import effective_levels
 from bookindexcore.model.proposals import ChangeSet, ProposedChange
-from bookindexcore.style import XREF_AT_END
+from bookindexcore.style import XREF_AT_END, resolve_xref_placement
 
 from .xe_dialect import XE_DIALECT
-from .xref_placement import instruction_for, levels_needed, payload_for
+from .xref_placement import (
+    FIRST_KEY, LAST_KEY, instruction_for, levels_needed, payload_for,
+)
 
 __all__ = ["build_change_set", "apply_changes", "AppliedRun"]
 
@@ -68,6 +70,43 @@ def _document_order(references, order_of):
     return sorted(references, key=order_of)
 
 
+def _what_headings_carry(references):
+    """
+    ``(with_pages, with_subheadings)``: the heading paths (see `_path`) that
+    have a page reference of their own, and those that have a sub-entry. What
+    CIndex's two conditional placements are decided by.
+
+    A page reference is any entry that is not a cross-reference. A sub-entry
+    this module wrote as a cross-reference (filed by `FIRST_KEY` or
+    `LAST_KEY`) is neither: counting it would make *the last sub-entry if
+    there are sub-entries* true of a heading whose only sub-entry is the
+    cross-reference itself.
+    """
+    with_pages, with_subheadings = set(), set()
+    for reference in references:
+        levels = XE_DIALECT.split_levels(reference.heading_raw or "")
+        if not levels:
+            continue
+        if len(levels) > 1 and \
+                XE_DIALECT.split_sort_key(levels[-1])[0] in (FIRST_KEY, LAST_KEY):
+            continue
+        path = _path(reference.heading_raw)
+        if reference.xref is None:
+            with_pages.add(path)
+        for depth in range(1, len(path)):
+            with_subheadings.add(path[:depth])
+    return with_pages, with_subheadings
+
+
+def _path(heading) -> tuple:
+    """
+    A heading as Word groups it: each level's display text, so *Costs* and
+    *Costs;costs* (the same heading with a sort key) are one heading.
+    """
+    return tuple(XE_DIALECT.display_of(level)
+                 for level in XE_DIALECT.split_levels(heading or ""))
+
+
 def build_change_set(references, *, placement=XREF_AT_END, profile=None,
                      order_of=None, project=None) -> tuple:
     """
@@ -83,6 +122,7 @@ def build_change_set(references, *, placement=XREF_AT_END, profile=None,
     by_id = {r.entry_id: r for r in ordered}
 
     ceiling = effective_levels(XE_DIALECT, project)
+    with_pages, with_subheadings = _what_headings_carry(ordered)
     changes = []
     refused = list(found.contradictions)
 
@@ -92,7 +132,13 @@ def build_change_set(references, *, placement=XREF_AT_END, profile=None,
             continue
         heading = carrier.heading_raw
         depth = len(XE_DIALECT.split_levels_clean(heading))
-        if depth + levels_needed(placement) > ceiling:
+        # CIndex's two conditional places become one of the three fixed ones
+        # for this heading; a fixed one is itself.
+        path = _path(heading)
+        here = resolve_xref_placement(
+            placement, has_pages=path in with_pages,
+            has_subheadings=path in with_subheadings)
+        if depth + levels_needed(here) > ceiling:
             # A sub-entry placement needs a level the heading has not got.
             # Refused by name rather than silently written at the wrong depth
             # or quietly switched to another placement the indexer did not ask
@@ -102,7 +148,7 @@ def build_change_set(references, *, placement=XREF_AT_END, profile=None,
 
         instruction = instruction_for(
             heading, xref.kind, xref.targets,
-            placement=placement, index_class=carrier.index_class,
+            placement=here, index_class=carrier.index_class,
             profile=profile)
 
         before = "; ".join(

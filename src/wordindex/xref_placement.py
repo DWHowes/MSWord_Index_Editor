@@ -18,6 +18,14 @@ generated in a **separate document** through `RD`
 | `XREF_FIRST_SUBHEADING` | `XE "H:See also X; Y;aaa"` | first sub-entry |
 | `XREF_AT_END` | `XE "H:See also X; Y;zzz"` | last sub-entry |
 
+The vocabulary has two more values since P6 of the Polyglot Index Editor,
+CIndex's conditional places (`XREF_AFTER_HEADING_IF_NO_PAGES`,
+`XREF_AT_END_IF_SUBHEADINGS`). **Each is one of these three for any one
+heading**, decided by `bookindexcore.style.resolve_xref_placement` from what
+the heading carries, so they need no field form of their own. The caller
+resolves them (`xref_run.build_change_set`, which can see the heading's other
+entries); this module refuses one unresolved rather than guessing a form.
+
 The two sub-entry placements ride on Word's per-level sort key, the
 undocumented `display;sort` grammar E4 §3 measured: `;aaa` and `;zzz` file the
 sub-entry at either end of its siblings. They are composed through
@@ -58,9 +66,14 @@ from bookindexcore.style import (
     XREF_FIRST_SUBHEADING,
 )
 
+#: The placements a field can be written in. The two conditional values in
+#: the core's vocabulary resolve to one of these per heading first.
+WRITTEN_PLACEMENTS = (XREF_AFTER_HEADING, XREF_FIRST_SUBHEADING, XREF_AT_END)
+
 from .xe_dialect import XE_DIALECT
 
-__all__ = ["FIRST_KEY", "LAST_KEY", "TARGET_SEPARATOR",
+__all__ = ["FIRST_KEY", "LAST_KEY", "TARGET_SEPARATOR", "WRITTEN_PLACEMENTS",
+           "levels_needed",
            "labels_from_profile", "payload_for", "instruction_for"]
 
 #: The sort keys that file a sub-entry first and last among its siblings.
@@ -117,6 +130,7 @@ def instruction_for(heading: str, kind: str, targets: Sequence[str], *,
     cannot take one; the caller checks that, because only it can say what to
     do about it.
     """
+    _require_written(placement)
     joined = TARGET_SEPARATOR.join(t for t in targets if t)
 
     if placement == XREF_AFTER_HEADING:
@@ -149,4 +163,18 @@ def levels_needed(placement: str) -> int:
     `effective_levels` has no room for one. Named rather than counted at
     the call site, because "does this fit" is asked in two places.
     """
+    _require_written(placement)
     return 0 if placement == XREF_AFTER_HEADING else 1
+
+
+def _require_written(placement: str) -> None:
+    """
+    Refuse a placement no field form exists for. Before the conditional
+    values, anything not *after the heading* fell through to a sub-entry, so
+    an unresolved conditional would have been written as the last sub-entry,
+    silently.
+    """
+    if placement not in WRITTEN_PLACEMENTS:
+        raise ValueError(
+            f"{placement!r} is not a placement a field is written in; resolve "
+            f"it per heading with resolve_xref_placement first")

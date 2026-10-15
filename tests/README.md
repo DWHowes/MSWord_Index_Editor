@@ -635,3 +635,7 @@ absent for Swedish.
 ## A name with no surname (12 October 2026)
 
 `ui/test_invert_action.py::test_a_name_with_no_surname_is_remembered_though_unchanged` answers *no* to the core dialog's surname question on a heading already in direct order and requires the decision in the shared store with the reason *patronymic*, and the manuscript unchanged. The stand-in dialog gained `has_surname()`, since the window now asks it.
+
+## CIndex's conditional cross-reference placements (15 October 2026)
+
+`test_xref_run.py::TestTheConditionalPlacements`: no pages puts the consolidated reference after the heading and pages make it the first sub-entry (`;aaa`); sub-entries make it the last sub-entry (`;zzz`) and none leaves it after the heading; a cross-reference already written as a sub-entry does not count as a sub-entry; a sort key on the heading does not make it another heading. `test_xref_placement.py::TestAnUnresolvedPlacementIsRefused` requires `instruction_for` and `levels_needed` to raise on a conditional value.
